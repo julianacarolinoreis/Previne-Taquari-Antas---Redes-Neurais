@@ -60,6 +60,14 @@ class SantaTerezaMdtRefinementTests(unittest.TestCase):
         self.assertIn("const mdtBounds=[[elevationMeta.S,elevationMeta.W],[elevationMeta.N,elevationMeta.E]]", text)
         self.assertNotIn("L.imageOverlay(MDT_VISUAL_URL,BOUNDS", text)
 
+    def test_legacy_refiner_is_blocked_by_default(self) -> None:
+        script = (
+            ROOT / "codigo_python" / "02_mdt_hand_mancha" / "refinar_mdt_santa_tereza.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn('LEGACY_AUDIT_FLAG = "--legacy-audit-only"', script)
+        self.assertIn("Execução bloqueada: este refinamento drone + ANADEM é legado", script)
+        self.assertIn("LEGACY_AUDIT_FLAG not in sys.argv[1:]", script)
+
     def test_hand_generator_uses_flow_direction_not_nearest_river(self) -> None:
         script = (
             ROOT / "codigo_python" / "02_mdt_hand_mancha" / "gerar_hand_lidar_santa_tereza.py"

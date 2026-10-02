@@ -96,11 +96,11 @@
   .banner{position:absolute;z-index:500;left:10px;top:10px;background:#fff4e5;color:#8a5a12;border:1px solid #f0d9b5;border-radius:8px;padding:7px 11px;font-size:12px;max-width:66%}
   .flood-ov{image-rendering:auto}
   .live-btn{width:100%;margin-bottom:12px;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#c0392b,#e8730c);color:#fff;font-size:13.5px;font-weight:750;cursor:pointer;box-shadow:var(--shadow)}
-  .live-bar{display:flex;align-items:flex-start;gap:8px;background:#fdecea;border:1px solid #f3c0b8;border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:13px;font-weight:700;color:#a5281c}
-  .live-bar .ldot{width:10px;height:10px;border-radius:50%;background:#c0392b;animation:pulse 1.2s infinite;flex:0 0 auto;margin-top:5px}
-  .live-bar-copy{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;line-height:1.35}
-  .live-bar-kicker{font-size:11px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
-  #live-when{white-space:pre-line;font-weight:700}
+  .live-bar{display:flex;align-items:center;gap:8px;background:#fdecea;border:1px solid #f3c0b8;border-radius:12px;padding:8px 10px;margin-bottom:10px;font-size:12px;font-weight:700;color:#a5281c}
+  .live-bar .ldot{width:8px;height:8px;border-radius:50%;background:#c0392b;animation:pulse 1.2s infinite;flex:0 0 auto}
+  .live-bar-copy{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1;line-height:1.25}
+  .live-bar-kicker{font-size:10px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+  #live-when{white-space:normal;font-weight:650}
   .live-bar.stale{background:#fff4e0;border-color:#f0c98a;color:#8a5a12}
   .live-bar.stale .ldot{background:#e08a1e;animation:none}
   .live-bar a{margin-left:auto;color:inherit;cursor:pointer;text-decoration:underline;font-weight:600}
@@ -146,6 +146,9 @@
     header>div:not(.modes){min-width:0;flex:1}
     .modes{width:100%;margin-left:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-radius:12px}
     .modes button{white-space:normal;line-height:1.2;padding:8px 5px;font-size:11.5px}
+    .live-bar{border-radius:10px;padding:7px 9px;margin-bottom:9px}
+    .live-bar-kicker{font-size:9.5px}
+    #live-when{font-size:11.5px}
   }
 </style>
 <link rel="stylesheet" href="assets/previsao_panorama.css?v=20260913-briefing-v1">
@@ -250,7 +253,7 @@
           <div class="row2"><span class="sw b"></span><b>possível avanço fora do leito</b> (RNA, em laranja)</div>
           <div class="row2"><span class="sw u"></span>faixa de incerteza (a borda pode variar)</div>
         </div>
-        <div class="disc">A camada colorida exclui o contorno-base HAND 0, usado provisoriamente como aproximação do leito. Ela mostra somente a área adicional estimada fora desse contorno. A posição exata da borda pode variar — trate a mancha como <b>zona de atenção</b>, não como linha exata nem como alerta oficial. A antiga camada “MDT refinado · pesquisa” foi retirada desta página porque pertencia ao mosaico drone+ANADEM anterior e não era compatível com o HAND 5 m atual. A mancha agora é desenhada diretamente a partir do GeoJSON publicado, sem remover ilhas internas no navegador.</div>
+        <div class="disc">A camada colorida exclui o contorno-base HAND 0, usado provisoriamente como aproximação do leito. Ela mostra somente a área adicional estimada fora desse contorno. A posição exata da borda pode variar — trate a mancha como <b>zona de atenção</b>, não como linha exata nem como alerta oficial. A mancha atual é desenhada diretamente a partir do HAND hidráulico LiDAR publicado, sem trocar a fonte do terreno nem remover ilhas internas no navegador.</div>
       </div></details>
     </div>
 
@@ -1151,21 +1154,20 @@ function updateMapAccessibleSummary(D,hz){
   box.textContent=`Resumo acessível do mapa: nível observado ${fmtNivel(cm)}; horizonte selecionado ${hz||'—'}; horizontes publicados: ${keys||'nenhum'}. Cota oficial: ${fmtNivel(COTA_INUND)}. A mancha é estimativa de pesquisa e não é alerta oficial.`;
 }
 function liveWhenText(D,P){
-  const base=fmtWhen(D.telemetria_ultima_em||D.hora_modelo||D.consultado_em||P[0]);
-  const avisos=[];
-  const idadeRobo=ageMin(D.consultado_em);
-  const idadeAna=ageMin(D.telemetria_ultima_em);
-  if(idadeRobo!=null && idadeRobo>15) avisos.push(`robô sem publicar ${PrevineFmtQuando.fmtAge(idadeRobo)}`);
-  if(idadeAna!=null && idadeAna>60) avisos.push(`ANA sem hora nova ${PrevineFmtQuando.fmtAge(idadeAna)}`);
-  if(avisos.length){
-    document.getElementById('live-bar').classList.add('stale');
-    return base+'\n⚠ '+avisos.join('\n');
-  }
-  document.getElementById('live-bar').classList.remove('stale');
-  return base;
+  const reading=D.telemetria_ultima_em||D.hora_modelo||D.consultado_em||P[0];
+  const readingAge=ageMin(D.telemetria_ultima_em||reading);
+  const robotAge=ageMin(D.consultado_em);
+  const stale=(readingAge!=null&&readingAge>30)||(robotAge!=null&&robotAge>15);
+  document.getElementById('live-bar').classList.toggle('stale',stale);
+  const label=`Última leitura ${fmtClockDate(reading)}`;
+  if(readingAge!=null&&readingAge>30) return `${label} · ${PrevineFmtQuando.fmtAge(readingAge)}`;
+  if(robotAge!=null&&robotAge>15) return `Última atualização ${fmtClockDate(D.consultado_em)} · ${PrevineFmtQuando.fmtAge(robotAge)}`;
+  return label;
 }
 function liveWhenKind(D){
-  return (D.telemetria_ultima_em||D.hora_modelo)?'leitura':'consulta';
+  const readingAge=ageMin(D&&D.telemetria_ultima_em);
+  const robotAge=ageMin(D&&D.consultado_em);
+  return ((readingAge!=null&&readingAge>30)||(robotAge!=null&&robotAge>15))?'atrasado':'leitura';
 }
 function semHorizontes(x){ return !x || !x.horizontes || !Object.keys(x.horizontes).length; }
 function temPrevisao(x){
@@ -1187,8 +1189,10 @@ function renderLiveStep(){
     document.body.classList.add('live');
     const bar=document.getElementById('live-bar'); if(bar){ bar.style.display=''; bar.classList.add('stale'); }
     const hzsel=document.getElementById('live-hz'); if(hzsel) hzsel.style.display='none';
-    set('live-kind','estação ANA'); set('live-when','sem dado recente agora');
     const q=liveData.telemetria_ultima_em;
+    const qAge=ageMin(q);
+    set('live-kind','indisponível');
+    set('live-when',q?`Última leitura ${fmtClockDate(q)}${qAge!=null?' · '+PrevineFmtQuando.fmtAge(qAge):''}`:'Sem leitura recente');
     const note=document.getElementById('live-note');
     if(note){ note.style.display='';
       note.textContent='Estação de Santa Tereza sem dado recente da ANA neste momento'
@@ -1260,10 +1264,14 @@ function renderLiveStep(){
 async function enterLive(){
   let d; try{ d=await fetchLiveJson(); }
   catch(e){ document.getElementById('live-note').style.display=''; document.getElementById('live-note').textContent='Não consegui carregar a previsão ao vivo ('+e.message+'). No site publicado, o robô agendado preenche esse arquivo.'; return; }
-  liveData=d; prepareLiveData(liveData); updateTelemetryMarkers(liveData); if(window.PREVINE_PANORAMA)PREVINE_PANORAMA.update(liveData,activeLiveData()); liveMode=true; document.body.classList.add('live'); liveIdx=0; const toggle=document.getElementById('live-btn'); if(toggle){toggle.textContent='⏹ Desativar previsão ao vivo · voltar ao histórico';toggle.setAttribute('aria-pressed','true');}
+  liveData=d; prepareLiveData(liveData); updateTelemetryMarkers(liveData); if(window.PREVINE_PANORAMA)PREVINE_PANORAMA.update(liveData,activeLiveData()); liveMode=true; document.body.classList.add('live'); liveIdx=0; const toggle=document.getElementById('live-btn'); if(toggle){toggle.textContent='← Voltar ao histórico';toggle.setAttribute('aria-pressed','true');}
   document.getElementById('live-bar').style.display='';
   document.getElementById('live-hz').style.display='flex';
-  const note=document.getElementById('live-note'); note.style.display=''; note.textContent=d.aviso||'EXPERIMENTAL — não é alerta oficial.';
+  const note=document.getElementById('live-note');
+  const aviso=String(d.aviso||'').trim();
+  const showAviso=!!aviso && !/^EXPERIMENTAL\b/i.test(aviso);
+  note.style.display=showAviso?'':'none';
+  note.textContent=showAviso?aviso:'';
   if(playing){playing=false; clearTimeout(timer); document.getElementById('play').textContent='▶';}
   if(d.modo==='replay' && Array.isArray(d.passos)){
     renderLiveStep(); clearInterval(liveTimer);
@@ -1404,41 +1412,53 @@ async function init(){
     };
     stationControl.addTo(map);
     if(pt) L.circleMarker([pt.lat,pt.lon],{radius:6,color:'#fff',weight:2,fillColor:'#b04538',fillOpacity:.95}).addTo(map).bindPopup('<b>'+pt.label+'</b>');
-    // clique no mapa -> HAND/profundidade e, quando disponível, altitude same-source.
+    // Clique no terreno: mostrar só o que ajuda a ler o ponto rapidamente.
     map.on('click', async e=>{
       await ensureHand();
       const hd=handAt(e.latlng.lat,e.latlng.lng), elev=elevationAt(e.latlng.lat,e.latlng.lng);
       if(hd==null&&elev==null) return;
-      let html='<div class="pt-pop"><b>Neste ponto</b>';
-      html+='<br><b>Altitude absoluta do MDT: '+(elev!=null?nf1.format(elev)+' m':'indisponível até a regeneração same-source')+'</b>';
-      if(curS&&hd!=null){
-        const pointHand=hd.dm/10, ev=EVENTS[curEv];
-        html+='<br>Limiar hidráulico HAND (inclui a maior barreira do terreno no caminho até o rio): '+(hd.saturated?'≥ ':'')+nf1.format(pointHand)+' m';
-        const activeD=liveMode?activeLiveData():null;
-        const zeroCm=handZeroCm(activeD&&activeD.hand_zero_cm!=null?activeD:liveData);
-        const nowCm=liveMode?firstNumber(liveNowCm(liveData),liveNowCm(activeD)):firstNumber(curS[1]);
-        html+='<br><b>Alcance hidráulico estimado neste ponto</b>';
-        if(pointHand<=0){
-          html+='<br>Agora: dentro do contorno-base HAND 0; não classificado como extravasamento.';
-          mapForecastHorizons().forEach(row=>{
-            html+='<br>+'+row.key.replace(/^\+/,'')+': '+(row.ready?'dentro do contorno-base HAND 0; não classificado como extravasamento.':'<span>indisponível · '+horizonUnavailableReason(row.D)+'</span>');
-          });
-        }else{
-          const nowDepth=!hd.saturated&&nowCm!=null?stageToSpatialHand(nowCm,zeroCm)-pointHand:null;
-          html+='<br>Agora: '+(hd.saturated?'limiar hidráulico acima ou igual à faixa quantitativa do proxy':(nowDepth!=null&&nowDepth>0.03?nf1.format(nowDepth*100)+' cm acima do limiar hidráulico':'sem inundação estimada neste proxy'));
-          mapForecastHorizons().forEach(row=>{
-            const D=row.D;
-            const available=row.ready;
-            const forecast=available?firstNumber(D.nivel_previsto_cm):null;
-            const rowZero=handZeroCm(D||activeD||liveData);
-            html+='<br>+'+row.key.replace(/^\+/,'')+': '+(available?pointFloodStatus(hd,forecast,rowZero):'<span>indisponível · '+horizonUnavailableReason(D)+'</span>');
-          });
-        }
-      }
-      html+='<br><small>Coordenadas: '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5)+'</small>';
-      html+='<br><small>Espacialização operacional: HAND = nível da régua − 1,60 m. A mancha respeita as barreiras do LiDAR bruto ao longo do caminho D8 até o rio; o FILL é usado apenas no roteamento. A cota de 15,00 m continua sendo o limiar de transbordamento.</small>';
+
+      const floodSimple=(row)=>{
+        if(!row||!row.ready||!hd) return 'Indisponível';
+        const forecast=firstNumber(row.D&&row.D.nivel_previsto_cm);
+        if(forecast==null) return 'Indisponível';
+        const pointHand=hd.dm/10;
+        const rowZero=handZeroCm(row.D||activeLiveData()||liveData);
+        const spatialHand=stageToSpatialHand(forecast,rowZero);
+        // O valor 25 m é o teto do payload web, não necessariamente o HAND
+        // exato do ponto. Se a previsão está abaixo desse piso, sabemos que
+        // NÃO alcança o ponto. Acima dele, o produto atual não permite dizer SIM.
+        if(hd.saturated) return spatialHand<pointHand?'NÃO':'Fora da faixa';
+        return spatialHand>pointHand+0.03?'SIM':'NÃO';
+      };
+
+      const horizons=new Map(mapForecastHorizons().map(row=>[row.key,row]));
+      const statusClass=value=>value==='SIM'?'color:#b42318':(value==='NÃO'?'color:#087f5b':'color:#6b7280');
+      const rows=['2h','4h','8h'].map(key=>{
+        const value=floodSimple(horizons.get(key));
+        return '<div style="display:flex;justify-content:space-between;gap:18px;padding:5px 0;border-top:1px solid #edf1ee"><span>Água em +'+key.replace('h',' h')+'</span><b style="'+statusClass(value)+'">'+value+'</b></div>';
+      }).join('');
+
+      const popupZeroM=handZeroCm(activeLiveData()||liveData)/100;
+      const pointHandM=hd?hd.dm/10:null;
+      const gaugeNeededM=pointHandM==null?null:pointHandM+popupZeroM;
+      const handTxt=pointHandM==null
+        ?'indisponível'
+        :(hd.saturated?'≥ '+nf1.format(pointHandM)+' m <span style="font-weight:400;color:#6b7280">(limite do produto)</span>':nf1.format(pointHandM)+' m');
+      const gaugeTxt=gaugeNeededM==null
+        ?'indisponível'
+        :(hd.saturated?'pelo menos '+nf1.format(gaugeNeededM)+' m':'≈ '+nf1.format(gaugeNeededM)+' m');
+
+      let html='<div class="pt-pop" style="min-width:220px;line-height:1.35">';
+      html+='<b>Neste ponto</b>';
+      html+='<div style="margin-top:7px"><b>MDT:</b> '+(elev!=null?nf1.format(elev)+' m':'indisponível')+'</div>';
+      html+='<div><b>HAND:</b> '+handTxt+'</div>';
+      html+='<div><b>Régua para a água chegar aqui:</b> '+gaugeTxt+'</div>';
+      html+='<div><b>Latitude:</b> '+e.latlng.lat.toFixed(5)+'</div>';
+      html+='<div><b>Longitude:</b> '+e.latlng.lng.toFixed(5)+'</div>';
+      html+='<div style="margin-top:8px">'+rows+'</div>';
       html+='</div>';
-      L.popup({closeButton:true}).setLatLng(e.latlng).setContent(html).openOn(map);
+      L.popup({closeButton:true,maxWidth:280}).setLatLng(e.latlng).setContent(html).openOn(map);
     });
   } else {
     const box=document.getElementById('map');

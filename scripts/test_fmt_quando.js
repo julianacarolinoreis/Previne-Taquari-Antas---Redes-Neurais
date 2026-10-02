@@ -45,8 +45,8 @@ check(fmt.fmtAge(0), 'agora', 'idade zero');
 check(fmt.fmtAge(null), 'idade indisponível', 'idade nula');
 
 const clock = fmt.fmtWhen('2026-09-15T22:45:00');
-const liveBar = clock + '\n⚠ robô sem publicar ' + fmt.fmtAge(800) + '\nANA sem hora nova ' + fmt.fmtAge(870);
-check(liveBar, '15/09 22h45\n⚠ robô sem publicar há 13 h 20 min\nANA sem hora nova há 14 h 30 min', 'banner ao vivo');
+const liveBar = 'Última leitura ' + clock + ' · ' + fmt.fmtAge(800);
+check(liveBar, 'Última leitura 15/09 22h45 · há 13 h 20 min', 'banner ao vivo compacto');
 assert.ok(!liveBar.includes(':'), 'banner ao vivo não mistura relógio com dois-pontos');
 assert.ok(!/\d+h\d+/.test(fmt.fmtDuration(800)), 'duração não cola hora e minuto como relógio');
 assert.ok(!/\d+h\d+/.test(fmt.fmtAge(870)), 'idade não cola hora e minuto como relógio');

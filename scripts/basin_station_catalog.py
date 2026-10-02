@@ -120,6 +120,43 @@ def _inside_g040(lon: float, lat: float, features: list[dict[str, Any]]) -> bool
     return False
 
 
+def _g040_sub_basin(
+    lon: float, lat: float, features: list[dict[str, Any]]
+) -> str | None:
+    """Return the named G040 sub-basin containing a station coordinate."""
+
+    for feature in features:
+        geometry = feature.get("geometry") or {}
+        if not _point_in_polygon_coordinates(lon, lat, geometry.get("coordinates")):
+            continue
+        properties = feature.get("properties") if isinstance(feature, dict) else {}
+        properties = properties if isinstance(properties, dict) else {}
+        label = str(
+            properties.get("sub_bacia")
+            or properties.get("upg")
+            or properties.get("nome")
+            or ""
+        ).strip()
+        return label or None
+    return None
+
+
+def _assign_sub_basin(
+    station: dict[str, Any],
+    *,
+    longitude: float,
+    latitude: float,
+    basin_features: list[dict[str, Any]],
+) -> str | None:
+    label = _g040_sub_basin(longitude, latitude, basin_features)
+    if not label:
+        return None
+    station.setdefault("upgs", [])
+    _append_unique(station["upgs"], label)
+    station["upg_label"] = " · ".join(station["upgs"]) or label
+    return label
+
+
 def _station_code(value: Any) -> str:
     text = str(value or "").strip()
     return text[:-2] if text.endswith(".0") else text
@@ -206,6 +243,7 @@ def _add_cemaden_records(
     inside = 0
     added = 0
     merged = 0
+    assigned_sub_basin = 0
     for raw in records:
         if not isinstance(raw, dict):
             continue
@@ -239,6 +277,13 @@ def _add_cemaden_records(
             _append_unique(station["types"], station_type)
             station["type_label"] = " + ".join(station["types"])
             _source_metadata_item(station, "CEMADEN", role)
+        if _assign_sub_basin(
+            station,
+            longitude=longitude,
+            latitude=latitude,
+            basin_features=basin_features,
+        ):
+            assigned_sub_basin += 1
         _ensure_source_fields(station)
         _append_unique(station["source_networks"], "CEMADEN")
         _append_unique(station["source_roles"], role)
@@ -268,6 +313,7 @@ def _add_cemaden_records(
         "inside_basin_count": inside,
         "added_station_count": added,
         "merged_station_count": merged,
+        "assigned_sub_basin_count": assigned_sub_basin,
     }
 
 
@@ -316,6 +362,7 @@ def _parse_sgb_stations(html: str) -> list[dict[str, Any]]:
 def _add_sgb_records(
     stations: list[dict[str, Any]],
     *,
+    basin_features: list[dict[str, Any]],
     fetcher: Callable[[str], str],
 ) -> dict[str, Any]:
     html = fetcher(SGB_TAQUARI_URL)
@@ -324,6 +371,7 @@ def _add_sgb_records(
         raise ValueError("Painel SGB/SACE Taquari sem estações reconhecíveis.")
     added = 0
     merged = 0
+    assigned_sub_basin = 0
     for raw in records:
         code = raw["code"]
         station = _find_station(stations, code, "ANA")
@@ -347,6 +395,13 @@ def _add_sgb_records(
             _append_unique(station["catalog_sources"], SGB_TAQUARI_URL)
             _append_unique(station["types"], "hidrotelemetrica")
             station["type_label"] = " + ".join(station["types"])
+        if _assign_sub_basin(
+            station,
+            longitude=raw["longitude"],
+            latitude=raw["latitude"],
+            basin_features=basin_features,
+        ):
+            assigned_sub_basin += 1
         _ensure_source_fields(station)
         _append_unique(station["source_networks"], "SGB/SACE")
         _append_unique(station["source_roles"], "hidrotelemetria SGB/SACE")
@@ -363,6 +418,7 @@ def _add_sgb_records(
         "station_count": len(records),
         "added_station_count": added,
         "merged_station_count": merged,
+        "assigned_sub_basin_count": assigned_sub_basin,
     }
 
 
@@ -419,7 +475,11 @@ def augment_station_catalog(
             statuses[key] = {"state": "unavailable", "url": kwargs["url"], "error": str(exc)}
             errors.append(f"{key}: {exc}")
     try:
-        statuses["sgb_hydrotelemetry"] = _add_sgb_records(stations, fetcher=fetcher)
+        statuses["sgb_hydrotelemetry"] = _add_sgb_records(
+            stations,
+            basin_features=features,
+            fetcher=fetcher,
+        )
     except Exception as exc:  # pragma: no cover - live source failure path
         statuses["sgb_hydrotelemetry"] = {"state": "unavailable", "url": SGB_TAQUARI_URL, "error": str(exc)}
         errors.append(f"sgb_hydrotelemetry: {exc}")

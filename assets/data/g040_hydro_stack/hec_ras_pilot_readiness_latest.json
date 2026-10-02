@@ -1,0 +1,191 @@
+{
+  "schema_version": "g040_hec_ras_pilot_readiness_v1",
+  "generated_at_utc": "2026-10-02T03:19:32.437199Z",
+  "research_only": true,
+  "status": "PILOT_SOURCE_AUDIT_READY_GEOMETRY_AND_DATUM_BLOCKED",
+  "pilots": [
+    {
+      "name": "Santa Tereza",
+      "priority": 1,
+      "terrain_assets": {
+        "hand_diagnostic": {
+          "path": "assets/data/santa_tereza_inundacao/hand_lidar_5m_diagnostic.json",
+          "exists": true
+        },
+        "contours": {
+          "path": "assets/data/santa_tereza_inundacao/contornos_mancha.json",
+          "exists": true
+        },
+        "drone_dem_1m": {
+          "path": "assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_drone_1m.tif",
+          "exists": true
+        },
+        "anadem_30m": {
+          "path": "assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_anadem_30m.tif",
+          "exists": true
+        }
+      },
+      "terrain_assessment": {
+        "diagnostic_status": "gerado_localmente_requer_validacao_cartografica",
+        "source_resolution_m": 1.0,
+        "payload_resolution_m": 5.0,
+        "crs": "COMPD_CS[\"SIRGAS 2000 / UTM zone 22S + unknown\",PROJCS[\"SIRGAS 2000 / UTM zone 22S\",GEOGCS[\"SIRGAS 2000\",DATUM[\"Sistema_de_Referencia_Geocentrico_para_las_AmericaS_2000\",SPHEROID[\"GRS 1980\",6378137,298.257222101004,AUTHORITY[\"EPSG\",\"7019\"]],AUTHORITY[\"EPSG\",\"6674\"]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AUTHORITY[\"EPSG\",\"4674\"]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"central_meridian\",-51],PARAMETER[\"scale_factor\",0.9996],PARAMETER[\"false_easting\",500000],PARAMETER[\"false_northing\",10000000],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH],AUTHORITY[\"EPSG\",\"31982\"]],VERT_CS[\"unknown\",VERT_DATUM[\"unknown\",2005],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Up\",UP]]]",
+        "vertical_datum_known": false,
+        "same_source_current_hand_note": "current HAND diagnostic references local raw LiDAR/FILL/FLOWACC/FLOWDIR; repo drone+ANADEM legacy layers are not substitutes for that source",
+        "cartographic_validation_required": true
+      },
+      "validation_assets": {
+        "existing_hand_contours": true,
+        "field_or_flood_marks_in_this_inventory": false
+      },
+      "bathymetry_candidates": [
+        {
+          "id": "bathymetry_dnit_2024",
+          "category": "hydraulic_geometry",
+          "title": "DNIT batimetry 2024 - Plantas batimetria Porto a Barragem",
+          "status": "AVAILABLE_SOURCE_CANDIDATE",
+          "formats_seen": [
+            "DWG",
+            "PDF",
+            "XYZ folder"
+          ],
+          "supports": [
+            "HEC-RAS channel geometry candidate"
+          ],
+          "limitations": [
+            "spatial coverage, vertical datum and cross-section extraction still require audit"
+          ]
+        },
+        {
+          "id": "bathymetry_dnit_2025",
+          "category": "hydraulic_geometry",
+          "title": "DNIT batimetry 2025 - Plantas batimetricas Porto de Estrela a BRS",
+          "status": "AVAILABLE_SOURCE_CANDIDATE",
+          "supports": [
+            "HEC-RAS lower/central Taquari geometry candidate"
+          ],
+          "limitations": [
+            "spatial coverage, vertical datum and usable geometry files still require audit"
+          ]
+        }
+      ],
+      "gates": {
+        "horizontal_crs_identified": true,
+        "current_raw_lidar_materialized_for_ras": false,
+        "vertical_datum_reconciled": false,
+        "channel_bathymetry_audited": false,
+        "bridges_structures_audited": false,
+        "upstream_hydrograph_validated": false,
+        "downstream_boundary_validated": false
+      },
+      "notes": [
+        "HAND 5 m is a terrain-connectivity research product, not a hydrodynamic solution.",
+        "Current HAND uses raw LiDAR + D8 routing; legacy drone+ANADEM refined mosaic is explicitly not spatially compatible with the current HAND.",
+        "Gauge-to-terrain vertical offset of 1.60 m is a current research spatialization rule and must not be assumed to be a HEC-RAS vertical datum transformation."
+      ]
+    },
+    {
+      "name": "Muçum",
+      "priority": 2,
+      "terrain_assets": {
+        "contours": {
+          "path": "assets/data/mucum_inundacao/contornos_mancha.json",
+          "exists": true
+        },
+        "drone_dem_1m": {
+          "path": "assets/data/mucum_inundacao/mdt/mdt_mucum_drone_1m.tif",
+          "exists": true
+        },
+        "anadem_30m": {
+          "path": "assets/data/mucum_inundacao/mdt/mdt_mucum_anadem_30m.tif",
+          "exists": true
+        },
+        "flood_marks": {
+          "path": "assets/data/research_mucum_flood_marks_latest.json",
+          "exists": true
+        }
+      },
+      "terrain_assessment": {
+        "web_terrain_source": "mdt_mucum_mosaico_2m.tif",
+        "web_grid_resolution_m": 10,
+        "web_grid_crs": "EPSG:4326",
+        "drone_dem_1m_present": true,
+        "anadem_30m_present": true,
+        "vertical_datum_known": false
+      },
+      "validation_assets": {
+        "existing_hand_contours": true,
+        "flood_marks": {
+          "status": "research_only_observed_flood_marks",
+          "event": "maio_2024",
+          "count": 15,
+          "marks_with_elevation": 14,
+          "promotion_allowed": false
+        }
+      },
+      "bathymetry_candidates": [
+        {
+          "id": "bathymetry_dnit_2024",
+          "category": "hydraulic_geometry",
+          "title": "DNIT batimetry 2024 - Plantas batimetria Porto a Barragem",
+          "status": "AVAILABLE_SOURCE_CANDIDATE",
+          "formats_seen": [
+            "DWG",
+            "PDF",
+            "XYZ folder"
+          ],
+          "supports": [
+            "HEC-RAS channel geometry candidate"
+          ],
+          "limitations": [
+            "spatial coverage, vertical datum and cross-section extraction still require audit"
+          ]
+        },
+        {
+          "id": "bathymetry_dnit_2025",
+          "category": "hydraulic_geometry",
+          "title": "DNIT batimetry 2025 - Plantas batimetricas Porto de Estrela a BRS",
+          "status": "AVAILABLE_SOURCE_CANDIDATE",
+          "supports": [
+            "HEC-RAS lower/central Taquari geometry candidate"
+          ],
+          "limitations": [
+            "spatial coverage, vertical datum and usable geometry files still require audit"
+          ]
+        }
+      ],
+      "gates": {
+        "horizontal_crs_identified": true,
+        "terrain_source_materialized": true,
+        "vertical_datum_reconciled": false,
+        "channel_bathymetry_audited": false,
+        "bridges_structures_audited": false,
+        "upstream_hydrograph_validated": false,
+        "downstream_boundary_validated": false,
+        "independent_flood_mark_reference_available": true
+      },
+      "notes": [
+        "15 May-2024 SGB flood-mark records are available as research-only reference; most carry elevations.",
+        "HAND expansion is not evidence that station stage reached the corresponding HAND value.",
+        "Station gauge zero, terrain datum and bathymetry datum must be reconciled before depth validation."
+      ]
+    }
+  ],
+  "equation_protocol": {
+    "baseline": "Diffusion Wave",
+    "comparison": [
+      "SWE-ELM",
+      "SWE-EM where supported/appropriate"
+    ],
+    "selection": "validation against level/arrival/extents/depth marks, not computational convenience"
+  },
+  "mandatory_before_compute": [
+    "materialize and audit actual terrain used by each pilot",
+    "reconcile vertical datums and station gauge zero",
+    "audit channel bathymetry and terrain-bathymetry seam",
+    "inventory bridges/culverts/structures",
+    "define upstream hydrographs and downstream/backwater boundaries",
+    "define Manning provenance and sensitivity ranges"
+  ],
+  "promotion_allowed": false
+}

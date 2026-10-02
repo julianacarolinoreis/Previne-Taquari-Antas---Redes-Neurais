@@ -1,0 +1,68 @@
+{
+  "schema_version": "g040_assimilation_ensemble_contract_v2",
+  "generated_at_utc": "2026-09-30T18:57:30.345583Z",
+  "research_only": true,
+  "assimilation": {
+    "status": "partial_existing_mucum_to_be_generalized",
+    "allowed_first_version": "documented deterministic state/boundary update",
+    "prohibited_shortcut": "visual stage shifting presented as state assimilation",
+    "candidate_observations": [
+      "level",
+      "discharge",
+      "rainfall"
+    ],
+    "future_methods": [
+      "ensemble Kalman family or other validated sequential assimilation"
+    ]
+  },
+  "ensemble": {
+    "status": "scaffold",
+    "members": [
+      "HEC-HMS SMA",
+      "MGB",
+      "RNA where locally validated"
+    ],
+    "automatic_simple_mean": false,
+    "weighting_policy": "skill-based only after hindcast/pseudo-operational evaluation",
+    "report": [
+      "central_estimate",
+      "model_spread",
+      "model_disagreement",
+      "confidence_flag",
+      "reason_for_low_confidence"
+    ]
+  },
+  "state_update_contract": {
+    "required": [
+      "observation_timestamp",
+      "station_or_sensor_id",
+      "variable",
+      "value",
+      "unit",
+      "quality_flag",
+      "model_state_timestamp",
+      "update_method"
+    ],
+    "rule": "new observations update model state/boundary only through a documented method",
+    "forbidden": "visual-only curve shift presented as physical state correction"
+  },
+  "skill_contract": {
+    "metrics": [
+      "NSE",
+      "KGE",
+      "PBIAS",
+      "RMSE",
+      "MAE",
+      "volume_error",
+      "peak_error",
+      "peak_timing_error",
+      "rise_fall_skill"
+    ],
+    "required_partitions": [
+      "calibration_or_training",
+      "independent_validation"
+    ],
+    "pseudo_operational_replay_required_before_weighting": true,
+    "automatic_simple_mean": false
+  }
+}

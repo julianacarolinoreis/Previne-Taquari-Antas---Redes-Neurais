@@ -71,6 +71,8 @@ class DashboardDataContract(unittest.TestCase):
                 source = dashboard.ROOT / event[field]
                 self.assertTrue(source.is_file(), f"{event['key']}/{field}")
                 self.assertGreater(source.stat().st_size, 0, f"{event['key']}/{field}")
+        self.assertIn("altitude_terreno_lidar_10m.json", (dashboard.ROOT / "scripts" / "build_unified_event_spatial_dashboard.py").read_text(encoding="utf-8"))
+        self.assertNotIn("altitude_terreno_10m_refinado.json", (dashboard.ROOT / "scripts" / "build_unified_event_spatial_dashboard.py").read_text(encoding="utf-8"))
         for city in self.spatial.values():
             for field in ("background", "grid_source", "contour_source"):
                 relative = str(city[field]).removeprefix("../")
@@ -119,7 +121,9 @@ class DashboardDataContract(unittest.TestCase):
         self.assertIn('id="stationReconciliationLink"', page)
         self.assertIn("station_reconciliation_latest.json", page)
         self.assertIn('id="showGrid" type="checkbox"> Grade 200 m', page)
-        self.assertIn("geometrias de contorno até 30 m em Santa Tereza", page)
+        self.assertIn("contornos HAND publicados cobrem 0–25 m", page)
+        self.assertIn("LiDAR bruto", page)
+        self.assertIn("HAND = max(0, régua − 1,60 m)", page)
         self.assertIn('"spatial_generated_at_utc":"2026-', page)
         self.assertIn('"calibration_generated_at_utc":"2026-', page)
         parser = IdCollector()

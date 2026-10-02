@@ -9,6 +9,7 @@ on:
       - 'scripts/test_basin_station_forecast.py'
       - 'scripts/test_basin_station_catalog.py'
       - 'scripts/test_basin_station_forecast_archive.py'
+      - 'scripts/test_rain_observation_provenance.py'
       - 'codigo_python/10_chuvas/baixar_chuvas_horarias.py'
       - 'previne/robo/fontes_chuva_8h.py'
       - '.github/workflows/basin-station-forecast.yml'
@@ -56,8 +57,12 @@ jobs:
             /scripts/
             /previne/
             /codigo_python/10_chuvas/
+            /dashboard_bacia.html
+            /assets/js/bacia_dashboard.js
             /assets/data/chuvas_horarias.csv
+            /assets/data/chuvas_horarias.csv.provenance.json
             /assets/data/basin_station_forecast_latest.json
+            /assets/data/basin_station_status_latest.json
             /assets/data/estudo_bacia_taquari_antas/postos_g040.geojson
             /assets/data/estudo_bacia_taquari_antas/pluviometria_g040.geojson
             /assets/data/estudo_bacia_taquari_antas/ugs_g040.geojson
@@ -80,7 +85,7 @@ jobs:
         run: python -B scripts/build_basin_station_forecast.py
 
       - name: Testa o contrato do feed
-        run: python -m unittest scripts.test_basin_station_forecast scripts.test_basin_station_catalog -v
+        run: python -m unittest scripts.test_basin_station_forecast scripts.test_basin_station_catalog scripts.test_rain_observation_provenance -v
 
       - name: Arquiva a rodada para avaliação futura dos modelos
         run: python -B scripts/archive_basin_station_forecast.py
@@ -93,7 +98,10 @@ jobs:
         run: |
           git config user.name 'previne-basin-station-bot'
           git config user.email 'previne-basin-station-bot@users.noreply.github.com'
-          git add --sparse assets/data/chuvas_horarias.csv assets/data/basin_station_forecast_latest.json assets/data/basin_station_forecast_archive
+          git add --sparse assets/data/chuvas_horarias.csv assets/data/basin_station_forecast_latest.json assets/data/basin_station_status_latest.json assets/data/basin_station_forecast_archive
+          if [ -f assets/data/chuvas_horarias.csv.provenance.json ]; then
+            git add --sparse assets/data/chuvas_horarias.csv.provenance.json
+          fi
           if git diff --cached --quiet; then
             echo 'Nenhuma mudança no feed.'
             exit 0
@@ -111,8 +119,11 @@ jobs:
               timeout 120s python -B codigo_python/10_chuvas/baixar_chuvas_horarias.py || echo 'Coleta indisponível; preservando a série observada anterior.'
               python -B scripts/build_basin_station_forecast.py
               python -B scripts/archive_basin_station_forecast.py
-              python -m unittest scripts.test_basin_station_forecast scripts.test_basin_station_catalog scripts.test_basin_station_forecast_archive -v
-              git add --sparse assets/data/chuvas_horarias.csv assets/data/basin_station_forecast_latest.json assets/data/basin_station_forecast_archive
+              python -m unittest scripts.test_basin_station_forecast scripts.test_basin_station_catalog scripts.test_basin_station_forecast_archive scripts.test_rain_observation_provenance -v
+              git add --sparse assets/data/chuvas_horarias.csv assets/data/basin_station_forecast_latest.json assets/data/basin_station_status_latest.json assets/data/basin_station_forecast_archive
+              if [ -f assets/data/chuvas_horarias.csv.provenance.json ]; then
+                git add --sparse assets/data/chuvas_horarias.csv.provenance.json
+              fi
               if git diff --cached --quiet; then
                 echo 'Feed já publicado por outra execução.'
                 exit 0

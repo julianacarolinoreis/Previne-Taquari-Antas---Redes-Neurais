@@ -1,0 +1,178 @@
+{
+  "schema_version": "g040_full_basin_operational_contract_v1",
+  "research_only": true,
+  "purpose": "Single full-basin contract for PREVINE Taquari-Antas (G040): acquire meteorological data on basin+buffer, compute hydrology strictly on the basin mask, assimilate all valid hydrometric controls, and expose one basin snapshot plus distributed station diagnostics.",
+  "spatial_domain": {
+    "basin_geometry_source": "assets/data/estudo_bacia_taquari_antas/sub_bacias_q040_enquadramento.geojson",
+    "basin_geometry_rule": "unary union of all G040/Q040 polygons; this union is the hydrologic computation mask",
+    "hydrologic_mask": "strict_g040_union",
+    "acquisition_buffer_km_default": 50,
+    "buffer_crs": "EPSG:31982",
+    "download_domain": "g040_union_plus_buffer",
+    "outside_basin_policy": "outside-buffer data may not enter interpolation; buffer data may support interpolation/meteorological edge context but never contributes area or runoff to G040 water balance",
+    "grid_strategy": {
+      "acquisition": "derive a 0.1-degree grid from the G040+buffer geometry; retain cells intersecting the buffer",
+      "hydrologic_weight": "cell intersection area with strict G040 mask",
+      "compatibility": "legacy 600-cell rectangle may remain for existing HEC artifacts until migrated; it is not the canonical basin boundary"
+    }
+  },
+  "meteorology": {
+    "observed_precipitation": {
+      "scope": "all valid gauges in basin+buffer",
+      "temporal_resolution": "hourly accumulated precipitation",
+      "antecedent_windows_h": [
+        1,
+        3,
+        6,
+        12,
+        24,
+        48,
+        72,
+        120,
+        168
+      ],
+      "missing_rule": "missing is missing, never zero",
+      "spatialization": "preserve spatial field; area integrate only after clipping to G040 hydrologic units"
+    },
+    "forecast_precipitation": {
+      "primary": "ECMWF/IFS",
+      "scope": "full G040+buffer field",
+      "required_provenance": [
+        "model",
+        "cycle",
+        "lead_time",
+        "valid_time",
+        "variable",
+        "units"
+      ],
+      "forecast_horizons_h": [
+        1,
+        3,
+        6,
+        12,
+        24,
+        48,
+        72,
+        120
+      ],
+      "transition_rule": "observed until the last completed observed hour; forecast afterwards; no overlap averaging"
+    },
+    "soil_state": {
+      "operational_role": "continuous antecedent-state estimate for the entire G040",
+      "hec_hms_target": "Soil Moisture Accounting (SMA)",
+      "independent_diagnostics": [
+        "API",
+        "modeled soil moisture",
+        "ERA5-Land/other validated land-state products"
+      ],
+      "rule": "external soil-moisture products are diagnostics/assimilation candidates, not silent replacements for internal SMA states"
+    }
+  },
+  "hydrology": {
+    "domain": "entire G040 from all headwaters and tributaries to the official basin outlet",
+    "station_role": "controls for observation, assimilation, calibration and validation; stations do not define model extent",
+    "current_branch_controls": [
+      "86472000",
+      "86447000",
+      "86500000",
+      "86595000",
+      "86746000"
+    ],
+    "current_mainstem_checkpoints": [
+      "86510000",
+      "86720000",
+      "86743000",
+      "86879000",
+      "86879300",
+      "86895000",
+      "86950000",
+      "86996000"
+    ],
+    "final_hec_target": {
+      "subbasins": 145,
+      "reaches": 72
+    },
+    "models": [
+      "HEC-HMS continuous/SMA",
+      "MGB",
+      "validated local RNA members"
+    ],
+    "state_assimilation": "use all fresh quality-controlled stage/discharge controls with documented timestamp/unit/rating-curve provenance; no visual curve shifting"
+  },
+  "standard_request": {
+    "example": "Como está a bacia nas próximas 24 horas?",
+    "required_steps": [
+      "build/update G040 basin+buffer domain",
+      "download/assemble antecedent observed rainfall over basin+buffer",
+      "assemble current hydrometric state across all available controls",
+      "assemble soil/wetness state across G040",
+      "download latest ECMWF/IFS field over basin+buffer",
+      "merge observed-to-forecast forcing",
+      "run distributed hydrologic models over G040",
+      "assimilate/compare against fresh controls",
+      "produce basin-wide maps",
+      "produce station/control table without treating any one station as the model endpoint"
+    ]
+  },
+  "required_outputs": {
+    "basin_maps": [
+      "antecedent_rainfall",
+      "current_observed_rainfall",
+      "forecast_rainfall",
+      "soil_wetness_state",
+      "hydrologic_response",
+      "forecast_discharge_or_stage_where_valid",
+      "inundation_impact_where_hydraulically_valid"
+    ],
+    "distributed_table_columns": [
+      "control_code",
+      "location",
+      "role",
+      "latest_observation_time",
+      "age_minutes",
+      "current_stage",
+      "current_discharge_m3s",
+      "trend",
+      "upstream_context",
+      "antecedent_rainfall",
+      "forecast_rainfall",
+      "soil_state",
+      "model_forecast",
+      "forecast_horizon",
+      "confidence",
+      "blocking_reason"
+    ],
+    "machine_outputs": [
+      "g040_domain_contract_latest.json",
+      "g040_basin_mask.geojson",
+      "g040_download_buffer.geojson",
+      "g040_basin_snapshot_latest.json",
+      "g040_basin_controls_latest.csv",
+      "g040_ecmwf_buffer_grid_latest.json",
+      "g040_ecmwf_buffer_hourly.csv",
+      "g040_basin_network_latest.csv"
+    ],
+    "network_policy": {
+      "broad_network": "all stations in basin_station_status_latest.json for basin reading",
+      "calibration_subset": "quality-controlled hydro controls used for calibration/assimilation",
+      "rule": "do not confuse the number of calibration controls with the spatial extent of the basin monitoring network"
+    }
+  },
+  "validation": {
+    "multi_event_required": true,
+    "multi_station_required": true,
+    "metrics": [
+      "NSE",
+      "KGE",
+      "PBIAS",
+      "RMSE",
+      "MAE",
+      "volume_error",
+      "peak_error",
+      "peak_timing_error",
+      "rise_skill",
+      "recession_skill"
+    ],
+    "promotion_rule": "no station or model is operationally promoted from a single event, single location or display-only fit"
+  }
+}

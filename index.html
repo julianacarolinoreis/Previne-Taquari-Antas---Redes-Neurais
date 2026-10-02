@@ -209,22 +209,59 @@
   .m-soon{border:1.5px dashed var(--baseline);border-radius:8px;padding:10px 14px;color:var(--muted);font-size:12.5px;margin-top:18px;line-height:1.5}
 
   /* ---------- mapa das estações ---------- */
-  .map-grid{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(300px,.9fr);gap:16px;align-items:start}
-  @media (max-width:1020px){ .map-grid{grid-template-columns:minmax(0,1.45fr) minmax(280px,1fr)} }
-  @media (max-width:820px){ .map-grid{grid-template-columns:1fr} }
+  .map-grid{display:grid;grid-template-columns:minmax(0,2.15fr) minmax(310px,.85fr);gap:18px;align-items:start}
+  @media (max-width:1120px){ .map-grid{grid-template-columns:minmax(0,1.6fr) minmax(290px,1fr)} }
+  @media (max-width:820px){ .map-grid{grid-template-columns:1fr;gap:12px} }
   .map-stage{min-width:0}
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-  #mapa{height:650px;border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow);background:var(--surface-2);overflow:hidden}
-  @media (max-width:820px){#mapa{height:560px}}
+  #mapa{height:min(72vh,720px);min-height:590px;border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow);background:var(--surface-2);overflow:hidden}
+  @media (max-width:820px){#mapa{height:62vh;min-height:470px;max-height:620px;border-radius:14px}}
+  @media (max-width:520px){#mapa{height:58vh;min-height:440px}}
   .map-fallback{display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);font-size:13px;padding:24px;min-height:100%}
-  .map-status{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px;font-size:11.5px;color:var(--muted);line-height:1.45}
-  .map-status strong{color:var(--ink);font-weight:700}
-  .map-status .map-status-right{text-align:right}
+  .map-status{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 14px;align-items:start;margin:0 0 9px;font-size:11px;color:var(--muted);line-height:1.4}
+  .map-status strong{color:var(--ink);font-weight:750}
+  .map-status-main{display:flex;flex-wrap:wrap;align-items:center;gap:5px 7px}
+  .map-status-chip{display:inline-flex;align-items:center;white-space:nowrap;padding:3px 7px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--ink-2);font-size:10px;font-weight:650}
+  .map-status-chip.muted{color:var(--muted);font-weight:550}
+  .map-status-chip.fresh{color:#087a55;border-color:#acd9c7;background:#eef9f4}
+  .map-status-chip.stale{color:#9a3412;border-color:#f3c3a5;background:#fff1e8}
+  .map-status .map-status-right{text-align:right;max-width:300px}
+  .map-status .map-status-right.is-late{color:#9a3412;font-weight:650}
   .map-legend{display:flex;flex-wrap:wrap;align-items:center;gap:7px 14px;margin:8px 2px 0;color:var(--muted);font-size:11px}
   .map-legend-item{display:inline-flex;align-items:center;gap:5px}
   .map-legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;border:1px solid rgba(255,255,255,.75)}
-  .map-legend-dot.flow{background:#1b7a5a}.map-legend-dot.rain{background:#2878c8}.map-legend-dot.target{background:#e8a317}.map-legend-dot.hydro{background:#7c3aed}
+  .map-legend-dot.flow{background:#1b7a5a}.map-legend-dot.rain{background:#2878c8}.map-legend-dot.hydro{background:#7c3aed}
+  .map-legend-boundary{width:18px;height:10px;display:inline-block;border:1.5px solid #597b75;border-radius:2px;background:rgba(89,123,117,.08)}
+  .map-legend-dash{width:13px;height:13px;border-radius:50%;display:inline-block;border:2px dashed #7f8b84;background:rgba(127,139,132,.12)}
+  .map-legend-cluster{min-width:21px;height:21px;padding:0 5px;border-radius:999px;display:inline-grid;place-items:center;background:#17324d;color:#fff;font-style:normal;font-size:9px;font-weight:800;box-shadow:0 0 0 3px rgba(255,255,255,.84)}
+  .basin-cluster-icon{background:transparent!important;border:0!important}
+  .basin-cluster-bubble{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#17324d;color:#fff;font-size:12px;font-weight:850;border:3px solid rgba(255,255,255,.92);box-shadow:0 4px 15px rgba(23,50,77,.22)}
+  .basin-cluster-bubble.large{width:48px;height:48px;font-size:13px}
+  .leaflet-tooltip.basin-station-tip{border:1px solid rgba(23,50,77,.14);border-radius:8px;box-shadow:0 6px 18px rgba(23,50,77,.12);font:600 11px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#172433}
+  .basin-popup{min-width:190px;line-height:1.35}
+  .basin-popup strong{display:block;font-size:13px;margin-bottom:3px}
+  .basin-popup span{display:block;color:#5f6f67;font-size:10.5px;margin-top:2px}
+  .basin-popup .basin-popup-state{color:#263a31;font-weight:650;margin-top:5px}
+  .map-inline-help{background:rgba(255,255,255,.90);backdrop-filter:blur(5px);border:1px solid rgba(23,50,77,.12);border-radius:7px;padding:5px 7px;color:#5f6f67;font:600 9.5px/1.3 system-ui,-apple-system,"Segoe UI",sans-serif;box-shadow:0 3px 12px rgba(23,50,77,.08);max-width:230px}
+  .leaflet-control-layers{border-radius:9px!important;border:1px solid rgba(23,50,77,.14)!important;box-shadow:0 4px 14px rgba(23,50,77,.12)!important}
+  @media (max-width:520px){.map-inline-help{display:none}}
   .station-side{display:flex;flex-direction:column;gap:10px;min-width:0}
+  @media (min-width:821px){.station-side{position:sticky;top:82px;max-height:calc(100vh - 96px)}.stations{max-height:calc(100vh - 275px)!important}}
+  @media (max-width:820px){
+    .map-grid{display:grid}
+    .station-side{display:contents}
+    .station-toolbar{order:-3}
+    .map-stage{order:-2}
+    .stations{order:-1;max-height:310px!important}
+    .map-status{grid-template-columns:1fr}
+    .map-status .map-status-right{text-align:left;max-width:none}
+    .map-legend{gap:7px 11px}
+    .station-toolbar{padding:10px 11px}
+    .station-search{margin-top:7px}
+    .station-search input{min-height:42px;font-size:13px}
+    .station-filters{flex-wrap:nowrap;overflow-x:auto;padding:2px 0 6px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+    .station-filter{flex:0 0 auto;min-height:34px;padding:6px 10px}
+  }
   .station-toolbar{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:11px 12px;box-shadow:var(--shadow)}
   .station-toolbar-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
   .station-toolbar-title{font-size:13px;font-weight:750;color:var(--ink)}
@@ -332,6 +369,18 @@
   .station-detail-note strong{color:var(--ink-2)}
   .station-coverage-note{margin:10px 0 0;padding:9px 10px;border:1px dashed var(--border);border-radius:10px;background:var(--surface-2);color:var(--muted);font-size:10.5px;line-height:1.45}
   .station-coverage-note strong{color:var(--ink)}
+  .station-source-observations{margin-top:16px;border:1px solid var(--border);border-radius:13px;background:var(--surface-2);padding:12px}
+  .station-source-observations h4{margin:0;font-size:12px;color:var(--ink)}
+  .station-source-observations p{margin:3px 0 10px;color:var(--muted);font-size:10.5px;line-height:1.45}
+  .station-source-table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+  .station-source-table{width:100%;border-collapse:collapse;font-size:10.5px;line-height:1.35}
+  .station-source-table th,.station-source-table td{padding:7px 8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+  .station-source-table th{background:var(--surface-2);color:var(--muted);font-size:9.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase}
+  .station-source-table tr:last-child td{border-bottom:0}
+  .station-source-table td.value{font-variant-numeric:tabular-nums;font-weight:750;color:var(--ink)}
+  .station-source-status{display:inline-flex;align-items:center;border-radius:999px;padding:2px 6px;font-size:9px;font-weight:800;background:var(--good-bg);color:#087a08}
+  .station-source-status.off{background:var(--off-bg);color:var(--off)}
+
   @media (max-width:820px){
     #mapa{height:500px}
     .stations{max-height:350px}
@@ -689,16 +738,17 @@
     <div class="map-grid">
       <div class="map-stage">
         <div class="map-status" id="map-status" role="status">
-          <span><strong>Catálogo completo da bacia</strong> · carregando ANA, SGB, CEMADEN e INMET…</span>
-          <span class="map-status-right">Feed multi-modelo · pesquisa</span>
+          <span><strong>Rede completa da G040</strong> · carregando ANA, SGB, CEMADEN e INMET…</span>
+          <span class="map-status-right">Todas as estações · pesquisa</span>
         </div>
         <div id="mapa"><div class="map-fallback">Carregando o mapa…</div></div>
         <div class="map-legend" aria-label="Legenda do mapa">
-          <span class="map-legend-item"><i class="map-legend-dot target"></i> alvo/nível</span>
-          <span class="map-legend-item"><i class="map-legend-dot flow"></i> fluviométrica</span>
+          <span class="map-legend-item"><i class="map-legend-dot flow"></i> fluviométrica / nível</span>
           <span class="map-legend-item"><i class="map-legend-dot rain"></i> pluviométrica</span>
           <span class="map-legend-item"><i class="map-legend-dot hydro"></i> hidrológica CEMADEN</span>
-          <span class="map-legend-item">Clique num ponto para abrir as métricas</span>
+          <span class="map-legend-item"><i class="map-legend-boundary"></i> sub-bacias G040</span>
+          <span class="map-legend-item"><i class="map-legend-dash"></i> sem observado atual</span>
+          <span class="map-legend-item"><i class="map-legend-cluster">12</i> grupo de estações — aproxime para separar</span>
         </div>
       </div>
       <div class="station-side">
@@ -722,7 +772,8 @@
             <button class="station-filter" type="button" aria-pressed="false" data-filter="level">Nível observado</button>
             <button class="station-filter" type="button" aria-pressed="false" data-filter="flow">Tipo: nível</button>
             <button class="station-filter" type="button" aria-pressed="false" data-filter="rain">Tipo: chuva</button>
-            <button class="station-filter" type="button" aria-pressed="false" data-filter="data">Qualquer dado</button>
+            <button class="station-filter" type="button" aria-pressed="false" data-filter="observed-any">Algum observado</button>
+            <button class="station-filter" type="button" aria-pressed="false" data-filter="observed-missing">Sem observado atual</button>
           </div>
         </div>
         <div class="stations" id="stations"></div>
@@ -730,8 +781,8 @@
     </div>
     <div class="station-detail-panel" id="station-detail" hidden aria-live="polite"></div>
     <p class="map-note">O inventário reúne as estações catalogadas na bacia Taquari–Antas (G040): ANA/HidroWeb, hidrotelemetria SGB/SACE, CEMADEN e INMET. Observação, telemetria e previsão
-      aparecem separadas; <strong>indisponível</strong> não significa zero. O ciclo automático tenta atualizar a cada cinco minutos e esta interface
-      é de pesquisa — <strong>não é alerta oficial</strong>, ordem de evacuação ou confirmação de inundação.</p>
+      aparecem separadas; <strong>indisponível</strong> não significa zero. O ciclo é automático e encadeado: a nova publicação ocorre quando a rodada completa da rede termina, por isso o intervalo real pode ser maior que cinco minutos.
+      Esta interface é de pesquisa — <strong>não é alerta oficial</strong>, ordem de evacuação ou confirmação de inundação.</p>
     <a class="mancha-link" href="vulnerabilidade.html">
       <span class="ml-ico" aria-hidden="true">👥</span>
       <span class="ml-txt"><strong>Vulnerabilidade social da bacia <span style="font-size:11px;font-weight:600;color:#8a5a12">(beta)</span></strong>
@@ -1611,8 +1662,11 @@
   let BASIN_LOADING=false;
   const BASIN_FEED_RAW_URL='https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/basin_station_forecast_latest.json';
   const BASIN_FEED_PAGES_URL='assets/data/basin_station_forecast_latest.json';
+  const BASIN_BOUNDARY_URL='assets/data/estudo_bacia_taquari_antas/sub_bacias_q040_enquadramento.geojson';
   let BASIN_MAP=null;
   let BASIN_MARKER_LAYER=null;
+  let BASIN_SUBBASIN_LAYER=null;
+  let BASIN_LAYER_CONTROL=null;
   const BASIN_MARKERS={};
   let BASIN_CHART_OBSERVER=null;
   let BASIN_CHART_RESIZE_FRAME=0;
@@ -1637,11 +1691,21 @@
     if(Number.isNaN(d.getTime()))return String(value);
     return d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'});
   };
+  const basinRelativeAge=value=>{
+    const t=Date.parse(value);
+    if(!Number.isFinite(t))return '';
+    const minutes=Math.max(0,Math.round((Date.now()-t)/60000));
+    if(minutes<1)return 'agora';
+    if(minutes<60)return 'há '+minutes+' min';
+    const hours=minutes/60;
+    if(hours<24)return 'há '+hours.toLocaleString('pt-BR',{maximumFractionDigits:1})+' h';
+    return 'há '+Math.round(hours/24)+' d';
+  };
   const basinNextCycle=value=>{
-    if(!value)return 'não informado';
+    if(!value)return 'ciclo automático ativo';
     const d=new Date(value);
     if(Number.isNaN(d.getTime()))return String(value);
-    return basinDate(value)+(d.getTime()<Date.now()?' · referência já passada':'')+' · execução sujeita a atraso';
+    return 'referência nominal '+basinDate(value)+(d.getTime()<Date.now()?' · referência já passada':'')+' · execução sujeita a atraso';
   };
   const basinFeedAgeHours=()=>{
     const generated=BASIN_FEED&&BASIN_FEED.generated_at_utc?Date.parse(BASIN_FEED.generated_at_utc):NaN;
@@ -1733,7 +1797,7 @@
     const ageMinutes=Number.isFinite(observedMs)?(Date.now()-observedMs)/60000:publishedMinutes===null?null:publishedMinutes+(basinFeedAgeHours()||0)*60;
     if(ageMinutes===null)return 'idade não informada';
     if(ageMinutes<0)return 'carimbo posterior ao relógio local';
-    const prefix=label||'último intervalo fechado há ';
+    const prefix=label||'último intervalo encerrado no calendário há ';
     if(ageMinutes<60)return prefix+Math.floor(ageMinutes)+' min';
     if(ageMinutes<1440)return prefix+(ageMinutes/60).toFixed(1).replace('.',',')+' h';
     return prefix+(ageMinutes/1440).toFixed(1).replace('.',',')+' dias';
@@ -1741,13 +1805,28 @@
   const basinObservedRainAge=obs=>obs&&obs.timestamp_role==='interval_start'
     ?basinObservedAge(obs.last_closed_interval_end_utc,obs.closed_interval_age_minutes)
     :basinObservedAge(obs&&obs.last_observed_at_utc,obs&&obs.observed_age_minutes,'último carimbo disponível há ');
+  const basinHasAnyObserved=st=>{
+    if(!st)return false;
+    if(st.observed_rain&&st.observed_rain.state==='available')return true;
+    if(st.level&&['available','partial'].includes(st.level.state))return true;
+    return Array.isArray(st.source_observations)&&st.source_observations.some(item=>item&&basinFinite(item.value));
+  };
+  const basinSourceObservationLabel=metric=>({
+    chuva_acumulada_24h_mm:'Chuva acumulada observada · 24h',
+    nivel_cemaden:'Nível hidrológico CEMADEN'
+  }[metric]||String(metric||'Observação da fonte'));
+  const basinSourceObservationValue=item=>{
+    if(!item||!basinFinite(item.value))return 'indisponível';
+    const value=Number(item.value).toLocaleString('pt-BR',{maximumFractionDigits:3});
+    return value+(item.unit?' '+item.unit:'');
+  };
   const basinObservedWindowNote=(window,obs)=>{
     if(!window)return 'janela observada não publicada · intervalo não publicado · '+basinObservedRainAge(obs);
     const coverage=Math.round(Number(window.coverage_ratio||0)*100);
     const period=window.start_utc&&window.end_utc
       ?' · período '+basinDateTime(window.start_utc)+' → '+basinDateTime(window.end_utc)+' · '+basinObservedAge(window.end_utc,obs&&obs.closed_interval_age_minutes)
       :' · intervalo não publicado · '+basinObservedAge(obs&&obs.last_observed_at_utc,obs&&obs.observed_age_minutes,'último carimbo disponível há ');
-    return (window.valid_points||0)+'/'+(window.expected_points||0)+' pontos válidos · cobertura '+coverage+'%'+(window.complete?'':' · janela parcial')+period;
+    return (window.valid_points||0)+'/'+(window.expected_points||0)+' pontos válidos · cobertura '+coverage+'%'+(window.complete?'':' · janela parcial')+(window.unconfirmed_points?' · '+window.unconfirmed_points+' pontos sem consulta confirmada após o término':'')+period;
   };
   const basinMinutesNote=minutes=>{
     const n=basinNumber(minutes);
@@ -1758,8 +1837,6 @@
     const isHydro=/hidrolog/.test(text)&&!/pluviometr/.test(text);
     const isLevel=st.grp==='alvo'||st.grp==='alt'||(st.level&&st.level.state==='available')||/fluviometr|telemetr|nivel|hidrolog/.test(text);
     const isRain=(st.observed_rain&&st.observed_rain.state==='available')||!!basinCemadenRain24(st)||/pluviometr|chuva|rain/.test(text);
-    const target=st.code==='86472600'||st.grp==='alvo';
-    if(target)return {category:'target',label:'alvo/nível',color:'#e8a317',isLevel:true,isRain:isRain};
     if(isHydro)return {category:'hydro',label:'hidrológica',color:'#7c3aed',isLevel:true,isRain:false};
     if(isLevel)return {category:'flow',label:'fluviométrica',color:'#1b7a5a',isLevel:true,isRain:isRain};
     return {category:'rain',label:'pluviométrica',color:'#2878c8',isLevel:false,isRain:true};
@@ -1773,6 +1850,10 @@
     const cemaden=basinCemadenRain24(st);
     if(cemaden)bits.push('CEMADEN 24h: '+basinFormat(cemaden.value,'precipitation')+' · horário da leitura não informado');
     if(st.level&&st.level.state==='available')bits.push('nível: '+basinFormat(st.level.current_cm,'level_cm'));
+    const extraObserved=Array.isArray(st.source_observations)
+      ?st.source_observations.filter(item=>item&&basinFinite(item.value)&&item.metric!=='chuva_acumulada_24h_mm')
+      :[];
+    if(extraObserved.length)bits.push(extraObserved.slice(0,2).map(item=>basinSourceObservationLabel(item.metric)+': '+basinSourceObservationValue(item)).join(' · '));
     return bits.join(' · ')||'sem série observada no feed atual';
   };
   const basinTypeLabel=st=>basinStationKind(st).label;
@@ -1787,8 +1868,9 @@
     if(BASIN_FILTER==='rain'&&!kind.isRain)return false;
     if(BASIN_FILTER==='forecast'&&!(st.forecast&&st.forecast.state==='available'))return false;
     if(BASIN_FILTER==='observed'&&!basinHasObservedRain(st))return false;
-    if(BASIN_FILTER==='level'&&!(st.level&&st.level.state==='available'))return false;
-    if(BASIN_FILTER==='data'&&!basinHasData(st))return false;
+    if(BASIN_FILTER==='level'&&!(st.level&&['available','partial'].includes(st.level.state)))return false;
+    if(BASIN_FILTER==='observed-any'&&!basinHasAnyObserved(st))return false;
+    if(BASIN_FILTER==='observed-missing'&&basinHasAnyObserved(st))return false;
     if(!BASIN_QUERY)return true;
     const text=basinFold([st.name,st.code,st.network,st.source_networks,st.source_roles,st.type_label,st.upg_label,st.upgs,st.papel].join(' '));
     return text.includes(basinFold(BASIN_QUERY));
@@ -2008,10 +2090,10 @@
     }
     if(metric!=='precipitation')return [];
     const rows=st&&st.observed_rain&&Array.isArray(st.observed_rain.rows)?st.observed_rain.rows:[];
-    return rows.filter(row=>row&&Number.isFinite(Date.parse(row.time))&&basinFinite(row.mm)).sort((a,b)=>Date.parse(a.time)-Date.parse(b.time)).slice(-6).map(row=>({time:row.time,value:Number(row.mm),unit:'mm',interval_end_utc:row.interval_end_utc,partial:row.partial===true}));
+    return rows.filter(row=>row&&Number.isFinite(Date.parse(row.time))&&basinFinite(row.mm)).sort((a,b)=>Date.parse(a.time)-Date.parse(b.time)).slice(-6).map(row=>({time:row.time,value:Number(row.mm),unit:'mm',interval_end_utc:row.interval_end_utc,partial:row.partial===true,confirmation:row.confirmation}));
   };
   const basinObservedRowTime=(row,obs)=>obs&&obs.timestamp_role==='interval_start'&&row.interval_end_utc
-    ?basinDateTime(row.time)+' → '+basinDateTime(row.interval_end_utc)+(row.partial?' · hora aberta, acumulado parcial':' · hora fechada')
+    ?basinDateTime(row.time)+' → '+basinDateTime(row.interval_end_utc)+(row.partial?' · acumulado parcial; aguarda confirmação':row.confirmation==='unknown'?' · intervalo encerrado; consulta não confirmada':' · intervalo encerrado')
     :basinDateTime(row.time)+' · carimbo; intervalo não publicado';
   const basinTimelineForecastRows=(st,metric,limit)=>{
     if(metric==='level_cm'){
@@ -2363,6 +2445,9 @@
   function basinRenderDetail(st){
     const panel=basinById('station-detail');
     if(!panel)return;
+    const active=document.activeElement;
+    const focusedModel=panel.contains(active)&&active.getAttribute('data-basin-model');
+    const focusedMetric=panel.contains(active)&&active.getAttribute('data-basin-metric');
     if(!st){panel.hidden=true;panel.replaceChildren();return;}
     panel.hidden=false;
     const kind=basinStationKind(st);
@@ -2379,7 +2464,7 @@
     const rain=basinObservedRainTotal(st);
     const observedRain24=basinObservedWindow(st,24);
     const observedRain72=basinObservedWindow(st,72);
-    const observedStatus=window=>!window||!Number(window.valid_points||0)?'unavailable':window.complete?'complete':'partial';
+    const observedStatus=window=>!window||!Number(window.valid_points||0)?'unavailable':window.complete&&st.observed_rain&&st.observed_rain.timestamp_role==='interval_start'&&window.unconfirmed_points===0?'complete':'partial';
 
     const cemadenRain=basinSourceObservation(st,'chuva_acumulada_24h_mm');
     const cemadenApplicable=!!cemadenRain||basinHasSource(st,'CEMADEN');
@@ -2412,9 +2497,10 @@
     const rnaFallbackApplicable=['86472600','86510000'].includes(String(st.code||''));
     const rnaApplicable=level&&typeof level.forecast_applicable==='boolean'?level.forecast_applicable:rnaFallbackApplicable;
     const rnaForecasts=level&&Array.isArray(level.forecasts)?level.forecasts:[];
-    const rnaFallback=rnaForecasts.find(item=>item&&basinFinite(item.cm))||null;
-    const rnaValue=level&&basinNumber(level.forecast_cm)!==null?basinNumber(level.forecast_cm):(rnaFallback?basinNumber(rnaFallback.cm):null);
-    const rnaTime=level&&level.forecast_at_utc?level.forecast_at_utc:(rnaFallback&&rnaFallback.time||null);
+    const rnaFallback=rnaForecasts.filter(item=>item&&basinFinite(item.cm)&&Date.parse(item.time)>Date.now()).sort((a,b)=>Date.parse(a.time)-Date.parse(b.time))[0]||null;
+    const topRnaCurrent=level&&basinNumber(level.forecast_cm)!==null&&Date.parse(level.forecast_at_utc)>Date.now();
+    const rnaValue=topRnaCurrent?basinNumber(level.forecast_cm):(rnaFallback?basinNumber(rnaFallback.cm):null);
+    const rnaTime=topRnaCurrent?level.forecast_at_utc:(rnaFallback&&rnaFallback.time||null);
     const rnaAvailable=rnaValue!==null;
     const forecastLevel=rnaAvailable?basinFormat(rnaValue,'level_cm'):(rnaApplicable?'indisponível':'—');
     const rnaNote=rnaAvailable
@@ -2446,7 +2532,7 @@
     const code=st.code&&st.code!=='—'?'código '+st.code:'código não informado';
     const coordinate=basinCoord(st.latitude!==undefined?st.latitude:st.lat,'N','S')+' · '+basinCoord(st.longitude!==undefined?st.longitude:st.lon,'E','O');
     const currentMetricNote=(stats,extra)=>forecastTime?(extra?extra+' · ':'')+'horário '+basinDate(forecastTime)+' · '+basinCoverageText(stats):forecastUnavailableNote;
-    let html='<div class="station-detail-header"><div><h3 class="station-detail-title">'+basinEscape(st.name||'Estação')+'</h3><p class="station-detail-subtitle">'+basinEscape(st.papel||kind.label)+' · '+basinEscape(coordinate)+'</p><div class="station-detail-badges"><span class="station-detail-badge">'+basinEscape(code)+'</span><span class="station-detail-badge">'+basinEscape(basinSourceLabel(st))+'</span><span class="station-detail-badge">'+basinEscape(kind.label)+'</span><span class="station-detail-badge research">pesquisa · não é alerta oficial</span>'+(basinFeedIsStale()?'<span class="station-detail-badge stale">snapshot atrasado</span>':'')+'</div></div><div class="station-detail-update">Feed gerado: '+basinEscape(generated)+'<br>Próximo ciclo: '+basinEscape(next)+'</div></div>';
+    let html='<div class="station-detail-header"><div><h3 class="station-detail-title">'+basinEscape(st.name||'Estação')+'</h3><p class="station-detail-subtitle">'+basinEscape(st.papel||kind.label)+' · '+basinEscape(coordinate)+'</p><div class="station-detail-badges"><span class="station-detail-badge">'+basinEscape(code)+'</span><span class="station-detail-badge">'+basinEscape(basinSourceLabel(st))+'</span><span class="station-detail-badge">'+basinEscape(kind.label)+'</span><span class="station-detail-badge research">pesquisa · não é alerta oficial</span>'+(basinFeedIsStale()?'<span class="station-detail-badge stale">snapshot atrasado</span>':'')+'</div></div><div class="station-detail-update">Feed gerado: '+basinEscape(generated)+'<br>Próximo ciclo nominal: '+basinEscape(next)+'</div></div>';
     if(st.sace_report_url)html+='<p class="station-detail-source-link"><a href="'+basinEscape(st.sace_report_url)+'" target="_blank" rel="noopener">Abrir relatório hidrotelemétrico SGB/SACE desta estação</a></p>';
     html+='<div class="station-detail-controls"><div class="station-control-group"><span class="station-control-label">Modelos meteorológicos</span><div class="station-model-toggle" role="group" aria-label="Selecionar modelos meteorológicos">';
     specs.forEach(spec=>{
@@ -2462,9 +2548,9 @@
     html+='</div></div></div>';
 
     html+='<div class="station-summary">'+
-      basinMetricCard('Chuva observada · 24h (série horária)',observedRain24&&basinFinite(observedRain24.mm)?basinFormat(observedRain24.mm,'precipitation'):'indisponível',basinObservedWindowNote(observedRain24),observedStatus(observedRain24))+
+      basinMetricCard('Chuva observada · 24h (série horária)',observedRain24&&basinFinite(observedRain24.mm)?basinFormat(observedRain24.mm,'precipitation'):'indisponível',basinObservedWindowNote(observedRain24,st.observed_rain),observedStatus(observedRain24))+
       basinMetricCard('CEMADEN · acumulado observado 24h',cemadenRainValue,cemadenRainNote,cemadenStatus)+
-      basinMetricCard('Chuva observada · 72h (série horária)',rainValue,rain.count?basinObservedWindowNote(observedRain72):'sem pontos válidos',observedStatus(observedRain72))+
+      basinMetricCard('Chuva observada · 72h (série horária)',rainValue,basinObservedWindowNote(observedRain72,st.observed_rain),observedStatus(observedRain72))+
       basinMetricCard('Chuva prevista · próximo horário',forecastRain===null?'indisponível':basinFormat(forecastRain,'precipitation'),forecastRainNote,basinStatsStatus(forecastRainStats))+
       basinMetricCard('Chuva prevista · 3 h',forecastRain3Stats.value===null?'indisponível':basinFormat(forecastRain3Stats.value,'precipitation'),windowNote(forecastRain3Stats,3),basinStatsStatus(forecastRain3Stats))+
       basinMetricCard('Chuva prevista · 6 h',forecastRain6Stats.value===null?'indisponível':basinFormat(forecastRain6Stats.value,'precipitation'),windowNote(forecastRain6Stats,6),basinStatsStatus(forecastRain6Stats))+
@@ -2482,6 +2568,25 @@
       basinMetricCard('Pressão prevista',pressure===null?'indisponível':basinFormat(pressure,'pressure_msl'),currentMetricNote(pressureStats,''),basinStatsStatus(pressureStats))+
       basinMetricCard('Umidade do solo',soil===null?'indisponível':basinFormat(soil,'soil_moisture_0_to_7cm'),currentMetricNote(soilStats,'proxy modelado · não é sensor local'),basinStatsStatus(soilStats))+
       '</div>';
+
+    const sourceObservations=Array.isArray(st.source_observations)
+      ?st.source_observations.filter(item=>item&&item.metric)
+      :[];
+    if(sourceObservations.length){
+      html+='<section class="station-source-observations"><h4>Observações publicadas pelas redes</h4>'+
+        '<p>Valores trazidos diretamente dos painéis/fontes complementares da estação. O horário abaixo é o horário de atualização informado pela fonte; quando a fonte não publica o instante individual da medição, isso é mantido explícito.</p>'+
+        '<div class="station-source-table-wrap"><table class="station-source-table"><thead><tr><th>Fonte</th><th>Variável</th><th>Valor</th><th>Atualização da fonte</th><th>Estado</th></tr></thead><tbody>';
+      sourceObservations.forEach(item=>{
+        const ok=String(item.source_status)==='0'&&basinFinite(item.value);
+        const updated=item.updated_at_utc?String(item.updated_at_utc).replace(' UTC','')+' UTC':'não informado';
+        html+='<tr><td>'+basinEscape(item.source||'fonte não informada')+'</td>'+
+          '<td>'+basinEscape(basinSourceObservationLabel(item.metric))+'</td>'+
+          '<td class="value">'+basinEscape(basinSourceObservationValue(item))+'</td>'+
+          '<td>'+basinEscape(updated)+'</td>'+
+          '<td><span class="station-source-status'+(ok?'':' off')+'">'+(ok?'disponível':'indisponível')+'</span></td></tr>';
+      });
+      html+='</tbody></table></div></section>';
+    }
 
     const chartDef=basinMetricDef(BASIN_DETAIL_METRIC);
     const selectedIds=basinModelIdsForSelection();
@@ -2514,8 +2619,8 @@
       :(forecast&&forecast.message?forecast.message:'Previsão meteorológica indisponível para este ponto.');
     const rainMessage=st.observed_rain&&st.observed_rain.message?st.observed_rain.message:'Chuva observada não publicada para esta estação.';
     const levelMessage=level&&level.message?level.message:'Telemetria de nível não publicada para esta estação.';
-    const freshnessMessage=basinFeedIsStale()?' O snapshot está atrasado em relação ao contrato de cinco minutos; a previsão antiga foi retirada até a próxima rodada.':'';
-     html+='<p class="station-detail-note"><strong>Leitura dos dados:</strong> '+basinEscape(forecastMessage)+' '+basinEscape(rainMessage)+' '+basinEscape(levelMessage)+basinEscape(freshnessMessage)+' A série horária observada e o acumulado CEMADEN de 24h são produtos diferentes; o horário de atualização do painel CEMADEN não comprova o horário da última leitura de cada sensor. Os pontos horários de chuva são mm da hora anterior; cada acumulado previsto mostra explicitamente o início e o fim da janela. Zero previsto é saída dos modelos consultados, não confirmação de ausência de chuva ou risco. Ausência de dado nunca é convertida em zero. A umidade do solo é proxy modelado, não sensor local. Os horários estão em Brasília (BRT) na interface; o feed mantém UTC e é reconstruído a cada cinco minutos.</p>';
+    const freshnessMessage=basinFeedIsStale()?' O snapshot ultrapassou a tolerância de atualização da meta nominal de cinco minutos; a previsão antiga foi retirada até a próxima rodada.':'';
+     html+='<p class="station-detail-note"><strong>Leitura dos dados:</strong> '+basinEscape(forecastMessage)+' '+basinEscape(rainMessage)+' '+basinEscape(levelMessage)+basinEscape(freshnessMessage)+' A série horária observada e o acumulado CEMADEN de 24h são produtos diferentes; o horário de atualização do painel CEMADEN não comprova o horário da última leitura de cada sensor. Na chuva observada, o carimbo marca o início do intervalo; valores coletados durante a hora permanecem parciais até nova consulta após o término. Apenas a precipitação prevista Open-Meteo representa mm da hora anterior ao horário do modelo; cada acumulado previsto mostra o início e o fim da janela. Zero previsto é saída dos modelos consultados, não confirmação de ausência de chuva ou risco. Ausência de dado nunca é convertida em zero. A umidade do solo é proxy modelado, não sensor local. Os horários estão em Brasília (BRT) na interface; o feed mantém UTC. A atualização tem meta nominal de cinco minutos e é encadeada, sujeita a filas, consultas e validação de toda a rede.</p>';
     panel.innerHTML=html;
     panel.querySelectorAll('[data-basin-model]').forEach(button=>button.addEventListener('click',()=>{
       const id=button.getAttribute('data-basin-model');
@@ -2526,24 +2631,39 @@
         BASIN_DETAIL_MODELS=BASIN_DETAIL_MODELS.concat(id);
       }
       basinRenderDetail(BASIN_SELECTED);
+      panel.querySelector('[data-basin-model="'+id+'"]').focus({preventScroll:true});
     }));
     panel.querySelectorAll('[data-basin-metric]').forEach(button=>button.addEventListener('click',()=>{
       BASIN_DETAIL_METRIC=button.getAttribute('data-basin-metric')||'precipitation';
       basinRenderDetail(BASIN_SELECTED);
+      panel.querySelector('[data-basin-metric="'+BASIN_DETAIL_METRIC+'"]').focus({preventScroll:true});
     }));
     basinRenderChart(st,BASIN_DETAIL_METRIC,basinById('station-chart'),basinById('station-chart-legend'));
+    basinObserveChartSize(basinById('station-chart'));
+    const restore=focusedModel?panel.querySelector('[data-basin-model="'+focusedModel+'"]'):focusedMetric?panel.querySelector('[data-basin-metric="'+focusedMetric+'"]'):null;
+    if(restore)restore.focus({preventScroll:true});
   }
 
   function basinSelectStation(st,center){
     BASIN_SELECTED=st;
     basinRefreshSelection();
     basinRenderDetail(st);
-    const marker=BASIN_MARKERS[basinStationId(st)];
     const lat=st.latitude!==undefined?st.latitude:st.lat;
     const lon=st.longitude!==undefined?st.longitude:st.lon;
-    if(BASIN_MAP&&marker&&basinFinite(lat)&&basinFinite(lon)){
-      BASIN_MAP.flyTo([Number(lat),Number(lon)],basinStationKind(st).category==='target'?12:11,{duration:.6});
-      marker.openPopup();
+    if(BASIN_MAP&&basinFinite(lat)&&basinFinite(lon)){
+      const openSelected=()=>{
+        const marker=BASIN_MARKERS[basinStationId(st)];
+        if(marker)marker.openPopup();
+      };
+      const currentZoom=BASIN_MAP.getZoom();
+      const marker=BASIN_MARKERS[basinStationId(st)];
+      if(marker){
+        BASIN_MAP.flyTo([Number(lat),Number(lon)],Math.max(currentZoom,11),{duration:.45});
+        setTimeout(openSelected,480);
+      }else{
+        BASIN_MAP.once('moveend',()=>{basinRenderMarkers(false);setTimeout(openSelected,30);});
+        BASIN_MAP.flyTo([Number(lat),Number(lon)],Math.max(currentZoom,12),{duration:.5});
+      }
     }
     if(center){
       const panel=basinById('station-detail');
@@ -2552,11 +2672,15 @@
   }
   const basinPopup=st=>{
     const kind=basinStationKind(st);
-    const code=st.code&&st.code!=='—'?'Código: '+st.code:'Código não informado';
+    const code=st.code&&st.code!=='—'?'Código '+st.code:'código não informado';
     const forecast=st.forecast&&st.forecast.state==='available'?'previsão disponível':'previsão indisponível';
-    const sources=basinSourceLabel(st);
-    const visualNote=(st._basin_visual_offset?' · posição deslocada só para separar pontos coincidentes':'');
-    return '<strong>'+basinEscape(st.name||'Estação')+'</strong><br><small>'+basinEscape(kind.label)+' · '+basinEscape(code)+'</small><br><small>'+basinEscape(sources)+'</small><br><small>'+basinEscape(forecast)+' · clique para abrir as métricas'+basinEscape(visualNote)+'</small>';
+    const level=st.level&&st.level.state==='available'?('nível '+basinFormat(st.level.current_cm,'level_cm')+' · '+basinMinutesNote(st.level.observed_age_minutes)):'nível indisponível';
+    const rain=st.observed_rain&&st.observed_rain.state==='available'?('chuva observada · '+basinObservedRainAge(st.observed_rain)):'chuva horária indisponível';
+    return '<div class="basin-popup"><strong>'+basinEscape(st.name||'Estação')+'</strong>'+
+      '<span>'+basinEscape(kind.label)+' · '+basinEscape(code)+'</span>'+
+      '<span>'+basinEscape(basinSourceLabel(st))+'</span>'+
+      '<span class="basin-popup-state">'+basinEscape(level)+'</span>'+
+      '<span>'+basinEscape(rain)+' · '+basinEscape(forecast)+'</span></div>';
   };
 
   function basinMarkerPositions(){
@@ -2588,50 +2712,173 @@
 
   function basinRenderMarkers(fit=true){
     if(!BASIN_MAP||!window.L)return;
-    Object.keys(BASIN_MARKERS).forEach(id=>{
-      BASIN_MAP.removeLayer(BASIN_MARKERS[id]);
-      delete BASIN_MARKERS[id];
-    });
-    const bounds=[];
+    if(!BASIN_MARKER_LAYER)BASIN_MARKER_LAYER=L.layerGroup().addTo(BASIN_MAP);
+    BASIN_MARKER_LAYER.clearLayers();
+    Object.keys(BASIN_MARKERS).forEach(id=>delete BASIN_MARKERS[id]);
+
     const positions=basinMarkerPositions();
+    const visible=[];
+    const bounds=[];
     BASIN_STATIONS.forEach(st=>{
       if(!basinMatches(st))return;
       const lat=basinNumber(st.latitude!==undefined?st.latitude:st.lat);
       const lon=basinNumber(st.longitude!==undefined?st.longitude:st.lon);
       if(lat===null||lon===null)return;
-      const kind=basinStationKind(st);
-      bounds.push([lat,lon]);
-      const hasData=basinHasData(st);
       const position=positions[basinStationId(st)]||[lat,lon];
-      const marker=L.circleMarker(position,{
-        radius:kind.category==='target'?8:kind.category==='flow'?5.5:kind.category==='hydro'?5.5:4.5,
-        color:'#fff',
-        weight:1.4,
+      visible.push({st,lat,lon,position});
+      bounds.push([lat,lon]);
+    });
+
+    if(bounds.length&&fit)BASIN_MAP.fitBounds(bounds,{padding:[22,22],maxZoom:10});
+    if(!visible.length)return;
+
+    const zoom=BASIN_MAP.getZoom();
+    const cellSize=zoom<=8?82:zoom===9?66:zoom===10?54:zoom===11?44:0;
+    const groups={};
+    visible.forEach(item=>{
+      if(!cellSize){
+        groups['station:'+basinStationId(item.st)]=[item];
+        return;
+      }
+      const point=BASIN_MAP.project(L.latLng(item.position[0],item.position[1]),zoom);
+      const key=Math.floor(point.x/cellSize)+':'+Math.floor(point.y/cellSize);
+      (groups[key]||(groups[key]=[])).push(item);
+    });
+
+    Object.values(groups).forEach(group=>{
+      if(group.length>1){
+        const lat=group.reduce((sum,item)=>sum+item.position[0],0)/group.length;
+        const lon=group.reduce((sum,item)=>sum+item.position[1],0)/group.length;
+        const observedCount=group.filter(item=>basinHasAnyObserved(item.st)).length;
+        const icon=L.divIcon({
+          className:'basin-cluster-icon',
+          html:'<span class="basin-cluster-bubble'+(group.length>=50?' large':'')+'">'+group.length+'</span>',
+          iconSize:[48,48],
+          iconAnchor:[24,24]
+        });
+        const marker=L.marker([lat,lon],{icon,keyboard:true,title:group.length+' estações nesta área'}).addTo(BASIN_MARKER_LAYER);
+        marker.bindTooltip(group.length+' estações · '+observedCount+' com observado · clique para aproximar',{direction:'top',className:'basin-station-tip'});
+        marker.on('click',()=>{
+          const groupBounds=L.latLngBounds(group.map(item=>item.position));
+          const ne=groupBounds.getNorthEast(), sw=groupBounds.getSouthWest();
+          if(ne.equals(sw))BASIN_MAP.setView([lat,lon],Math.min(13,zoom+2));
+          else BASIN_MAP.fitBounds(groupBounds,{padding:[34,34],maxZoom:Math.min(13,zoom+3)});
+        });
+        return;
+      }
+      const item=group[0];
+      const st=item.st;
+      const kind=basinStationKind(st);
+      const hasObserved=basinHasAnyObserved(st);
+      const marker=L.circleMarker(item.position,{
+        radius:zoom>=12?6.2:5.2,
+        color:hasObserved?'#fff':'#7f8b84',
+        weight:hasObserved?1.5:1.7,
+        dashArray:hasObserved?null:'3 3',
         fillColor:kind.color,
-        fillOpacity:hasData?.88:.46,
-        opacity:hasData?1:.72
-      }).addTo(BASIN_MAP);
-      marker.bindPopup(basinPopup(st),{maxWidth:260});
+        fillOpacity:hasObserved?.90:.34,
+        opacity:hasObserved?1:.82
+      }).addTo(BASIN_MARKER_LAYER);
+      marker.bindPopup(basinPopup(st),{maxWidth:235,minWidth:190,autoPanPadding:[18,18]});
+      const code=st.code&&st.code!=='—'?' · '+st.code:'';
+      marker.bindTooltip((st.name||'Estação')+code+' · '+kind.label,{direction:'top',className:'basin-station-tip',sticky:true});
       marker.on('click',()=>basinSelectStation(st,false));
       BASIN_MARKERS[basinStationId(st)]=marker;
     });
-    if(bounds.length&&fit)BASIN_MAP.fitBounds(bounds,{padding:[18,18],maxZoom:10});
+
     const selected=BASIN_SELECTED&&BASIN_MARKERS[basinStationId(BASIN_SELECTED)];
     if(selected)selected.openPopup();
   }
+  async function basinLoadSubbasins(){
+    if(!BASIN_MAP||!window.L)return;
+    try{
+      const response=await fetch(BASIN_BOUNDARY_URL,{cache:'force-cache'});
+      if(!response.ok)throw new Error('HTTP '+response.status);
+      const data=await response.json();
+      if(!data||!Array.isArray(data.features))throw new Error('GeoJSON inválido');
+      if(BASIN_SUBBASIN_LAYER)BASIN_MAP.removeLayer(BASIN_SUBBASIN_LAYER);
+      BASIN_SUBBASIN_LAYER=L.geoJSON(data,{
+        pane:'basinBoundaryPane',
+        style:()=>({
+          color:'#597b75',
+          weight:1.05,
+          opacity:.68,
+          fillColor:'#8aa49d',
+          fillOpacity:.045
+        }),
+        onEachFeature:(feature,layer)=>{
+          const p=feature&&feature.properties||{};
+          const title=p.nome_plano||p.upg||'Sub-bacia G040';
+          const subtitle=[p.upg,p.area_km2_approx?Number(p.area_km2_approx).toLocaleString('pt-BR',{maximumFractionDigits:0})+' km²':''].filter(Boolean).join(' · ');
+          layer.bindTooltip('<strong>'+basinEscape(title)+'</strong>'+(subtitle?'<br><span>'+basinEscape(subtitle)+'</span>':''),{
+            sticky:true,
+            direction:'top',
+            className:'basin-station-tip'
+          });
+        }
+      }).addTo(BASIN_MAP);
+      if(BASIN_LAYER_CONTROL)BASIN_LAYER_CONTROL.addOverlay(BASIN_SUBBASIN_LAYER,'Sub-bacias G040');
+      if(BASIN_MARKER_LAYER)BASIN_MARKER_LAYER.bringToFront&&BASIN_MARKER_LAYER.bringToFront();
+    }catch(error){
+      console.warn('Sub-bacias G040 indisponíveis no mapa',error);
+    }
+  }
+
   function basinMountMap(){
     const box=basinById('mapa');
     if(!box||!window.L)return;
     try{
       box.replaceChildren();
-      BASIN_MAP=L.map(box,{scrollWheelZoom:false,preferCanvas:true}).setView([-28.95,-51.45],9);
+      const desktopPointer=window.matchMedia&&window.matchMedia('(min-width:821px) and (pointer:fine)').matches;
+      BASIN_MAP=L.map(box,{
+        scrollWheelZoom:!!desktopPointer,
+        preferCanvas:true,
+        zoomSnap:1,
+        wheelDebounceTime:35,
+        wheelPxPerZoomLevel:90
+      }).setView([-28.95,-51.45],9);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
         maxZoom:17,
         referrerPolicy:'strict-origin-when-cross-origin',
         attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(BASIN_MAP);
+      BASIN_MAP.createPane('basinBoundaryPane');
+      BASIN_MAP.getPane('basinBoundaryPane').style.zIndex=240;
+      BASIN_MAP.getPane('basinBoundaryPane').style.pointerEvents='auto';
+      BASIN_MARKER_LAYER=L.layerGroup().addTo(BASIN_MAP);
+      BASIN_LAYER_CONTROL=L.control.layers(null,{},{
+        position:'topright',
+        collapsed:true
+      }).addTo(BASIN_MAP);
       L.control.scale({imperial:false}).addTo(BASIN_MAP);
-      basinRenderMarkers();
+
+      const fitControl=L.control({position:'topleft'});
+      fitControl.onAdd=()=>{
+        const div=L.DomUtil.create('div','leaflet-bar');
+        const a=L.DomUtil.create('a','',div);
+        a.href='#';
+        a.title='Enquadrar todas as estações visíveis';
+        a.setAttribute('aria-label',a.title);
+        a.innerHTML='&#8634;';
+        a.style.fontSize='18px';
+        a.onclick=e=>{e.preventDefault();L.DomEvent.stopPropagation(e);basinRenderMarkers(true);};
+        return div;
+      };
+      fitControl.addTo(BASIN_MAP);
+
+      const helpControl=L.control({position:'bottomleft'});
+      helpControl.onAdd=()=>{
+        const div=L.DomUtil.create('div','map-inline-help');
+        div.textContent=desktopPointer
+          ?'Roda do mouse: zoom · clique nos grupos para aproximar'
+          :'Toque nos grupos para aproximar · gesto de pinça para zoom';
+        return div;
+      };
+      helpControl.addTo(BASIN_MAP);
+
+      BASIN_MAP.on('zoomend',()=>basinRenderMarkers(false));
+      basinRenderMarkers(true);
+      basinLoadSubbasins();
       setTimeout(()=>BASIN_MAP&&BASIN_MAP.invalidateSize(),80);
     }catch(error){
       box.replaceChildren();
@@ -2666,28 +2913,49 @@
     const status=basinById('map-status');
     if(!status)return;
     if(!BASIN_FEED){
-      status.innerHTML='<span><strong>Catálogo local</strong> · carregando ou usando a lista de contingência.</span><span class="map-status-right">Feed multi-modelo · pesquisa</span>';
+      status.innerHTML='<span class="map-status-main"><strong>Rede completa da G040</strong><span class="map-status-chip muted">carregando catálogo</span></span><span class="map-status-right">Todas as estações · pesquisa</span>';
       return;
     }
     const scope=BASIN_FEED.scope||{};
     const total=scope.station_count||BASIN_STATIONS.length;
     const forecast=scope.forecast_station_count||0;
     const rain=scope.observed_rain_station_count||0;
-    const hourlyRain=scope.observed_rain_hourly_station_count;
-    const cemadenRain=scope.observed_rain_cemaden_24h_station_count;
-    const rainCoverage=Number.isFinite(hourlyRain)&&Number.isFinite(cemadenRain)
-      ?basinEscape(rain)+' com algum dado de chuva observada ('+basinEscape(hourlyRain)+' com série horária; '+basinEscape(cemadenRain)+' com acumulado CEMADEN 24h)'
-      :basinEscape(rain)+' com série horária de chuva observada';
+    const hourlyRain=scope.observed_rain_hourly_station_count||0;
+    const cemaden24=scope.observed_rain_cemaden_24h_station_count||0;
     const levels=scope.level_station_count||0;
-    const uniqueLocations=scope.forecast_location_count||total;
-    const coverage=forecast===total?'cobertura de previsão completa':'cobertura de previsão parcial · '+basinEscape(total-forecast)+' indisponíveis sinalizadas';
-    const freshness=basinFeedIsStale()?' · snapshot atrasado':'';
+    const cemadenHydro=scope.cemaden_hydro_station_count||0;
+    const observedAny=scope.observed_any_station_count||0;
     const sourceCounts=BASIN_FEED.source_counts||{};
-    const sources=['ANA/HidroWeb','SGB/SACE','CEMADEN','INMET'].filter(key=>sourceCounts[key]!==undefined).map(key=>key+' '+sourceCounts[key]).join(' · ');
-    const catalogState=BASIN_FEED.catalog&&BASIN_FEED.catalog.complete===false?' · catálogo complementar incompleto':'';
-    const feedSource=BASIN_FEED_SOURCE==='pages'?' · cópia do Pages (contingência)':'';
-    status.innerHTML='<span><strong>'+basinEscape(total)+' estações G040</strong> · '+basinEscape(sources)+' · '+basinEscape(forecast)+' com previsão · '+rainCoverage+' · '+basinEscape(levels)+' com nível · '+basinEscape(uniqueLocations)+' pontos meteorológicos únicos · '+coverage+basinEscape(catalogState)+'</span>'+
-      '<span class="map-status-right">Atualizado '+basinEscape(basinDate(BASIN_FEED.generated_at_utc))+basinEscape(freshness)+feedSource+' · próximo '+basinEscape(basinNextCycle(BASIN_FEED.next_cycle_utc))+'</span>';
+    const freshness=BASIN_FEED.freshness||{};
+    const rainAge=basinNumber(freshness.hourly_rain_max_age_minutes);
+    const rainOld=Number(freshness.hourly_rain_over_60min_count||0);
+    const levelAge=basinNumber(freshness.level_max_age_minutes);
+    const levelOld=Number(freshness.level_over_60min_count||0);
+    const ageShort=value=>value===null?'idade n/d':(value<60?Math.round(value)+' min':(value/60).toLocaleString('pt-BR',{maximumFractionDigits:1})+' h');
+    const sourceBits=['ANA/HidroWeb','SGB/SACE','CEMADEN','INMET']
+      .filter(key=>sourceCounts[key]!==undefined)
+      .map(key=>'<span class="map-status-chip">'+basinEscape(key)+' '+basinEscape(sourceCounts[key])+'</span>')
+      .join('');
+    const generated=BASIN_FEED.generated_at_utc;
+    const generatedAge=basinRelativeAge(generated);
+    const nextRaw=BASIN_FEED.next_cycle_utc;
+    const nextMs=nextRaw?Date.parse(nextRaw):NaN;
+    const late=Number.isFinite(nextMs)&&nextMs<Date.now();
+    const feedSource=BASIN_FEED_SOURCE==='pages'?' · contingência Pages':'';
+    status.innerHTML='<span class="map-status-main"><strong>'+basinEscape(total)+' estações G040</strong>'+
+      sourceBits+
+      '<span class="map-status-chip muted">Previsto '+basinEscape(forecast)+'/'+basinEscape(total)+'</span>'+
+      '<span class="map-status-chip muted">Chuva observada '+basinEscape(rain)+'</span>'+
+      '<span class="map-status-chip muted">série horária '+basinEscape(hourlyRain)+'</span>'+
+      (hourlyRain?'<span class="map-status-chip '+(rainOld?'stale':'fresh')+'">chuva: máx '+basinEscape(ageShort(rainAge))+(rainOld?' · '+basinEscape(rainOld)+' &gt;1h':'')+'</span>':'')+
+      '<span class="map-status-chip muted">CEMADEN 24h '+basinEscape(cemaden24)+'</span>'+
+      '<span class="map-status-chip muted">nível live '+basinEscape(levels)+'</span>'+
+      (levels?'<span class="map-status-chip '+(levelOld?'stale':'fresh')+'">níveis: máx '+basinEscape(ageShort(levelAge))+(levelOld?' · '+basinEscape(levelOld)+' &gt;1h':'')+'</span>':'')+
+      (cemadenHydro?'<span class="map-status-chip muted">nível CEMADEN '+basinEscape(cemadenHydro)+'</span>':'')+
+      (observedAny?'<span class="map-status-chip muted">algum observado '+basinEscape(observedAny)+'/'+basinEscape(total)+'</span>':'')+
+      '</span>'+
+      '<span class="map-status-right'+(late?' is-late':'')+'">Atualizado '+basinEscape(basinDate(generated))+
+      (generatedAge?' · '+basinEscape(generatedAge):'')+basinEscape(feedSource)+' · '+basinEscape(basinNextCycle(nextRaw))+'</span>';
   }
   async function basinLoadFeed(){
     if(BASIN_LOADING)return;

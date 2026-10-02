@@ -148,6 +148,53 @@ class PlataformaHecTwinTests(unittest.TestCase):
             (net.get("counts") or {}).get("outside_twin_domain", 0), 50
         )
 
+    def test_hec_feed_exposes_unanchored_state_diagnostics(self) -> None:
+        rr = self.feed.get("rainfall_runoff_result") or {}
+        if rr.get("available"):
+            self.assertEqual(rr.get("stage_series_kind"), "raw_rating_no_visual_anchor")
+            self.assertIn("n_mucum_rating_cm", rr)
+            self.assertIn("model_stage_t0_cm", rr)
+            self.assertIn("stage_error_at_t0_cm", rr)
+            self.assertNotIn("48 h de aquecimento", str(rr.get("plain_pt") or ""))
+
+    def test_dual_boundary_nodes_exist_when_dual_is_selected(self) -> None:
+        rr = self.feed.get("rainfall_runoff_result") or {}
+        if rr.get("status") != "hec_hms_4_13_dual_boundary_validated":
+            return
+        codes = {str(n.get("code")) for n in ((self.feed.get("hydro_nodes") or {}).get("nodes") or [])}
+        self.assertIn("86472000", codes)
+        self.assertIn("86500000", codes)
+        self.assertIn("86510000", codes)
+        model_codes = {str(n.get("code")) for n in (((rr.get("corridor_nodes") or {}).get("nodes")) or [])}
+        self.assertIn("86472000", model_codes)
+        self.assertIn("86500000", model_codes)
+        self.assertIn("86510000", model_codes)
+
+    def test_operational_hec_is_public_source(self) -> None:
+        rr = self.feed.get("rainfall_runoff_result") or {}
+        self.assertIn(
+            rr.get("artifact_json"),
+            {
+                "hec_hms_operational_forecast_latest.json",
+                "hec_hms_dual_boundary_mucum_latest.json",
+            },
+        )
+        self.assertNotIn("targeted_now", str(rr.get("artifact_json") or ""))
+        if rr.get("available"):
+            self.assertIn(
+                rr.get("status"),
+                {
+                    "hec_hms_4_13_spatial_ifs_warmup_ready",
+                    "hec_hms_4_13_dual_boundary_validated",
+                },
+            )
+            self.assertEqual((rr.get("validation") or {}).get("blocking_reasons_pt") or [], [])
+            if rr.get("status") == "hec_hms_4_13_dual_boundary_validated":
+                self.assertEqual(
+                    (rr.get("dual_boundary_validation") or {}).get("status"),
+                    "VALIDATED",
+                )
+
     def test_hindcast_skill_events(self) -> None:
         skill = self.feed["products"]["hindcast_skill"]
         self.assertGreaterEqual(len(skill.get("events") or []), 9)

@@ -1,0 +1,113 @@
+name: Sincroniza contrato espacial LiDAR da pesquisa
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'assets/data/santa_tereza_inundacao/contornos_mancha.json'
+      - 'assets/data/santa_tereza_inundacao/hand_lidar_5m_diagnostic.json'
+      - 'assets/data/santa_tereza_inundacao/mdt/altitude_terreno_lidar_10m.json'
+      - 'assets/data/santa_tereza_inundacao/mdt/altitude_terreno_lidar_10m.png'
+      - 'assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_lidar_10m_visual.png'
+      - 'assets/data/mucum_inundacao/contornos_mancha.json'
+      - 'assets/data/vulnerabilidade/grade/4317251.geojson'
+      - 'assets/data/vulnerabilidade/grade/4312609.geojson'
+      - 'scripts/build_research_event_replay.py'
+      - 'scripts/test_research_event_replay.py'
+      - 'scripts/build_catalog_status.py'
+      - 'scripts/test_catalog_status.py'
+      - 'scripts/build_unified_event_spatial_dashboard.py'
+      - 'scripts/test_unified_event_spatial_dashboard.py'
+      - 'scripts/validate_santa_tereza_lidar_contract.py'
+      - 'santa_tereza_previsao_inundacao.html'
+      - 'santa_tereza_inundacao.html'
+      - '.github/workflows/research-spatial-contract.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: previne-research-spatial-contract
+  cancel-in-progress: true
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          filter: blob:none
+          # O contrato espacial usa JSON/CSV/HTML/PNG e código; os rasters e
+          # matrizes históricas gigantes não entram nesta reconstrução.
+          sparse-checkout: |
+            /*
+            !*.mat
+            !*.tif
+            !*.tiff
+          sparse-checkout-cone-mode: false
+
+      - name: Configura Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Dependência geométrica
+        run: python -m pip install --disable-pip-version-check shapely
+
+      - name: Recalcula replay espacial a partir dos contornos atuais
+        run: python -B scripts/build_research_event_replay.py
+
+      - name: Testa contrato do replay
+        run: python -B scripts/test_research_event_replay.py
+
+      - name: Atualiza estado consolidado do acervo
+        run: python -B scripts/build_catalog_status.py
+
+      - name: Testa estado consolidado
+        run: python -m unittest scripts/test_catalog_status.py -v
+
+      - name: Regera sala integrada com terreno atual
+        run: python -B scripts/build_unified_event_spatial_dashboard.py
+
+      - name: Testa sala integrada
+        run: python -m unittest scripts/test_unified_event_spatial_dashboard.py -v
+
+      - name: Valida contrato LiDAR/HAND de Santa Tereza
+        run: python -B scripts/validate_santa_tereza_lidar_contract.py
+
+      - name: Publica artefatos sincronizados
+        shell: bash
+        run: |
+          git config user.name 'previne-spatial-contract-bot'
+          git config user.email 'previne-spatial-contract-bot@users.noreply.github.com'
+          git add --             assets/data/research_event_replay_latest.json             assets/data/research_catalog_status_latest.json             pesquisas/replay-hidrologico-espacial.html
+          if git diff --cached --quiet; then
+            echo 'Contrato espacial já está sincronizado.'
+            exit 0
+          fi
+          git commit -m 'bot: sincroniza pesquisa espacial com LiDAR atual'
+          for attempt in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin main && git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "main avançou; refazendo artefatos (tentativa ${attempt}/5)"
+            git rebase --abort || true
+            git fetch origin main
+            git reset --hard origin/main
+            python -B scripts/build_research_event_replay.py
+            python -B scripts/build_catalog_status.py
+            python -B scripts/build_unified_event_spatial_dashboard.py
+            git add --               assets/data/research_event_replay_latest.json               assets/data/research_catalog_status_latest.json               pesquisas/replay-hidrologico-espacial.html
+            if git diff --cached --quiet; then
+              echo 'Outra execução já publicou o mesmo estado.'
+              exit 0
+            fi
+            git commit -m 'bot: sincroniza pesquisa espacial com LiDAR atual'
+            sleep $((attempt * 2))
+          done
+          exit 1

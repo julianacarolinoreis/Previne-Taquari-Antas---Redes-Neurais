@@ -1,0 +1,95 @@
+name: G040 Stage-2 readiness
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "config/g040_stage2_execution_v1.json"
+      - "scripts/build_g040_sma_branch_template.py"
+      - "scripts/build_g040_mgb_input_readiness.py"
+      - "scripts/build_g040_hec_ras_pilot_readiness.py"
+      - "scripts/build_g040_assimilation_readiness.py"
+      - "scripts/build_g040_ensemble_readiness.py"
+      - "scripts/build_g040_stage2_master.py"
+      - "assets/data/g040_hydro_stack/project_source_inventory_latest.json"
+      - "assets/data/hec_hms_g040_full_basin/whole_basin_rain_support_points.csv"
+      - "assets/data/hec_hms_g040_full_basin/whole_basin_boundary_scenarios_latest.json"
+      - "assets/data/hec_hms_g040_full_basin/whole_basin_live_hydro_controls_latest.json"
+      - "assets/data/hec_hms_g040_full_basin/whole_basin_observed_rain_latest.json"
+      - "assets/data/hec_hms_g040_full_basin/whole_basin_ifs_forecast_latest.json"
+      - "assets/data/hec_hms_g040_full_basin/whole_basin_rain_forcing_latest.json"
+      - "assets/data/hec_hms_g040_full_basin/whole_basin_hec_branch_skeleton_latest.json"
+      - "assets/data/hec_hms_g040_full_basin/whole_basin_historical_hydro_events_latest.json"
+      - "assets/data/hec_hms_g040_full_basin/whole_basin_multi_event_propagation_diagnostics_latest.json"
+      - "assets/data/hec_hms_g040_full_basin/g040_e1_hindcast/SMOKE_E1/result.json"
+      - "assets/data/hec_hms_g040_full_basin/g040_e1_multievent_calibration_latest.json"
+      - "assets/data/estudo_bacia_taquari_antas/treino_rna_stz_mucum_v1_latest.json"
+      - "assets/data/santa_tereza_eventwise_replay_rna_2h/eventwise_manifest.json"
+      - "assets/data/santa_tereza_eventwise_replay_rna_2h/events_metrics.csv"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: g040-stage2-readiness
+  cancel-in-progress: true
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build Stage-2 readiness artifacts
+        run: |
+          python -B scripts/build_g040_sma_branch_template.py
+          python -B scripts/build_g040_mgb_input_readiness.py
+          python -B scripts/build_g040_hec_ras_pilot_readiness.py
+          python -B scripts/build_g040_assimilation_readiness.py
+          python -B scripts/build_g040_ensemble_readiness.py
+          python -B scripts/build_g040_stage2_master.py
+
+      - name: Validate fail-closed contracts
+        run: |
+          python -B scripts/test_g040_stage2_master.py
+          python -B scripts/test_g040_legacy_meteorologic_assignment.py
+
+      - name: Publish readiness artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-g040-stage2-bot"
+          git config user.email "previne-g040-stage2-bot@users.noreply.github.com"
+
+          STACK="assets/data/g040_hydro_stack"
+          mkdir -p /tmp/g040-stage2
+          for F in             sma_branch_parameter_template.csv             sma_branch_parameter_template_audit.json             mgb_input_readiness_latest.json             hec_ras_pilot_readiness_latest.json             assimilation_readiness_latest.json             ensemble_member_inventory_latest.json             master_readiness_latest.json             tributary_inventory_latest.json             benchmark_matrix_latest.json
+          do
+            cp "$STACK/$F" "/tmp/g040-stage2/$F"
+          done
+
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p "$STACK"
+            cp /tmp/g040-stage2/* "$STACK/"
+            git add --               "$STACK/sma_branch_parameter_template.csv"               "$STACK/sma_branch_parameter_template_audit.json"               "$STACK/mgb_input_readiness_latest.json"               "$STACK/hec_ras_pilot_readiness_latest.json"               "$STACK/assimilation_readiness_latest.json"               "$STACK/ensemble_member_inventory_latest.json"               "$STACK/master_readiness_latest.json"               "$STACK/tributary_inventory_latest.json"               "$STACK/benchmark_matrix_latest.json"
+            if git diff --cached --quiet; then
+              exit 0
+            fi
+            git commit -m "bot: update G040 Stage-2 readiness [skip ci]"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+          exit 1

@@ -1,0 +1,332 @@
+{
+  "schema_version": "g040_whole_basin_observed_branch_architecture_v1",
+  "generated_at_utc": "2026-10-01T13:52:36.495031Z",
+  "research_only": true,
+  "status": "WHOLE_BASIN_BRANCH_ARCHITECTURE_READY_FOR_BHO6_TOPOLOGY_AND_LIVE_FORCING",
+  "scope": {
+    "basin": "Taquari-Antas G040",
+    "official_area_km2": 26430,
+    "final_hec_target_subbasins": 145,
+    "final_hec_target_reaches": 72,
+    "intermediate_model": "major observed branches + incremental rainfall-runoff + routed Taquari mainstem",
+    "outlet_target": "Taquari-Jacuí / lower G040"
+  },
+  "scientific_position": {
+    "why_this_layer": "generalize the validated Muçum dual-boundary concept to the whole basin before native 145 geometry is recovered/reconstructed",
+    "not_a_replacement_for_145": true,
+    "management_32_are_not_computational_subbasins": true,
+    "nested_gauges_rule": "nested gauges are state/QC constraints; only non-overlapping branch controls enter mass balance",
+    "prata_note": "Prata is upstream of Linha José Júlio and is therefore diagnostic only whenever Linha José Júlio is used as the Antas boundary; never add both as independent flows"
+  },
+  "major_branch_controls": [
+    {
+      "role": "upper_antas",
+      "code": "86472000",
+      "label": "Linha José Júlio",
+      "branch": "Antas/Taquari principal",
+      "kind": "boundary",
+      "mass_balance": true,
+      "station": {
+        "code": "86472000",
+        "name": "LINHA JOSÉ JÚLIO",
+        "network": "ANA",
+        "operating": "1",
+        "drainage_area_km2": 13000.0,
+        "management_subbasin": "Rio Burati/Arroio Retiro",
+        "management_unit": "Médio Taquari-Antas",
+        "lon": -51.6997,
+        "lat": -29.0978
+      }
+    },
+    {
+      "role": "prata",
+      "code": "86447000",
+      "label": "UHE Monte Claro Balsa do Prata",
+      "branch": "Prata",
+      "kind": "upstream_state_diagnostic",
+      "mass_balance": false,
+      "station": {
+        "code": "86447000",
+        "name": "UHE MONTE CLARO BALSA DO PRATA",
+        "network": "ANA",
+        "operating": "1",
+        "drainage_area_km2": 3750.0,
+        "management_subbasin": "Rio da Prata",
+        "management_unit": "Prata",
+        "lon": -51.4611,
+        "lat": -28.9714
+      }
+    },
+    {
+      "role": "carreiro",
+      "code": "86500000",
+      "label": "Passo Carreiro",
+      "branch": "Carreiro",
+      "kind": "tributary_boundary",
+      "mass_balance": true,
+      "station": {
+        "code": "86500000",
+        "name": "PASSO CARREIRO",
+        "network": "ANA",
+        "operating": "1",
+        "drainage_area_km2": 1820.0,
+        "management_subbasin": "Médio Rio Carreiro",
+        "management_unit": "Carreiro",
+        "lon": -51.8325,
+        "lat": -28.8489
+      }
+    },
+    {
+      "role": "guapore",
+      "code": "86595000",
+      "label": "Barra do Zeferino",
+      "branch": "Guaporé",
+      "kind": "tributary_boundary",
+      "mass_balance": true,
+      "station": {
+        "code": "86595000",
+        "name": "BARRA DO ZEFERINO",
+        "network": "ANA",
+        "operating": "1",
+        "drainage_area_km2": 2430.0,
+        "management_subbasin": "Baixo Rio Guaporé",
+        "management_unit": "Guaporé",
+        "lon": -51.9278,
+        "lat": -29.0964
+      }
+    },
+    {
+      "role": "forqueta",
+      "code": "86746000",
+      "label": "Rio Forqueta (Travesseiro)",
+      "branch": "Forqueta",
+      "kind": "tributary_boundary",
+      "mass_balance": true,
+      "station": {
+        "code": "86746000",
+        "name": "RIO FORQUETA (Travesseiro)",
+        "network": "ANA",
+        "operating": "1",
+        "drainage_area_km2": 2239.0,
+        "management_subbasin": "Rio Forqueta",
+        "management_unit": "Forqueta",
+        "lon": -52.0889,
+        "lat": -29.3222
+      }
+    }
+  ],
+  "mainstem_checkpoints": [
+    {
+      "code": "86510000",
+      "label": "Muçum",
+      "order": 1,
+      "station": {
+        "code": "86510000",
+        "name": "MUÇUM",
+        "network": "ANA",
+        "operating": "1",
+        "drainage_area_km2": 16000.0,
+        "management_subbasin": "Arroio Marrecão",
+        "management_unit": "Médio Taquari-Antas",
+        "lon": -51.8686,
+        "lat": -29.1672
+      }
+    },
+    {
+      "code": "86720000",
+      "label": "Encantado",
+      "order": 2,
+      "station": {
+        "code": "86720000",
+        "name": "ENCANTADO",
+        "network": "ANA",
+        "operating": "1",
+        "drainage_area_km2": 19100.0,
+        "management_subbasin": "Arroio Jacaré/Augusta",
+        "management_unit": "Baixo Taquari-Antas",
+        "lon": -51.855,
+        "lat": -29.2344
+      }
+    },
+    {
+      "code": "86743000",
+      "label": "Arroio do Meio",
+      "order": 3,
+      "station": {
+        "code": "86743000",
+        "name": "ARROIO DO MEIO",
+        "network": "ANA",
+        "operating": "1",
+        "drainage_area_km2": 19700.0,
+        "management_subbasin": "Arroio Seca",
+        "management_unit": "Baixo Taquari-Antas",
+        "lon": -51.9333,
+        "lat": -29.4
+      }
+    },
+    {
+      "code": "86879000",
+      "label": "Lajeado",
+      "order": 4,
+      "station": {
+        "code": "86879000",
+        "name": "LAJEADO",
+        "network": "ANA",
+        "operating": "1",
+        "drainage_area_km2": 23272.0,
+        "management_subbasin": "Arroio Seca",
+        "management_unit": "Baixo Taquari-Antas",
+        "lon": -51.9578,
+        "lat": -29.4697
+      }
+    },
+    {
+      "code": "86879300",
+      "label": "Estrela",
+      "order": 5,
+      "station": {
+        "code": "86879300",
+        "name": "ESTRELA",
+        "network": "ANA",
+        "operating": "1",
+        "drainage_area_km2": 22472.0,
+        "management_subbasin": "Arroio Sampaio/Estrela",
+        "management_unit": "Baixo Taquari-Antas",
+        "lon": -51.965,
+        "lat": -29.4717
+      }
+    },
+    {
+      "code": "86895000",
+      "label": "Porto Mariante",
+      "order": 6,
+      "station": {
+        "code": "86895000",
+        "name": "PORTO MARIANTE",
+        "network": "ANA",
+        "operating": "1",
+        "drainage_area_km2": 24600.0,
+        "management_subbasin": "Rio Taquari-Mirim",
+        "management_unit": "Baixo Taquari-Antas",
+        "lon": -51.97,
+        "lat": -29.6922
+      }
+    },
+    {
+      "code": "86950000",
+      "label": "Taquari",
+      "order": 7,
+      "station": {
+        "code": "86950000",
+        "name": "TAQUARI",
+        "network": "ANA",
+        "operating": "1",
+        "drainage_area_km2": 25900.0,
+        "management_subbasin": "Baixo Taquari",
+        "management_unit": "Baixo Taquari-Antas",
+        "lon": -51.8758,
+        "lat": -29.8069
+      }
+    },
+    {
+      "code": "86996000",
+      "label": "Rio Taquari (Triunfo)",
+      "order": 8,
+      "station": {
+        "code": "86996000",
+        "name": "RIO TAQUARI (Triunfo)",
+        "network": "ANA",
+        "operating": "1",
+        "drainage_area_km2": 26531.0,
+        "management_subbasin": "Baixo Taquari",
+        "management_unit": "Baixo Taquari-Antas",
+        "lon": -51.7306,
+        "lat": -29.9278
+      }
+    }
+  ],
+  "proposed_hec_logic": [
+    "Observed flow boundaries on major non-overlapping branches when fresh and quality-controlled",
+    "Hourly accumulated observed rainfall spatialized over residual/intermediate contributing areas; missing never becomes zero",
+    "ECMWF/IFS spatial field after t0 with cycle and lead time preserved",
+    "Route flows through BHO6-verified reach order; calibrate reach storage/travel time branch-wise",
+    "At each downstream checkpoint compare native HEC discharge/stage proxy, trend, 6h/12h hydrograph and peak timing",
+    "Never promote a run by visual stage shifting or conditioned display-only curves"
+  ],
+  "calibration_sequence": [
+    {
+      "phase": 1,
+      "name": "branch state closure",
+      "targets": [
+        "86472000",
+        "86447000",
+        "86500000",
+        "86595000",
+        "86746000"
+      ]
+    },
+    {
+      "phase": 2,
+      "name": "upper-middle mainstem",
+      "targets": [
+        "86510000",
+        "86720000"
+      ]
+    },
+    {
+      "phase": 3,
+      "name": "middle-lower mainstem",
+      "targets": [
+        "86743000",
+        "86879000",
+        "86879300"
+      ]
+    },
+    {
+      "phase": 4,
+      "name": "lower Taquari",
+      "targets": [
+        "86895000",
+        "86950000",
+        "86996000"
+      ],
+      "note": "stage/inundation may require HEC-RAS because Jacuí/Guaíba backwater is outside pure HEC-HMS routing"
+    },
+    {
+      "phase": 5,
+      "name": "145-subbasin transfer",
+      "target": "replace residual coarse areas with verified native/reconstructed 145 computational polygons and 72 reaches"
+    }
+  ],
+  "forcing_contract": {
+    "observed_rain": "hourly accumulated precipitation from all valid gauges, spatialized; no summing station mm as one physical basin depth",
+    "forecast_rain": "ECMWF/IFS spatial field",
+    "flow_state": "fresh observed discharge/level where available",
+    "wetness": "explicit warm-up/state handling; future SMA option remains separate from legacy SCS-CN event model"
+  },
+  "validation_gate": {
+    "state_native_required": true,
+    "metrics": [
+      "NSE",
+      "KGE",
+      "PBIAS",
+      "RMSE",
+      "MAE",
+      "volume_error",
+      "peak_error",
+      "peak_timing_error",
+      "rise_fall_skill"
+    ],
+    "multi_event_required": true,
+    "independent_validation_required": true,
+    "pseudo_operational_replay_required": true
+  },
+  "next_build_gates": {
+    "bho6_station_snap_and_branch_order": "PENDING",
+    "incremental_catchment_geometry": "PENDING",
+    "live_multistation_observed_package_full_g040": "PENDING",
+    "full_g040_ecmwf_spatial_forcing": "PARTIAL_EXISTS_600_CELL_CONTRACT",
+    "hec_hms_project_generation": "PENDING_AFTER_TOPOLOGY",
+    "145_native_or_reconstructed_geometry": "PENDING"
+  }
+}

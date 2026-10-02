@@ -1,0 +1,63 @@
+{
+  "schema_version": "g040_hydro_stack_readiness_v2",
+  "generated_at_utc": "2026-09-30T18:57:30.347018Z",
+  "research_only": true,
+  "overall_status": "SCAFFOLD_READY_NATIVE_145_AND_MODEL_INPUTS_PENDING",
+  "gates": {
+    "management_layer_32": {
+      "pass": true,
+      "detail": "32/32 IEDE polygons loaded as management/audit units only"
+    },
+    "management_coarse_connectivity": {
+      "pass": true,
+      "detail": {
+        "topology_pass_diagnostic": false,
+        "edge_count": 32,
+        "cycle_count": 1,
+        "note": "diagnostic only; never a gate for HEC computational topology"
+      }
+    },
+    "report_inventory_145": {
+      "pass": true,
+      "detail": "145 report-listed HEC sub-basins + 72 reaches are the target inventory"
+    },
+    "native_hec_145_geometry_topology": {
+      "pass": false,
+      "detail": "native .hms/.basin geometry/topology not yet recovered/verified"
+    },
+    "rain_station_presence_management_layer": {
+      "pass": true,
+      "detail": "25/32 management polygons contain >=1 inventoried rain station",
+      "note": "presence is not hourly completeness and is not final HEC spatialization"
+    },
+    "flow_station_presence_management_layer": {
+      "pass": true,
+      "detail": "31/32 management polygons contain >=1 inventoried flow station"
+    },
+    "sma_parameters_sourced": {
+      "pass": false,
+      "detail": "145-row SMA template intentionally blank"
+    },
+    "potential_et_selected": {
+      "pass": false,
+      "detail": "{'required_for_continuous_sma': True, 'source': None, 'method': None, 'status': 'pending_source_selection'}"
+    },
+    "mgb_inputs_ready": {
+      "pass": false,
+      "detail": "preprocessing manifest created; inputs pending"
+    },
+    "hec_ras_geometry_ready": {
+      "pass": false,
+      "detail": "domain manifests created; geometry/boundaries pending"
+    },
+    "assimilation_generalized": {
+      "pass": false,
+      "detail": "partial_existing_mucum_to_be_generalized"
+    },
+    "ensemble_validated": {
+      "pass": false,
+      "detail": "scaffold"
+    }
+  },
+  "promotion_allowed": false
+}

@@ -23,7 +23,7 @@ esse nível em **até onde a água chega na cidade**.
    [01] RNA 2h (.mat treinado)  ──►  nível previsto para +2h
               │
               ▼
-   [02] MDT mosaico 2 m (drone + ANADEM) + HAND  ──►  mancha: até onde a água chega
+   [02] LiDAR bruto + FLOWDIR/FLOWACC + HAND hidráulico ──► mancha: até onde a água chega
               │
               ▼
    Site (GitHub Pages) se atualiza sozinho a cada 30 min
@@ -71,19 +71,29 @@ Todos são **níveis** (sem chuva), a cada hora. Convenções:
 
 ## `02_mdt_hand_mancha/` — do nível à mancha de inundação
 
-Converte um nível do rio em **área inundada**, usando o **HAND** (Height Above
-Nearest Drainage — altura de cada ponto acima do rio).
+Para **Santa Tereza**, o produto atual usa exclusivamente o conjunto LiDAR em
+`D:\\PREVINE\\hand\\santa tereza`:
+
+- `CLIP_MOSAICO_LIDAR_RS.tif`: superfície física do terreno e das barreiras;
+- `FILL_CLIP_MOSAICO_LIDAR_RS.tif`: somente apoio ao roteamento;
+- `FLOWDIR_CLIP_MOSAICO_LIDAR_RS.tif`: direção D8;
+- `FLOWACC_CLIP_MOSAICO_LIDAR_RS.tif`: definição do rio principal.
+
+O gerador segue o fluxo D8 até o rio principal e calcula também um limiar
+hidráulico pela **maior cota do LiDAR bruto ao longo do caminho**. Assim, uma
+depressão atrás de rua, aterro ou divisor não é inundada apenas por ser baixa.
 
 | Arquivo | O que faz |
 |---|---|
-| `reprocess_anadem.py` | **Pipeline final.** Lê o MDT **ANADEM** (terreno nu, 30 m), traça o talvegue (leito), calcula o HAND, gera a área por cota e codifica o HAND em PNG para o site. |
-| `hand.py` | Versão com *priority-flood* (Barnes 2014) para preencher depressões antes do HAND. |
-| `hand2.py`, `hand3.py`, `hand4.py` | Iterações do traçado do talvegue (janela do filtro mínimo, tolerância) até a mancha seguir o rio principal e não “vazar” pelas grotas. |
+| `gerar_hand_lidar_santa_tereza.py` | **Pipeline atual de Santa Tereza.** Gera HAND hidráulico, payload web ~5 m, contornos de 0–25 m e MDT same-source ~10 m a partir do LiDAR bruto. |
+| `gerar_contornos_extravasamento.py` | Deriva a camada visual fora do contorno-base HAND 0 sem alterar o terreno nem o HAND. |
+| `gerar_mosaico_mdt.py`, `gerar_mancha_mosaico.py`, `gerar_contornos_vetoriais.py` | Pipeline legado drone + ANADEM. O código está bloqueado para Santa Tereza e permanece apenas para rastreabilidade/uso de Muçum onde aplicável. |
+| `hand.py`, `hand2.py`, `hand3.py`, `hand4.py` | Iterações históricas do HAND; não são a fonte publicada de Santa Tereza. |
 
-**Por que ANADEM:** o MDT anterior (Copernicus GLO-30) é um modelo de
-*superfície* (inclui copa das árvores) e inflava o terreno em até ~15 m em
-encostas. O **ANADEM** é *terreno nu* (bare-earth), o que corrige esse viés —
-a estação, por exemplo, passou a ficar corretamente em HAND ≈ 0.
+**Contrato atual de Santa Tereza:** régua **1,60 m = HAND 0**; superfície de
+inundação = LiDAR bruto; FILL/FLOWDIR/FLOWACC = roteamento; payload de consulta
+~5 m; grade de altitude same-source ~10 m. O deploy falha automaticamente se a
+página voltar a referenciar o mosaico drone + ANADEM.
 
 ---
 
@@ -102,20 +112,22 @@ descartando a oscilação de água baixa regulada pelas barragens (o
 
 ---
 
-## `04_zero_regua/` — calibração do "zero" da mancha (datum)
+## `04_zero_regua/` — referência vertical da régua e do HAND
 
-A mancha precisa saber **em que leitura da régua a água começa a sair do rio**
-(o parâmetro `bankfull`). Esse era o ponto mais frágil (estava chutado em 300 cm).
+A espacialização atual de Santa Tereza usa uma referência de campo separada
+da cota de atenção da estação: **1,60 m na régua = HAND 0**. Portanto, para
+transformar um nível da régua em limiar espacial, o site usa:
 
-| Arquivo | O que faz |
-|---|---|
-| `calibrar_zero_regua.py` | Deriva o `bankfull` **ancorando na cota de inundação oficial (15 m)**: mede no ANADEM a cota do leito (54 m) e do terraço da cidade (~65 m, HAND ≈ 11 m) e impõe que a cidade alague exatamente aos 15 m → `bankfull ≈ 400 cm`. |
-| `consulta_estacao_ana.py` | Busca a ficha oficial da estação na ANA (`HidroInventario`) para obter a **cota oficial do zero da régua** e fechar o datum com precisão. Rodar onde a ANA responde (PC/servidor). |
+`HAND espacial = max(0, nível_regua_m − 1,60)`.
 
-**Situação:** a calibração passou de um chute (300 cm) para um valor **ancorado
-em dado oficial** (~400 cm, cota de inundação 15 m + ANADEM). O valor definitivo
-(sem o ±1–2 m do ANADEM) depende da cota oficial do zero da régua no nivelamento
-SGB/ANA — por isso o `bankfull` está marcado como **provisório** no robô.
+A cota de 15 m mostrada no monitoramento é outro conceito: é uma referência de
+nível da estação e **não** o zero do HAND. O antigo ajuste de aproximadamente
+4 m obtido com ANADEM pertence ao pipeline legado e não deve voltar a alimentar
+Santa Tereza.
+
+Os scripts antigos de calibração permanecem apenas para rastreabilidade
+metodológica. O contrato publicado é verificado pelo diagnóstico LiDAR e pela
+trava automática `scripts/validate_santa_tereza_lidar_contract.py`.
 
 ---
 
@@ -138,11 +150,9 @@ Instalar: `pip install numpy scipy rasterio Pillow openpyxl`
 
 - ✅ **Rede validada** contra o `.mat` (RMSE 0) — `validar_forward_pass.py`.
 - ✅ **Robô ao vivo** buscando a ANA e prevendo, automático a cada 30 min.
-- ✅ **HAND com ANADEM** (terreno nu) — mancha segue o rio principal.
+- ✅ **HAND hidráulico LiDAR em Santa Tereza** — LiDAR bruto para terreno/barreiras; FILL/D8 apenas para roteamento.
+- ✅ **Contrato espacial protegido no CI** — o deploy é bloqueado se Santa Tereza voltar a usar ANADEM/drone como fonte ativa.
 - ✅ **Site se atualiza sozinho** e abre já mostrando a previsão.
-- 🟡 **Zero da régua:** calibração agora **ancorada na cota de inundação oficial
-  (15 m)** via ANADEM → `bankfull ≈ 400 cm` (era um chute de 300). Definitivo
-  aguarda a cota oficial do zero da régua (nivelamento SGB/ANA) — script de
-  consulta pronto em `04_zero_regua/`.
+- ✅ **Referência espacial atual:** régua 1,60 m = HAND 0; a cota de 15 m permanece separada como referência da estação.
 - ⏭️ Próximos: impactos (casas/escolas atingidas), busca por endereço,
   alerta ao passar da cota de inundação (15 m), horizontes de 8 h e 12 h ao vivo.

@@ -2,7 +2,7 @@ name: HEC Muçum operational restart
 
 # rerun requested from chat · all-station accumulated rainfall + observed flow/state + spatial ECMWF
 
-# rerun: 2026-09-29 19:07 BRT · busca fina do estado inicial para t0 observado
+# rerun: 2026-09-30 14:50 BRT · restart dinâmico na recessão com observados e ECMWF atualizados
 
 on:
   push:
@@ -22,8 +22,6 @@ jobs:
   run:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    env:
-      HEC_WARM_START_LOCAL: "2026-09-29T06:00"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,6 +37,29 @@ jobs:
 
       - name: Refresh observed multistation package
         run: OBS_FAST_MODE=1 python -B scripts/build_mucum_observed_multistation.py
+
+      - name: Set dynamic restart window
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timedelta
+          p = "assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_latest.json"
+          j = json.load(open(p, encoding="utf-8"))
+          st = next(x for x in j["flow"]["stations"] if str(x.get("code")) == "86510000")
+          times = [
+              datetime.fromisoformat(str(x["time_local"]))
+              for x in st.get("series", [])
+              if x.get("flow_m3s") is not None or x.get("level") is not None
+          ]
+          if not times:
+              raise SystemExit("Muçum sem estado observado para definir restart")
+          t0 = max(times).replace(minute=0, second=0, microsecond=0)
+          warm = t0 - timedelta(hours=18)
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as fh:
+              fh.write(f"HEC_WARM_START_LOCAL={warm.isoformat(timespec='minutes')}\n")
+          print(f"t0={t0.isoformat(timespec='minutes')} warm_start={warm.isoformat(timespec='minutes')} window=18h")
+          PY
 
       - name: Refresh spatial ECMWF IFS
         run: python -B scripts/build_spatial_ifs_mucum.py

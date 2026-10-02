@@ -1,0 +1,121 @@
+name: HEC G040 E22 diagnostic
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "config/g040_e22_hec_diagnostic_request.json"
+      - ".github/workflows/hec-g040-e22-diagnostic.yml"
+      - "scripts/run_hec_hms_g040_e1_hindcast.py"
+  pull_request:
+    paths:
+      - "config/g040_e22_hec_diagnostic_request.json"
+      - ".github/workflows/hec-g040-e22-diagnostic.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hec-g040-e22-diagnostic
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate request
+        run: |
+          python - <<'PY'
+          import json
+          p=json.load(open("config/g040_e22_hec_diagnostic_request.json",encoding="utf-8"))
+          assert p["event_id"]=="E22_SEP2023"
+          assert p["candidate_id"]=="DIAG_E22_ANCHOR_EVENT2"
+          PY
+
+      - name: Cache HEC-HMS 4.13
+        if: github.event_name != 'pull_request'
+        id: cache-hec
+        uses: actions/cache@v4
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+
+      - name: Download HEC-HMS 4.13
+        if: github.event_name != 'pull_request' && steps.cache-hec.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .hec
+          curl -L --fail --retry 3 --retry-delay 4             -o /tmp/HEC-HMS-4.13-linux64.tar.gz             https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
+          tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
+
+      - name: Run one E22 diagnostic candidate
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="$PWD/assets/data/hec_hms_g040_full_basin"
+          EV="$BASE/historical_calibration_forcing/E22_SEP2023"
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          test -n "$HEC_SH"
+          test -f "$EV/rain.json"
+          test -f "$EV/hydro.json"
+          test -f "$EV/scenario.json"
+
+          set +e
+          python -B scripts/run_hec_hms_g040_e1_hindcast.py "$HEC_SH"             --candidate-id DIAG_E22_ANCHOR_EVENT2             --event-id E22_SEP2023             --rain-file "$EV/rain.json"             --hydro-file "$EV/hydro.json"             --scenario-file "$EV/scenario.json"             --output-root "$BASE/g040_e22_diagnostic_runs"             --cn 43.22047             --lag-min 55.11625             --k-g1 3.5 --k-g2 1.5 --k-g3 5.0 --k-g4 6.0 --x 0.2             > /tmp/e22_runner_stdout.txt 2>&1
+          RC=$?
+          set -e
+          echo "$RC" > /tmp/e22_runner_exit_code.txt
+
+          RUN="$BASE/g040_e22_diagnostic_runs/DIAG_E22_ANCHOR_EVENT2"
+          cp "$RUN/result.json" /tmp/e22_result.json
+          cp "$RUN/run.log" /tmp/e22_run.log
+          if test -f "$RUN/project/hindcast.log"; then
+            cp "$RUN/project/hindcast.log" /tmp/e22_hindcast.log
+          else
+            : > /tmp/e22_hindcast.log
+          fi
+
+          echo "=== RESULT ==="
+          cat /tmp/e22_result.json
+          echo "=== RUN LOG TAIL ==="
+          tail -n 160 /tmp/e22_run.log || true
+          echo "=== HINDCAST LOG TAIL ==="
+          tail -n 160 /tmp/e22_hindcast.log || true
+
+      - name: Publish diagnostic evidence
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="$PWD/assets/data/hec_hms_g040_full_basin/e22_diagnostic"
+          mkdir -p /tmp/e22-publish
+          cp /tmp/e22_result.json /tmp/e22-publish/e22_diagnostic_latest.json
+          cp /tmp/e22_run.log /tmp/e22-publish/e22_diagnostic_run.log
+          cp /tmp/e22_hindcast.log /tmp/e22-publish/e22_diagnostic_hindcast.log
+          cp /tmp/e22_runner_stdout.txt /tmp/e22-publish/e22_diagnostic_stdout.txt
+          cp /tmp/e22_runner_exit_code.txt /tmp/e22-publish/e22_diagnostic_exit_code.txt
+
+          git config user.name "previne-g040-e22-diagnostic-bot"
+          git config user.email "previne-g040-e22-diagnostic-bot@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p "$BASE"
+            cp /tmp/e22-publish/* "$BASE/"
+            git add -- "$BASE"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "bot: publish G040 E22 HEC diagnostic [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt*2))
+          done
+          exit 1

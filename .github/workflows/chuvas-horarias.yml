@@ -7,6 +7,12 @@ name: Chuvas horarias (ANA + INMET + CEMADEN)
 #   CEMADEN_TOKEN, ANA_HIDRO_ID, ANA_HIDRO_SENHA  (opcionais).
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/chuvas-horarias.yml'
+      - 'codigo_python/10_chuvas/baixar_chuvas_horarias.py'
+      - 'previne/robo/fontes_chuva_8h.py'
   workflow_dispatch:
     inputs:
       inicio:
@@ -15,15 +21,20 @@ on:
       fim:
         description: 'Data final (YYYY-MM-DD, vazio = hoje)'
         default: ''
+  repository_dispatch:
+    types:
+      - previne-chuvas-horarias
   schedule:
-    - cron: '17 * * * *'      # contingencia horaria; o ao-vivo consulta direto
+    # Bootstrap/contingência. A atualização nominal é encadeada ao fim de
+    # cada rodada para não depender somente do scheduler público do GitHub.
+    - cron: '17 * * * *'
 
 jobs:
   chuvas:
     runs-on: ubuntu-latest
     concurrency:
       group: chuvas-horarias
-      cancel-in-progress: true
+      cancel-in-progress: false
     permissions:
       contents: write
 
@@ -81,3 +92,24 @@ jobs:
               exit 1
             fi
           fi
+
+      - name: Encadear próxima atualização das chuvas observadas
+        if: ${{ always() && !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIOUS_JOB_STATUS: ${{ job.status }}
+        run: |
+          if [ "${PREVIOUS_JOB_STATUS}" = "success" ]; then
+            echo "nova rodada em 30 min"
+            sleep 1800
+          else
+            echo "rodada falhou; nova tentativa em 10 min"
+            sleep 600
+          fi
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --url "https://api.github.com/repos/${GITHUB_REPOSITORY}/dispatches" \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            --data '{"event_type":"previne-chuvas-horarias"}'

@@ -1,0 +1,86 @@
+{
+  "schema_version": "g040_e1_parameter_search_contract_v1",
+  "generated_at_utc": "2026-09-30T22:29:24.264Z",
+  "research_only": true,
+  "purpose": "Faixas de busca para o experimento G040_E1 (física legado SCS-CN + SCS UH com estados/fronteiras observados), derivadas exclusivamente do inventário documentado das 145 sub-bacias e do contrato de roteamento multi-evento. Não são parâmetros promovidos.",
+  "rainfall_runoff_priors": {
+    "legacy_initial": {
+      "cn": {
+        "p05": 53.506,
+        "p25": 64.01,
+        "median": 68.22,
+        "p75": 71.02,
+        "p95": 73.418,
+        "observed_min": 48.05,
+        "observed_max": 83.11
+      },
+      "tc_min": {
+        "p05": 89.882,
+        "p25": 227.04,
+        "median": 312.59,
+        "p75": 456.66,
+        "p95": 775.912
+      },
+      "lag_min": {
+        "p05": 53.932,
+        "p25": 136.22,
+        "median": 187.55,
+        "p75": 274,
+        "p95": 465.546
+      },
+      "interpretation": "baseline reported pre-calibration distribution"
+    },
+    "event2_calibrated_may2024": {
+      "cn": {
+        "p05": 28.505926,
+        "p25": 39.00631,
+        "median": 43.22047,
+        "p75": 46.01777,
+        "p95": 48.417056,
+        "observed_min": 23.05009,
+        "observed_max": 58.11017
+      },
+      "initial_abstraction_mm": {
+        "p05": 54.12178732,
+        "p25": 59.59214724,
+        "median": 66.73688773,
+        "p75": 79.43535554,
+        "p95": 127.40967666,
+        "observed_min": 36.62016134,
+        "observed_max": 169.5896141
+      },
+      "tc_min": {
+        "p05": 26.413222,
+        "p25": 66.71891,
+        "median": 91.86042,
+        "p75": 134.1973,
+        "p95": 228.01428
+      },
+      "lag_min": {
+        "p05": 15.847934,
+        "p25": 40.03134,
+        "median": 55.11625,
+        "p75": 80.51839,
+        "p95": 136.80856
+      },
+      "interpretation": "wet-event calibration reference; not transferable automatically"
+    }
+  },
+  "search_policy": {
+    "stage_1": "fit routing first where observed upstream/downstream discharge pairs exist, respecting routing_search_contract_latest.json",
+    "stage_2": "fit incremental rainfall-runoff parameters against multiple downstream checkpoints, not a single outlet",
+    "stage_3": "joint refinement with volume, peak, timing, rise and recession metrics",
+    "parameters_may_be_shared_initially": "regional/shared parameter multipliers may be tested to reduce identifiability, then interval-specific departures only when evidence supports them",
+    "no_single_event_promotion": true,
+    "independent_validation_required": true,
+    "forbidden": [
+      "copy Muçum K=1.25h basin-wide",
+      "use event2 calibrated CN/lag as fixed current values",
+      "visual stage shift presented as assimilation",
+      "zero-fill missing rainfall or tributary discharge"
+    ]
+  },
+  "routing_reference": "assets/data/hec_hms_g040_full_basin/whole_basin_routing_search_contract_latest.json",
+  "parameter_inventory_reference": "assets/data/hec_hms_g040_full_basin/original_145_report_inventory_latest.json",
+  "next_step": "build scenario-specific HEC-HMS G040_E1 project and calibration runner after merged rainfall forcing passes"
+}

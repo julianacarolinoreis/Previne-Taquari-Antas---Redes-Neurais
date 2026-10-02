@@ -12,6 +12,7 @@ on:
       - "vulnerabilidade.html"
       - "santa_tereza_inundacao.html"
       - "santa_tereza_previsao_inundacao.html"
+      - "santa_tereza_rota_fuga*.html"
       - "mucum_previsao_inundacao.html"
       - "plataforma_hec_twin.html"
       - "plataforma_bacia.html"
@@ -32,9 +33,16 @@ on:
       - "assets/data/agenda_pesquisas.json"
       - "scripts/validate_osm_tiles.py"
       - "scripts/validar_panorama_site.py"
+      - "scripts/validate_santa_tereza_lidar_contract.py"
+      - "codigo_python/02_mdt_hand_mancha/refinar_mdt_santa_tereza.py"
+      - "scripts/build_unified_event_spatial_dashboard.py"
+      - "scripts/test_unified_event_spatial_dashboard.py"
       - "assets/data/estudo_caso_resposta_v002.json"
       - "assets/data/estudo_caso_territorio/**"
-      - "assets/data/rota_fuga_santa_tereza_cenario.json"
+      - "assets/data/rota_fuga_santa_tereza*.json"
+      # HAND/MDT LiDAR de Santa Tereza: qualquer derivado publicado deve
+      # disparar Pages imediatamente, sem depender do cron de 2 h.
+      - "assets/data/santa_tereza_inundacao/**"
       # Plataforma HEC/REC da bacia G040: mapa + feed precisam republicar o Pages.
       - "assets/data/estudo_bacia_taquari_antas/**"
       # Estudos HEC-HMS integrados têm páginas próprias e dados auditáveis.
@@ -61,6 +69,7 @@ on:
       # dispara outro workflow de push; ouvir a conclusão da QA mantém o
       # Pages sincronizado com o estado que acabou de ser validado.
       - "QA automatizada da pesquisa"
+      - "Sincroniza contrato espacial LiDAR da pesquisa"
     types:
       - completed
 
@@ -70,9 +79,9 @@ permissions:
   id-token: write
 
 concurrency:
-  # Robôs podem solicitar outro deploy antes do atual terminar. Deixe o
-  # deploy em curso concluir; o próximo checkout lê a ponta atual de main.
-  group: github-pages-site
+  # Separar push de workflow_run evita que a fila frequente dos robôs cancele
+  # uma publicação manual de interface antes mesmo de o job começar.
+  group: github-pages-site-${{ github.event_name }}
   cancel-in-progress: false
 
 jobs:
@@ -111,7 +120,14 @@ jobs:
             !*.yaml
             scripts/validate_osm_tiles.py
             scripts/validar_panorama_site.py
+            scripts/validate_santa_tereza_lidar_contract.py
+            codigo_python/02_mdt_hand_mancha/gerar_mosaico_mdt.py
+            codigo_python/02_mdt_hand_mancha/gerar_mancha_mosaico.py
+            codigo_python/02_mdt_hand_mancha/gerar_contornos_vetoriais.py
+            codigo_python/02_mdt_hand_mancha/refinar_mdt_santa_tereza.py
+            codigo_python/09_rota_fuga/gerar_rota_fuga_santa_tereza.py
             .github/workflows/deploy-pages.yml
+            .github/workflows/refresh-spatial-30m.yml
             !Gemfile
             !Gemfile.lock
             assets/data/vulnerabilidade/referencias/README_AGREGADOS_TAQUARI.md
@@ -130,6 +146,9 @@ jobs:
 
       - name: Validar panorama e leitores ao vivo
         run: python -B scripts/validar_panorama_site.py
+
+      - name: Validar contrato LiDAR de Santa Tereza
+        run: python -B scripts/validate_santa_tereza_lidar_contract.py
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

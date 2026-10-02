@@ -1,0 +1,69 @@
+name: G040 historical hydrometric replay inputs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/build_g040_historical_hydro_events.py"
+      - ".github/workflows/g040-historical-hydro-inputs.yml"
+      - "assets/data/hec_hms_g040_full_basin/whole_basin_branch_model_latest.json"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: g040-historical-hydro-inputs
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build historical hydrometric event package
+        run: python -B scripts/build_g040_historical_hydro_events.py
+
+      - name: Audit availability
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          p="assets/data/hec_hms_g040_full_basin/whole_basin_historical_hydro_events_latest.json"
+          j=json.load(open(p,encoding="utf-8"))
+          for e in j["events"]:
+              print(e["event_id"],"stations with Q:",e["stations_with_flow"],"/",e["station_count"],"flow-hours:",e["flow_hours_total"])
+          PY
+
+      - name: Publish historical inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-g040-historical-bot"
+          git config user.email "previne-g040-historical-bot@users.noreply.github.com"
+          BASE="assets/data/hec_hms_g040_full_basin"
+          mkdir -p /tmp/g040_hist/events
+          cp "$BASE/whole_basin_historical_hydro_events_latest.json" /tmp/g040_hist/
+          cp "$BASE"/historical_hydro_events/*.json /tmp/g040_hist/events/
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p "$BASE/historical_hydro_events"
+            cp /tmp/g040_hist/whole_basin_historical_hydro_events_latest.json "$BASE/"
+            cp /tmp/g040_hist/events/*.json "$BASE/historical_hydro_events/"
+            git add -- "$BASE/whole_basin_historical_hydro_events_latest.json" "$BASE/historical_hydro_events"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "bot: update G040 historical hydrometric replay inputs [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt*2))
+          done
+          exit 1

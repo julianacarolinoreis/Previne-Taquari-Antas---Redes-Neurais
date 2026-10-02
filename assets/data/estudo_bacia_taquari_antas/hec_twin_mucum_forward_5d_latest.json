@@ -1,6 +1,6 @@
 {
   "schema_version": "hec_twin_mucum_forward_5d_v5",
-  "generated_at_utc": "2026-09-30T07:19:02Z",
+  "generated_at_utc": "2026-10-02T09:00:12Z",
   "status": "research_forward_5d_ready",
   "label": "PESQUISA — com a chuva prevista, quanto sobe Muçum (~5 dias, gêmeo HEC + IFS). NÃO é alerta oficial.",
   "purpose": "Responder quanto o nível sobe em Muçum dado a chuva prevista. RNA permanece no curto prazo e não é alterada aqui.",
@@ -9,68 +9,68 @@
     "method": "delta_n_from_now_index_plus_observed_stage",
     "method_note": "ΔN = N_modelo(pico≥agora) − N_modelo(agora). Se há telemetria, N_ancorado(t) = N_obs + (N_modelo(t) − N_modelo(agora)). Janelas past+future usam o índice de agora (não o início do pad). Não inventa curva STZ; não mexe na RNA.",
     "now_index": 0,
-    "rain_forecast_mm_area_weighted": 17.632,
+    "rain_forecast_mm_area_weighted": 52.786,
     "horizon_hours": 120,
     "level_now": {
       "ok": true,
-      "stage_cm": 1495.0,
-      "observed_at_utc": "2026-09-30T06:45:00Z",
+      "stage_cm": 614.0,
+      "observed_at_utc": "2026-10-02T08:30:00Z",
       "source": "ANA_telemetria",
       "station": "86510000"
     },
     "q_now_from_rating_m3s": {
-      "q_m3s": 6031.688,
+      "q_m3s": 1526.266,
       "ok": true,
-      "segment_number": 3
+      "segment_number": 2
     },
     "primary": {
       "event_id": "BLEND",
-      "rise_cm": 0.0,
-      "peak_time_utc": "2026-09-30T06:00:00Z",
-      "peak_time_argmax_utc": "2026-09-30T06:00:00Z",
-      "peak_time_method": "no_rise",
-      "peak_anchored_cm": 1495.0,
-      "n_model_t0_cm": 1495.0,
-      "n_model_peak_cm": 1495.0
+      "rise_cm": 109.67,
+      "peak_time_utc": "2026-10-06T19:00:00Z",
+      "peak_time_argmax_utc": "2026-10-06T21:00:00Z",
+      "peak_time_method": "first_reach_0.95_of_rise",
+      "peak_anchored_cm": 723.67,
+      "n_model_t0_cm": 614.0,
+      "n_model_peak_cm": 723.67
     },
     "ensemble_rise_cm": {
       "min": 0.0,
-      "primary": 0.0,
-      "max": 0.0,
+      "primary": 109.67,
+      "max": 466.22,
       "by_event": [
         {
           "event_id": "BLEND",
-          "rise_cm": 0.0,
-          "peak_anchored_cm": 1495.0
+          "rise_cm": 109.67,
+          "peak_anchored_cm": 723.67
         },
         {
           "event_id": "E23",
-          "rise_cm": 0.0,
-          "peak_anchored_cm": 1495.0
+          "rise_cm": 135.52,
+          "peak_anchored_cm": 749.52
         },
         {
           "event_id": "E20",
-          "rise_cm": 0.0,
-          "peak_anchored_cm": 1495.0
+          "rise_cm": 4.59,
+          "peak_anchored_cm": 618.59
         },
         {
           "event_id": "E25",
           "rise_cm": 0.0,
-          "peak_anchored_cm": 1495.0
-        },
-        {
-          "event_id": "E24",
-          "rise_cm": 0.0,
-          "peak_anchored_cm": 1495.0
+          "peak_anchored_cm": 614.0
         },
         {
           "event_id": "E31",
-          "rise_cm": 0.0,
-          "peak_anchored_cm": 1495.0
+          "rise_cm": 466.22,
+          "peak_anchored_cm": 1080.22
+        },
+        {
+          "event_id": "E21",
+          "rise_cm": 33.39,
+          "peak_anchored_cm": 647.39
         }
       ]
     },
-    "plain_pt": "Com ~17.6 mm de chuva prevista em 120 h e nível atual 1495 cm em Muçum, o gêmeo HEC indica subida de ~0 cm (banda 0–0 cm), pico ancorado ~1495 cm em 2026-09-30T06:00:00Z."
+    "plain_pt": "Com ~52.8 mm de chuva prevista em 120 h e nível atual 614 cm em Muçum, o gêmeo HEC indica subida de ~110 cm (banda 0–466 cm), pico ancorado ~724 cm em 2026-10-06T19:00:00Z."
   },
   "decision_alignment": {
     "primary_for_multiday": "HEC_twin_plus_IFS_QPF",
@@ -87,8 +87,8 @@
     "artifact": "hec_twin_ifs_spatial_forcing_5d_latest.json",
     "model": "ecmwf_ifs025_full_field",
     "horizon_hours": 120,
-    "area_weighted_total_mm": 17.632,
-    "generated_at_utc": "2026-09-30T07:19:00.181947Z",
+    "area_weighted_total_mm": 52.786,
+    "generated_at_utc": "2026-10-02T09:00:10.722199Z",
     "point_proxy_not_areal_mask": false,
     "spatial_field_full": true,
     "zone_artifact": "assets/data/estudo_bacia_taquari_antas/mucum_twin_subbasin_zones.geojson",
@@ -97,41 +97,41 @@
         "zone_geometry_km2": 3769.174,
         "ifs_overlap_km2": 3769.174,
         "ifs_cells_used": 13,
-        "total_mm": 16.719,
+        "total_mm": 60.929,
         "min_hourly_mm": 0.0,
-        "max_hourly_mm": 3.1961
+        "max_hourly_mm": 4.9114
       },
       "SB_ANTAS_RESIDUAL": {
         "zone_geometry_km2": 8979.495,
         "ifs_overlap_km2": 8979.495,
         "ifs_cells_used": 33,
-        "total_mm": 15.592,
+        "total_mm": 46.739,
         "min_hourly_mm": 0.0,
-        "max_hourly_mm": 2.0457
+        "max_hourly_mm": 3.9302
       },
       "SB_CARREIRO_7866": {
         "zone_geometry_km2": 2420.199,
         "ifs_overlap_km2": 2420.199,
         "ifs_cells_used": 12,
-        "total_mm": 24.053,
+        "total_mm": 62.257,
         "min_hourly_mm": 0.0,
-        "max_hourly_mm": 5.3591
+        "max_hourly_mm": 5.3912
       },
       "SB_STZ_RESIDUAL": {
         "zone_geometry_km2": 327.597,
         "ifs_overlap_km2": 327.597,
         "ifs_cells_used": 14,
-        "total_mm": 29.638,
+        "total_mm": 53.101,
         "min_hourly_mm": 0.0,
-        "max_hourly_mm": 4.4808
+        "max_hourly_mm": 3.6795
       },
       "SB_INC_MUCUM": {
         "zone_geometry_km2": 194.141,
         "ifs_overlap_km2": 194.141,
         "ifs_cells_used": 4,
-        "total_mm": 28.798,
+        "total_mm": 53.644,
         "min_hourly_mm": 0.0,
-        "max_hourly_mm": 4.427
+        "max_hourly_mm": 3.9127
       }
     }
   },
@@ -143,11 +143,11 @@
         "event_id": "E23",
         "historical_aw_full_mm": 81.117,
         "historical_core_mean_mm": 33.983,
-        "forecast_aw_total_mm": 17.632,
-        "abs_mm_gap": 63.485,
-        "distance": 0.5607,
+        "forecast_aw_total_mm": 52.786,
+        "abs_mm_gap": 28.331,
+        "distance": 0.1274,
         "distance_detail": {
-          "rain_gap": 0.7826,
+          "rain_gap": 0.3493,
           "eff_gap": 0.0,
           "loss_penalty": -0.35,
           "donor_penalty": 0.1,
@@ -167,22 +167,22 @@
         "wetness": {
           "is_wet": true,
           "past_aw_mm": 0.0,
-          "stage_cm": 1495.0,
+          "stage_cm": 614.0,
           "stage_rising": true,
           "wet_by_rain": false,
           "wet_by_stage": true,
-          "forecast_aw_mm": 17.632
+          "forecast_aw_mm": 52.786
         }
       },
       {
         "event_id": "E20",
         "historical_aw_full_mm": 76.711,
         "historical_core_mean_mm": 31.133,
-        "forecast_aw_total_mm": 17.632,
-        "abs_mm_gap": 59.079,
-        "distance": 0.7805,
+        "forecast_aw_total_mm": 52.786,
+        "abs_mm_gap": 23.925,
+        "distance": 0.3223,
         "distance_detail": {
-          "rain_gap": 0.7702,
+          "rain_gap": 0.3119,
           "eff_gap": 0.0,
           "loss_penalty": 0.0,
           "donor_penalty": 0.0,
@@ -202,22 +202,22 @@
         "wetness": {
           "is_wet": true,
           "past_aw_mm": 0.0,
-          "stage_cm": 1495.0,
+          "stage_cm": 614.0,
           "stage_rising": true,
           "wet_by_rain": false,
           "wet_by_stage": true,
-          "forecast_aw_mm": 17.632
+          "forecast_aw_mm": 52.786
         }
       },
       {
         "event_id": "E25",
         "historical_aw_full_mm": 48.765,
         "historical_core_mean_mm": 6.175,
-        "forecast_aw_total_mm": 17.632,
-        "abs_mm_gap": 31.133,
-        "distance": 0.8994,
+        "forecast_aw_total_mm": 52.786,
+        "abs_mm_gap": 4.021,
+        "distance": 0.3372,
         "distance_detail": {
-          "rain_gap": 0.6384,
+          "rain_gap": 0.0762,
           "eff_gap": 0.0,
           "loss_penalty": 0.25,
           "donor_penalty": 0.0,
@@ -237,57 +237,22 @@
         "wetness": {
           "is_wet": true,
           "past_aw_mm": 0.0,
-          "stage_cm": 1495.0,
+          "stage_cm": 614.0,
           "stage_rising": true,
           "wet_by_rain": false,
           "wet_by_stage": true,
-          "forecast_aw_mm": 17.632
-        }
-      },
-      {
-        "event_id": "E24",
-        "historical_aw_full_mm": 207.8,
-        "historical_core_mean_mm": 202.4,
-        "forecast_aw_total_mm": 17.632,
-        "abs_mm_gap": 190.168,
-        "distance": 1.0523,
-        "distance_detail": {
-          "rain_gap": 0.9151,
-          "eff_gap": 0.0,
-          "loss_penalty": 0.0,
-          "donor_penalty": 0.1,
-          "nse_term": 0.0372,
-          "loss_sum_mm": 3.875,
-          "constant_loss_sum_mm": 3.875,
-          "hist_peak_per_mm": 55.029,
-          "is_light_specialist": false,
-          "is_wet": true,
-          "apply_light_dry_guards": false
-        },
-        "hist_rain_source": "aw_full_fingerprint",
-        "regime_forecast": "light",
-        "regime_hist": "heavy",
-        "nse": 0.7520225645223316,
-        "research_score": 0.6637275476017248,
-        "wetness": {
-          "is_wet": true,
-          "past_aw_mm": 0.0,
-          "stage_cm": 1495.0,
-          "stage_rising": true,
-          "wet_by_rain": false,
-          "wet_by_stage": true,
-          "forecast_aw_mm": 17.632
+          "forecast_aw_mm": 52.786
         }
       },
       {
         "event_id": "E31",
         "historical_aw_full_mm": 64.989,
         "historical_core_mean_mm": 60.832,
-        "forecast_aw_total_mm": 17.632,
-        "abs_mm_gap": 47.357,
-        "distance": 1.143,
+        "forecast_aw_total_mm": 52.786,
+        "abs_mm_gap": 12.203,
+        "distance": 0.6021,
         "distance_detail": {
-          "rain_gap": 0.7287,
+          "rain_gap": 0.1878,
           "eff_gap": 0.0,
           "loss_penalty": 0.4,
           "donor_penalty": 0.0,
@@ -307,11 +272,46 @@
         "wetness": {
           "is_wet": true,
           "past_aw_mm": 0.0,
-          "stage_cm": 1495.0,
+          "stage_cm": 614.0,
           "stage_rising": true,
           "wet_by_rain": false,
           "wet_by_stage": true,
-          "forecast_aw_mm": 17.632
+          "forecast_aw_mm": 52.786
+        }
+      },
+      {
+        "event_id": "E21",
+        "historical_aw_full_mm": 101.183,
+        "historical_core_mean_mm": 92.433,
+        "forecast_aw_total_mm": 52.786,
+        "abs_mm_gap": 48.397,
+        "distance": 0.8512,
+        "distance_detail": {
+          "rain_gap": 0.4783,
+          "eff_gap": 0.0,
+          "loss_penalty": 0.25,
+          "donor_penalty": 0.1,
+          "nse_term": 0.0229,
+          "loss_sum_mm": 7.0,
+          "constant_loss_sum_mm": 2.5,
+          "hist_peak_per_mm": 59.304,
+          "is_light_specialist": false,
+          "is_wet": true,
+          "apply_light_dry_guards": false
+        },
+        "hist_rain_source": "aw_full_fingerprint",
+        "regime_forecast": "light",
+        "regime_hist": "moderate",
+        "nse": 0.8473541435574965,
+        "research_score": 0.8291599739161672,
+        "wetness": {
+          "is_wet": true,
+          "past_aw_mm": 0.0,
+          "stage_cm": 614.0,
+          "stage_rising": true,
+          "wet_by_rain": false,
+          "wet_by_stage": true,
+          "forecast_aw_mm": 52.786
         }
       }
     ],
@@ -319,11 +319,11 @@
     "wetness": {
       "is_wet": true,
       "past_aw_mm": 0.0,
-      "stage_cm": 1495.0,
+      "stage_cm": 614.0,
       "stage_rising": true,
       "wet_by_rain": false,
       "wet_by_stage": true,
-      "forecast_aw_mm": 17.632
+      "forecast_aw_mm": 52.786
     },
     "basin_calibration": {
       "artifact": "modelo_mucum_bacia_calibrado_v1_latest.json",
@@ -342,38 +342,38 @@
         "weights": [
           {
             "event_id": "E23",
-            "weight": 0.388056,
-            "distance": 0.5607
+            "weight": 0.604241,
+            "distance": 0.1274
           },
           {
             "event_id": "E20",
-            "weight": 0.215131,
-            "distance": 0.7805
+            "weight": 0.160593,
+            "distance": 0.3223
           },
           {
             "event_id": "E25",
-            "weight": 0.166067,
-            "distance": 0.8994
-          },
-          {
-            "event_id": "E24",
-            "weight": 0.124246,
-            "distance": 1.0523
+            "weight": 0.149327,
+            "distance": 0.3372
           },
           {
             "event_id": "E31",
-            "weight": 0.1065,
-            "distance": 1.143
+            "weight": 0.055864,
+            "distance": 0.6021
+          },
+          {
+            "event_id": "E21",
+            "weight": 0.029974,
+            "distance": 0.8512
           }
         ],
         "member_rises_cm": [
+          135.52,
+          4.59,
           0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0
+          466.22,
+          33.39
         ],
-        "rise_blend_cm": 0.0,
+        "rise_blend_cm": 109.67,
         "note": "primary_rise_uses_weighted_member_rises_not_peak_of_blended_hydrograph"
       },
       "top_k": 5
@@ -381,11 +381,11 @@
   },
   "primary_member": {
     "event_id": "BLEND",
-    "peak_q_mucum_m3s": 6031.688,
-    "peak_time_utc": "2026-09-30T06:00:00Z",
-    "peak_stage_mucum_cm": 1495.0,
-    "rise_cm": 0.0,
-    "peak_anchored_cm": 1495.0,
+    "peak_q_mucum_m3s": 1864.462,
+    "peak_time_utc": "2026-10-06T21:00:00Z",
+    "peak_stage_mucum_cm": 723.67,
+    "rise_cm": 109.67,
+    "peak_anchored_cm": 723.67,
     "params": {
       "note": "consensus_blend_no_single_param_set"
     }
@@ -395,42 +395,42 @@
       "event_id": "BLEND",
       "analog": {
         "event_id": "BLEND",
-        "distance": 0.7873,
+        "distance": 0.2382,
         "blend_weights": [
           {
             "event_id": "E23",
-            "weight": 0.388056,
-            "distance": 0.5607
+            "weight": 0.604241,
+            "distance": 0.1274
           },
           {
             "event_id": "E20",
-            "weight": 0.215131,
-            "distance": 0.7805
+            "weight": 0.160593,
+            "distance": 0.3223
           },
           {
             "event_id": "E25",
-            "weight": 0.166067,
-            "distance": 0.8994
-          },
-          {
-            "event_id": "E24",
-            "weight": 0.124246,
-            "distance": 1.0523
+            "weight": 0.149327,
+            "distance": 0.3372
           },
           {
             "event_id": "E31",
-            "weight": 0.1065,
-            "distance": 1.143
+            "weight": 0.055864,
+            "distance": 0.6021
+          },
+          {
+            "event_id": "E21",
+            "weight": 0.029974,
+            "distance": 0.8512
           }
         ],
         "method": "distance_weighted_q_blend",
         "blend_mode": "distance"
       },
-      "peak_q_mucum_m3s": 6031.688,
-      "peak_time_utc": "2026-09-30T06:00:00Z",
-      "peak_stage_mucum_cm": 1495.0,
-      "rise_cm": 0.0,
-      "peak_anchored_cm": 1495.0
+      "peak_q_mucum_m3s": 1864.462,
+      "peak_time_utc": "2026-10-06T21:00:00Z",
+      "peak_stage_mucum_cm": 723.67,
+      "rise_cm": 109.67,
+      "peak_anchored_cm": 723.67
     },
     {
       "event_id": "E23",
@@ -438,11 +438,11 @@
         "event_id": "E23",
         "historical_aw_full_mm": 81.117,
         "historical_core_mean_mm": 33.983,
-        "forecast_aw_total_mm": 17.632,
-        "abs_mm_gap": 63.485,
-        "distance": 0.5607,
+        "forecast_aw_total_mm": 52.786,
+        "abs_mm_gap": 28.331,
+        "distance": 0.1274,
         "distance_detail": {
-          "rain_gap": 0.7826,
+          "rain_gap": 0.3493,
           "eff_gap": 0.0,
           "loss_penalty": -0.35,
           "donor_penalty": 0.1,
@@ -462,18 +462,18 @@
         "wetness": {
           "is_wet": true,
           "past_aw_mm": 0.0,
-          "stage_cm": 1495.0,
+          "stage_cm": 614.0,
           "stage_rising": true,
           "wet_by_rain": false,
           "wet_by_stage": true,
-          "forecast_aw_mm": 17.632
+          "forecast_aw_mm": 52.786
         }
       },
-      "peak_q_mucum_m3s": 6031.688,
-      "peak_time_utc": "2026-09-30T06:00:00Z",
-      "peak_stage_mucum_cm": 1495.0,
-      "rise_cm": 0.0,
-      "peak_anchored_cm": 1495.0
+      "peak_q_mucum_m3s": 2141.217,
+      "peak_time_utc": "2026-10-06T22:00:00Z",
+      "peak_stage_mucum_cm": 749.52,
+      "rise_cm": 135.52,
+      "peak_anchored_cm": 749.52
     },
     {
       "event_id": "E20",
@@ -481,11 +481,11 @@
         "event_id": "E20",
         "historical_aw_full_mm": 76.711,
         "historical_core_mean_mm": 31.133,
-        "forecast_aw_total_mm": 17.632,
-        "abs_mm_gap": 59.079,
-        "distance": 0.7805,
+        "forecast_aw_total_mm": 52.786,
+        "abs_mm_gap": 23.925,
+        "distance": 0.3223,
         "distance_detail": {
-          "rain_gap": 0.7702,
+          "rain_gap": 0.3119,
           "eff_gap": 0.0,
           "loss_penalty": 0.0,
           "donor_penalty": 0.0,
@@ -505,18 +505,18 @@
         "wetness": {
           "is_wet": true,
           "past_aw_mm": 0.0,
-          "stage_cm": 1495.0,
+          "stage_cm": 614.0,
           "stage_rising": true,
           "wet_by_rain": false,
           "wet_by_stage": true,
-          "forecast_aw_mm": 17.632
+          "forecast_aw_mm": 52.786
         }
       },
-      "peak_q_mucum_m3s": 6031.688,
-      "peak_time_utc": "2026-09-30T06:00:00Z",
-      "peak_stage_mucum_cm": 1495.0,
-      "rise_cm": 0.0,
-      "peak_anchored_cm": 1495.0
+      "peak_q_mucum_m3s": 1546.879,
+      "peak_time_utc": "2026-10-06T19:00:00Z",
+      "peak_stage_mucum_cm": 618.59,
+      "rise_cm": 4.59,
+      "peak_anchored_cm": 618.59
     },
     {
       "event_id": "E25",
@@ -524,11 +524,11 @@
         "event_id": "E25",
         "historical_aw_full_mm": 48.765,
         "historical_core_mean_mm": 6.175,
-        "forecast_aw_total_mm": 17.632,
-        "abs_mm_gap": 31.133,
-        "distance": 0.8994,
+        "forecast_aw_total_mm": 52.786,
+        "abs_mm_gap": 4.021,
+        "distance": 0.3372,
         "distance_detail": {
-          "rain_gap": 0.6384,
+          "rain_gap": 0.0762,
           "eff_gap": 0.0,
           "loss_penalty": 0.25,
           "donor_penalty": 0.0,
@@ -548,61 +548,18 @@
         "wetness": {
           "is_wet": true,
           "past_aw_mm": 0.0,
-          "stage_cm": 1495.0,
+          "stage_cm": 614.0,
           "stage_rising": true,
           "wet_by_rain": false,
           "wet_by_stage": true,
-          "forecast_aw_mm": 17.632
+          "forecast_aw_mm": 52.786
         }
       },
-      "peak_q_mucum_m3s": 6031.688,
-      "peak_time_utc": "2026-09-30T06:00:00Z",
-      "peak_stage_mucum_cm": 1495.0,
+      "peak_q_mucum_m3s": 1526.266,
+      "peak_time_utc": "2026-10-02T08:00:00Z",
+      "peak_stage_mucum_cm": 614.0,
       "rise_cm": 0.0,
-      "peak_anchored_cm": 1495.0
-    },
-    {
-      "event_id": "E24",
-      "analog": {
-        "event_id": "E24",
-        "historical_aw_full_mm": 207.8,
-        "historical_core_mean_mm": 202.4,
-        "forecast_aw_total_mm": 17.632,
-        "abs_mm_gap": 190.168,
-        "distance": 1.0523,
-        "distance_detail": {
-          "rain_gap": 0.9151,
-          "eff_gap": 0.0,
-          "loss_penalty": 0.0,
-          "donor_penalty": 0.1,
-          "nse_term": 0.0372,
-          "loss_sum_mm": 3.875,
-          "constant_loss_sum_mm": 3.875,
-          "hist_peak_per_mm": 55.029,
-          "is_light_specialist": false,
-          "is_wet": true,
-          "apply_light_dry_guards": false
-        },
-        "hist_rain_source": "aw_full_fingerprint",
-        "regime_forecast": "light",
-        "regime_hist": "heavy",
-        "nse": 0.7520225645223316,
-        "research_score": 0.6637275476017248,
-        "wetness": {
-          "is_wet": true,
-          "past_aw_mm": 0.0,
-          "stage_cm": 1495.0,
-          "stage_rising": true,
-          "wet_by_rain": false,
-          "wet_by_stage": true,
-          "forecast_aw_mm": 17.632
-        }
-      },
-      "peak_q_mucum_m3s": 6031.688,
-      "peak_time_utc": "2026-09-30T06:00:00Z",
-      "peak_stage_mucum_cm": 1495.0,
-      "rise_cm": 0.0,
-      "peak_anchored_cm": 1495.0
+      "peak_anchored_cm": 614.0
     },
     {
       "event_id": "E31",
@@ -610,11 +567,11 @@
         "event_id": "E31",
         "historical_aw_full_mm": 64.989,
         "historical_core_mean_mm": 60.832,
-        "forecast_aw_total_mm": 17.632,
-        "abs_mm_gap": 47.357,
-        "distance": 1.143,
+        "forecast_aw_total_mm": 52.786,
+        "abs_mm_gap": 12.203,
+        "distance": 0.6021,
         "distance_detail": {
-          "rain_gap": 0.7287,
+          "rain_gap": 0.1878,
           "eff_gap": 0.0,
           "loss_penalty": 0.4,
           "donor_penalty": 0.0,
@@ -634,72 +591,65 @@
         "wetness": {
           "is_wet": true,
           "past_aw_mm": 0.0,
-          "stage_cm": 1495.0,
+          "stage_cm": 614.0,
           "stage_rising": true,
           "wet_by_rain": false,
           "wet_by_stage": true,
-          "forecast_aw_mm": 17.632
+          "forecast_aw_mm": 52.786
         }
       },
-      "peak_q_mucum_m3s": 6031.688,
-      "peak_time_utc": "2026-09-30T06:00:00Z",
-      "peak_stage_mucum_cm": 1495.0,
-      "rise_cm": 0.0,
-      "peak_anchored_cm": 1495.0
+      "peak_q_mucum_m3s": 3643.425,
+      "peak_time_utc": "2026-10-06T14:00:00Z",
+      "peak_stage_mucum_cm": 1080.22,
+      "rise_cm": 466.22,
+      "peak_anchored_cm": 1080.22
+    },
+    {
+      "event_id": "E21",
+      "analog": {
+        "event_id": "E21",
+        "historical_aw_full_mm": 101.183,
+        "historical_core_mean_mm": 92.433,
+        "forecast_aw_total_mm": 52.786,
+        "abs_mm_gap": 48.397,
+        "distance": 0.8512,
+        "distance_detail": {
+          "rain_gap": 0.4783,
+          "eff_gap": 0.0,
+          "loss_penalty": 0.25,
+          "donor_penalty": 0.1,
+          "nse_term": 0.0229,
+          "loss_sum_mm": 7.0,
+          "constant_loss_sum_mm": 2.5,
+          "hist_peak_per_mm": 59.304,
+          "is_light_specialist": false,
+          "is_wet": true,
+          "apply_light_dry_guards": false
+        },
+        "hist_rain_source": "aw_full_fingerprint",
+        "regime_forecast": "light",
+        "regime_hist": "moderate",
+        "nse": 0.8473541435574965,
+        "research_score": 0.8291599739161672,
+        "wetness": {
+          "is_wet": true,
+          "past_aw_mm": 0.0,
+          "stage_cm": 614.0,
+          "stage_rising": true,
+          "wet_by_rain": false,
+          "wet_by_stage": true,
+          "forecast_aw_mm": 52.786
+        }
+      },
+      "peak_q_mucum_m3s": 1678.676,
+      "peak_time_utc": "2026-10-06T10:00:00Z",
+      "peak_stage_mucum_cm": 647.39,
+      "rise_cm": 33.39,
+      "peak_anchored_cm": 647.39
     }
   ],
   "series_primary": {
     "time_utc": [
-      "2026-09-30T06:00:00Z",
-      "2026-09-30T07:00:00Z",
-      "2026-09-30T08:00:00Z",
-      "2026-09-30T09:00:00Z",
-      "2026-09-30T10:00:00Z",
-      "2026-09-30T11:00:00Z",
-      "2026-09-30T12:00:00Z",
-      "2026-09-30T13:00:00Z",
-      "2026-09-30T14:00:00Z",
-      "2026-09-30T15:00:00Z",
-      "2026-09-30T16:00:00Z",
-      "2026-09-30T17:00:00Z",
-      "2026-09-30T18:00:00Z",
-      "2026-09-30T19:00:00Z",
-      "2026-09-30T20:00:00Z",
-      "2026-09-30T21:00:00Z",
-      "2026-09-30T22:00:00Z",
-      "2026-09-30T23:00:00Z",
-      "2026-10-01T00:00:00Z",
-      "2026-10-01T01:00:00Z",
-      "2026-10-01T02:00:00Z",
-      "2026-10-01T03:00:00Z",
-      "2026-10-01T04:00:00Z",
-      "2026-10-01T05:00:00Z",
-      "2026-10-01T06:00:00Z",
-      "2026-10-01T07:00:00Z",
-      "2026-10-01T08:00:00Z",
-      "2026-10-01T09:00:00Z",
-      "2026-10-01T10:00:00Z",
-      "2026-10-01T11:00:00Z",
-      "2026-10-01T12:00:00Z",
-      "2026-10-01T13:00:00Z",
-      "2026-10-01T14:00:00Z",
-      "2026-10-01T15:00:00Z",
-      "2026-10-01T16:00:00Z",
-      "2026-10-01T17:00:00Z",
-      "2026-10-01T18:00:00Z",
-      "2026-10-01T19:00:00Z",
-      "2026-10-01T20:00:00Z",
-      "2026-10-01T21:00:00Z",
-      "2026-10-01T22:00:00Z",
-      "2026-10-01T23:00:00Z",
-      "2026-10-02T00:00:00Z",
-      "2026-10-02T01:00:00Z",
-      "2026-10-02T02:00:00Z",
-      "2026-10-02T03:00:00Z",
-      "2026-10-02T04:00:00Z",
-      "2026-10-02T05:00:00Z",
-      "2026-10-02T06:00:00Z",
-      "2026-10-02T07:00:00Z",
       "2026-10-02T08:00:00Z",
       "2026-10-02T09:00:00Z",
       "2026-10-02T10:00:00Z",
@@ -769,856 +719,961 @@
       "2026-10-05T02:00:00Z",
       "2026-10-05T03:00:00Z",
       "2026-10-05T04:00:00Z",
-      "2026-10-05T05:00:00Z"
+      "2026-10-05T05:00:00Z",
+      "2026-10-05T06:00:00Z",
+      "2026-10-05T07:00:00Z",
+      "2026-10-05T08:00:00Z",
+      "2026-10-05T09:00:00Z",
+      "2026-10-05T10:00:00Z",
+      "2026-10-05T11:00:00Z",
+      "2026-10-05T12:00:00Z",
+      "2026-10-05T13:00:00Z",
+      "2026-10-05T14:00:00Z",
+      "2026-10-05T15:00:00Z",
+      "2026-10-05T16:00:00Z",
+      "2026-10-05T17:00:00Z",
+      "2026-10-05T18:00:00Z",
+      "2026-10-05T19:00:00Z",
+      "2026-10-05T20:00:00Z",
+      "2026-10-05T21:00:00Z",
+      "2026-10-05T22:00:00Z",
+      "2026-10-05T23:00:00Z",
+      "2026-10-06T00:00:00Z",
+      "2026-10-06T01:00:00Z",
+      "2026-10-06T02:00:00Z",
+      "2026-10-06T03:00:00Z",
+      "2026-10-06T04:00:00Z",
+      "2026-10-06T05:00:00Z",
+      "2026-10-06T06:00:00Z",
+      "2026-10-06T07:00:00Z",
+      "2026-10-06T08:00:00Z",
+      "2026-10-06T09:00:00Z",
+      "2026-10-06T10:00:00Z",
+      "2026-10-06T11:00:00Z",
+      "2026-10-06T12:00:00Z",
+      "2026-10-06T13:00:00Z",
+      "2026-10-06T14:00:00Z",
+      "2026-10-06T15:00:00Z",
+      "2026-10-06T16:00:00Z",
+      "2026-10-06T17:00:00Z",
+      "2026-10-06T18:00:00Z",
+      "2026-10-06T19:00:00Z",
+      "2026-10-06T20:00:00Z",
+      "2026-10-06T21:00:00Z",
+      "2026-10-06T22:00:00Z",
+      "2026-10-06T23:00:00Z",
+      "2026-10-07T00:00:00Z",
+      "2026-10-07T01:00:00Z",
+      "2026-10-07T02:00:00Z",
+      "2026-10-07T03:00:00Z",
+      "2026-10-07T04:00:00Z",
+      "2026-10-07T05:00:00Z",
+      "2026-10-07T06:00:00Z",
+      "2026-10-07T07:00:00Z"
     ],
     "q_mucum_m3s": [
-      6031.688,
-      5994.079,
-      5849.0,
-      5559.626,
-      5223.736,
-      4894.934,
-      4572.807,
-      4272.765,
-      3994.188,
-      3740.227,
-      3509.521,
-      3301.315,
-      3113.685,
-      2944.841,
-      2792.817,
-      2655.79,
-      2532.029,
-      2419.972,
-      2318.209,
-      2225.49,
-      2140.711,
-      2062.902,
-      1991.215,
-      1924.911,
-      1863.355,
-      1805.994,
-      1752.343,
-      1701.973,
-      1654.507,
-      1609.613,
-      1567.002,
-      1526.424,
-      1487.676,
-      1450.592,
-      1415.021,
-      1380.839,
-      1347.932,
-      1316.201,
-      1285.56,
-      1255.932,
-      1227.251,
-      1199.458,
-      1172.5,
-      1146.329,
-      1120.897,
-      1096.16,
-      1072.08,
-      1048.626,
-      1025.777,
-      1003.51,
-      981.804,
-      960.64,
-      939.997,
-      919.858,
-      900.205,
-      881.021,
-      862.292,
-      844.004,
-      826.143,
-      808.696,
-      791.65,
-      774.994,
-      758.716,
-      742.808,
-      727.26,
-      712.066,
-      697.214,
-      682.696,
-      668.503,
-      654.626,
-      641.057,
-      627.789,
-      614.812,
-      602.119,
-      589.702,
-      577.555,
-      565.67,
-      554.042,
-      542.663,
-      531.528,
-      520.63,
-      509.964,
-      499.525,
-      489.307,
-      479.308,
-      469.533,
-      459.982,
-      450.656,
-      441.555,
-      432.68,
-      424.024,
-      415.588,
-      407.365,
-      399.351,
-      391.568,
-      384.072,
-      377.017,
-      370.973,
-      367.008,
-      367.191,
-      372.603,
-      382.622,
-      395.465,
-      409.647,
-      424.81,
-      440.809,
-      457.563,
-      474.942,
-      492.804,
-      510.951,
-      529.222,
-      547.444,
-      565.486,
-      583.266,
-      600.711,
-      617.753,
-      634.277,
-      650.169,
-      665.317,
-      679.391
+      1526.266,
+      1518.84,
+      1495.942,
+      1452.573,
+      1401.191,
+      1348.776,
+      1295.461,
+      1243.322,
+      1192.904,
+      1144.917,
+      1099.603,
+      1057.107,
+      1017.401,
+      980.388,
+      945.915,
+      913.803,
+      883.857,
+      855.887,
+      829.709,
+      805.147,
+      782.042,
+      760.249,
+      739.636,
+      720.086,
+      701.496,
+      683.773,
+      666.836,
+      650.614,
+      635.044,
+      620.07,
+      605.644,
+      591.724,
+      578.274,
+      565.263,
+      552.663,
+      540.6,
+      529.162,
+      518.511,
+      508.513,
+      499.118,
+      490.463,
+      482.716,
+      475.928,
+      470.074,
+      465.441,
+      462.486,
+      462.31,
+      465.616,
+      472.576,
+      482.954,
+      496.602,
+      513.578,
+      533.578,
+      556.066,
+      580.643,
+      606.791,
+      634.001,
+      661.84,
+      689.994,
+      718.26,
+      746.323,
+      773.995,
+      801.043,
+      827.355,
+      852.786,
+      877.242,
+      900.502,
+      922.3,
+      942.458,
+      960.75,
+      977.266,
+      991.755,
+      1003.564,
+      1011.835,
+      1016.289,
+      1017.016,
+      1014.216,
+      1008.623,
+      1001.576,
+      995.386,
+      992.13,
+      993.067,
+      999.209,
+      1011.214,
+      1029.59,
+      1053.867,
+      1083.124,
+      1116.756,
+      1153.944,
+      1193.846,
+      1235.758,
+      1279.076,
+      1323.32,
+      1368.076,
+      1413.012,
+      1457.849,
+      1502.243,
+      1545.796,
+      1588.201,
+      1629.082,
+      1668.079,
+      1704.916,
+      1739.268,
+      1771.33,
+      1800.766,
+      1826.197,
+      1845.983,
+      1859.154,
+      1865.454,
+      1864.462,
+      1856.12,
+      1841.346,
+      1821.298,
+      1796.896,
+      1768.959,
+      1738.328,
+      1705.701,
+      1671.629,
+      1636.68,
+      1601.328
     ],
     "q_antas_m3s": [
-      4842.693,
-      4411.951,
-      4038.15,
-      3713.112,
-      3429.894,
-      3182.529,
-      2965.921,
-      2775.769,
-      2608.348,
-      2460.475,
-      2329.359,
-      2212.673,
-      2108.427,
-      2014.901,
-      1930.639,
-      1854.393,
-      1785.094,
-      1721.826,
-      1663.803,
-      1610.351,
-      1560.882,
-      1514.907,
-      1472.025,
-      1431.868,
-      1394.083,
-      1358.365,
-      1324.484,
-      1292.185,
-      1261.294,
-      1231.663,
-      1203.235,
-      1175.896,
-      1149.55,
-      1124.128,
-      1099.551,
-      1075.755,
-      1052.68,
-      1030.282,
-      1008.514,
-      987.342,
-      966.726,
-      946.637,
-      927.021,
-      907.854,
-      889.118,
-      870.823,
-      852.952,
-      835.487,
-      818.418,
-      801.73,
-      785.411,
-      769.446,
-      753.825,
-      738.537,
-      723.577,
-      708.934,
-      694.601,
-      680.565,
-      666.82,
-      653.36,
-      640.182,
-      627.281,
-      614.652,
-      602.289,
-      590.182,
-      578.326,
-      566.714,
-      555.342,
-      544.204,
-      533.295,
-      522.608,
-      512.137,
-      501.877,
-      491.826,
-      481.978,
-      472.328,
-      462.873,
-      453.609,
-      444.529,
-      435.631,
-      426.91,
-      418.36,
-      409.988,
-      401.791,
-      393.768,
-      385.924,
-      378.256,
-      370.759,
-      363.41,
-      356.204,
-      349.142,
-      342.225,
-      335.45,
-      328.814,
-      322.693,
-      317.071,
-      311.93,
-      312.31,
-      318.025,
-      328.898,
-      339.874,
-      350.952,
-      362.116,
-      373.359,
-      384.681,
-      396.068,
-      407.341,
-      418.503,
-      429.581,
-      440.269,
-      450.582,
-      460.534,
-      470.083,
-      479.247,
-      487.661,
-      495.358,
-      502.365,
-      507.302,
-      510.249,
-      510.621
+      1248.781,
+      1179.837,
+      1118.466,
+      1063.637,
+      1014.462,
+      970.184,
+      930.149,
+      893.799,
+      860.653,
+      830.3,
+      802.383,
+      776.598,
+      752.682,
+      730.408,
+      709.579,
+      690.026,
+      671.603,
+      654.185,
+      637.665,
+      621.945,
+      606.948,
+      592.601,
+      578.842,
+      565.619,
+      552.886,
+      540.6,
+      528.728,
+      517.238,
+      506.1,
+      495.29,
+      484.789,
+      474.574,
+      464.636,
+      454.958,
+      445.531,
+      436.486,
+      427.806,
+      419.476,
+      411.514,
+      403.905,
+      396.634,
+      389.554,
+      382.659,
+      375.943,
+      373.842,
+      376.232,
+      382.99,
+      394.561,
+      410.814,
+      431.623,
+      451.9,
+      471.66,
+      490.913,
+      509.703,
+      528.04,
+      545.796,
+      562.885,
+      579.328,
+      595.116,
+      610.263,
+      624.788,
+      638.848,
+      652.386,
+      665.42,
+      677.106,
+      687.456,
+      696.52,
+      704.285,
+      710.903,
+      713.506,
+      713.082,
+      709.097,
+      701.238,
+      689.571,
+      674.424,
+      659.187,
+      643.954,
+      639.87,
+      646.635,
+      663.966,
+      690.769,
+      726.791,
+      771.789,
+      817.357,
+      863.479,
+      910.14,
+      955.612,
+      999.932,
+      1043.13,
+      1085.147,
+      1126.018,
+      1165.776,
+      1204.455,
+      1242.086,
+      1278.39,
+      1312.973,
+      1345.895,
+      1375.947,
+      1403.283,
+      1427.998,
+      1450.271,
+      1470.584,
+      1481.664,
+      1484.659,
+      1478.374,
+      1463.608,
+      1441.055,
+      1410.981,
+      1379.332,
+      1346.229,
+      1312.78,
+      1279.994,
+      1247.849,
+      1216.549,
+      1186.07,
+      1156.355,
+      1127.439,
+      1099.298,
+      1071.913,
+      1045.221
     ],
     "q_carreiro_confluence_m3s": [
-      5843.434,
-      5440.359,
-      4894.69,
-      4494.569,
-      4110.724,
-      3790.522,
-      3505.064,
-      3258.523,
-      3041.646,
-      2851.772,
-      2684.234,
-      2536.046,
-      2404.301,
-      2286.681,
-      2181.159,
-      2086.059,
-      1999.941,
-      1921.598,
-      1849.996,
-      1784.257,
-      1723.628,
-      1667.474,
-      1615.273,
-      1566.569,
-      1520.931,
-      1477.973,
-      1437.392,
-      1398.902,
-      1362.253,
-      1327.245,
-      1293.751,
-      1261.668,
-      1230.855,
-      1201.219,
-      1172.667,
-      1145.135,
-      1118.549,
-      1092.843,
-      1067.96,
-      1043.849,
-      1020.462,
-      997.755,
-      975.674,
-      954.174,
-      933.231,
-      912.837,
-      892.982,
-      873.633,
-      854.774,
-      836.386,
-      818.453,
-      800.958,
-      783.883,
-      767.216,
-      750.943,
-      735.054,
-      719.536,
-      704.375,
-      689.56,
-      675.082,
-      660.934,
-      647.11,
-      633.602,
-      620.402,
-      607.499,
-      594.885,
-      582.552,
-      570.492,
-      558.7,
-      547.167,
-      535.885,
-      524.848,
-      514.049,
-      503.483,
-      493.144,
-      483.026,
-      473.124,
-      463.434,
-      453.949,
-      444.663,
-      435.573,
-      426.671,
-      417.977,
-      409.495,
-      401.217,
-      393.167,
-      385.345,
-      377.741,
-      370.312,
-      363.044,
-      355.939,
-      349.021,
-      342.286,
-      335.731,
-      329.966,
-      325.162,
-      321.204,
-      326.925,
-      344.624,
-      369.591,
-      393.308,
-      413.116,
-      433.281,
-      453.099,
-      472.768,
-      492.318,
-      511.675,
-      530.538,
-      548.973,
-      566.576,
-      583.373,
-      599.593,
-      615.19,
-      630.198,
-      644.402,
-      657.638,
-      670.001,
-      680.583,
-      688.75,
-      694.097
+      1482.332,
+      1406.818,
+      1311.009,
+      1236.848,
+      1165.879,
+      1104.924,
+      1049.764,
+      1000.908,
+      956.936,
+      917.389,
+      881.536,
+      848.898,
+      819.008,
+      791.5,
+      766.05,
+      742.392,
+      720.301,
+      699.585,
+      680.084,
+      661.659,
+      644.193,
+      627.585,
+      611.75,
+      596.613,
+      582.11,
+      568.186,
+      554.79,
+      541.882,
+      529.422,
+      517.382,
+      505.733,
+      494.448,
+      483.552,
+      473.025,
+      462.85,
+      453.826,
+      445.987,
+      439.299,
+      433.617,
+      429.059,
+      425.407,
+      422.616,
+      420.592,
+      419.259,
+      425.648,
+      441.813,
+      465.203,
+      491.525,
+      520.82,
+      554.557,
+      589.189,
+      622.174,
+      654.709,
+      686.297,
+      716.837,
+      746.185,
+      774.201,
+      801.168,
+      827.139,
+      852.115,
+      875.412,
+      897.166,
+      917.447,
+      936.53,
+      953.929,
+      969.224,
+      982.543,
+      993.838,
+      1003.247,
+      1007.069,
+      1004.536,
+      995.891,
+      982.625,
+      964.96,
+      945.064,
+      925.358,
+      906.919,
+      898.897,
+      906.91,
+      927.417,
+      958.54,
+      999.275,
+      1050.418,
+      1104.61,
+      1157.716,
+      1211.969,
+      1265.321,
+      1316.943,
+      1367.139,
+      1415.748,
+      1462.965,
+      1508.824,
+      1553.347,
+      1596.646,
+      1638.56,
+      1678.721,
+      1717.035,
+      1752.804,
+      1785.449,
+      1814.559,
+      1840.187,
+      1862.832,
+      1877.14,
+      1880.2,
+      1872.607,
+      1854.301,
+      1826.724,
+      1790.331,
+      1749.813,
+      1708.129,
+      1665.287,
+      1623.134,
+      1581.805,
+      1541.5,
+      1502.348,
+      1464.225,
+      1427.948,
+      1393.505,
+      1360.529,
+      1328.085
     ],
     "q_stz_diagnostic_m3s": [
-      5957.528,
-      5850.704,
-      5510.657,
-      5100.451,
-      4725.139,
-      4361.816,
-      4041.232,
-      3749.202,
-      3491.607,
-      3261.77,
-      3058.614,
-      2878.127,
-      2717.89,
-      2575.083,
-      2447.485,
-      2333.012,
-      2229.917,
-      2136.661,
-      2051.937,
-      1974.616,
-      1903.735,
-      1838.463,
-      1778.093,
-      1722.028,
-      1669.757,
-      1620.834,
-      1574.857,
-      1531.486,
-      1490.42,
-      1451.39,
-      1414.169,
-      1378.576,
-      1344.472,
-      1311.722,
-      1280.216,
-      1249.856,
-      1220.56,
-      1192.256,
-      1164.877,
-      1138.364,
-      1112.667,
-      1087.737,
-      1063.532,
-      1040.006,
-      1017.116,
-      994.826,
-      973.111,
-      951.954,
-      931.333,
-      911.229,
-      891.622,
-      872.497,
-      853.837,
-      835.625,
-      817.846,
-      800.487,
-      783.534,
-      766.978,
-      750.803,
-      734.999,
-      719.555,
-      704.461,
-      689.709,
-      675.292,
-      661.201,
-      647.428,
-      633.963,
-      620.799,
-      607.928,
-      595.342,
-      583.034,
-      570.997,
-      559.222,
-      547.703,
-      536.433,
-      525.406,
-      514.616,
-      504.057,
-      493.724,
-      483.611,
-      473.712,
-      464.022,
-      454.539,
-      445.264,
-      436.2,
-      427.35,
-      418.72,
-      410.315,
-      402.131,
-      394.156,
-      386.375,
-      378.786,
-      371.391,
-      364.187,
-      357.184,
-      350.621,
-      344.759,
-      340.401,
-      341.196,
-      349.5,
-      364.418,
-      382.408,
-      401.002,
-      420.094,
-      439.355,
-      458.842,
-      478.405,
-      497.912,
-      517.177,
-      536.158,
-      554.742,
-      572.86,
-      590.487,
-      607.585,
-      624.14,
-      640.068,
-      655.237,
-      669.636,
-      682.935,
-      694.371
+      1508.958,
+      1496.787,
+      1448.336,
+      1379.843,
+      1312.133,
+      1245.722,
+      1184.059,
+      1127.015,
+      1074.941,
+      1027.464,
+      984.271,
+      944.914,
+      908.982,
+      876.069,
+      845.812,
+      817.882,
+      791.992,
+      767.89,
+      745.359,
+      724.213,
+      704.291,
+      685.453,
+      667.583,
+      650.578,
+      634.351,
+      618.826,
+      603.939,
+      589.634,
+      575.86,
+      562.577,
+      549.745,
+      537.334,
+      525.317,
+      513.683,
+      502.42,
+      491.663,
+      481.718,
+      472.847,
+      464.819,
+      457.606,
+      451.399,
+      446.198,
+      441.967,
+      438.638,
+      436.424,
+      437.833,
+      444.916,
+      457.717,
+      475.0,
+      496.287,
+      521.768,
+      550.324,
+      580.364,
+      611.365,
+      642.617,
+      673.618,
+      704.093,
+      733.933,
+      763.156,
+      791.646,
+      819.193,
+      845.542,
+      870.506,
+      894.107,
+      916.387,
+      937.234,
+      956.367,
+      973.684,
+      989.131,
+      1002.892,
+      1013.942,
+      1020.918,
+      1022.849,
+      1019.685,
+      1011.701,
+      999.71,
+      984.864,
+      968.881,
+      956.243,
+      951.386,
+      955.441,
+      968.702,
+      991.179,
+      1023.244,
+      1062.409,
+      1105.768,
+      1152.378,
+      1200.813,
+      1249.924,
+      1299.103,
+      1347.935,
+      1396.195,
+      1443.664,
+      1490.226,
+      1535.837,
+      1580.219,
+      1622.972,
+      1664.03,
+      1703.188,
+      1740.095,
+      1774.394,
+      1805.941,
+      1835.157,
+      1860.522,
+      1879.271,
+      1889.532,
+      1890.257,
+      1881.675,
+      1863.771,
+      1837.941,
+      1806.533,
+      1771.324,
+      1733.836,
+      1695.008,
+      1655.622,
+      1616.21,
+      1577.048,
+      1538.615,
+      1501.239,
+      1465.054
     ],
     "n_mucum_cm": [
-      1495.0,
-      1489.11,
-      1465.95,
-      1417.77,
-      1358.89,
-      1298.41,
-      1236.28,
-      1175.7,
-      1119.63,
-      1067.77,
-      1020.18,
-      975.97,
-      935.19,
-      898.21,
-      863.73,
-      831.62,
-      801.73,
-      773.63,
-      748.39,
-      725.07,
-      703.08,
-      682.48,
-      663.26,
-      645.18,
-      628.1,
-      612.11,
-      597.1,
-      582.98,
-      569.67,
-      557.09,
-      545.16,
-      533.81,
-      522.98,
-      512.63,
-      502.73,
-      493.22,
-      484.1,
-      475.31,
-      466.84,
-      458.67,
-      450.76,
-      443.08,
-      435.46,
-      428.07,
-      420.89,
-      413.89,
-      407.06,
-      400.39,
+      614.0,
+      612.34,
+      607.12,
+      596.85,
+      584.22,
+      570.94,
+      557.06,
+      543.17,
+      529.42,
+      515.93,
+      502.49,
+      489.67,
+      477.49,
+      465.97,
+      454.97,
+      444.53,
+      434.7,
+      425.42,
+      416.67,
+      408.39,
+      400.57,
+      393.0,
+      385.74,
+      378.83,
+      372.26,
+      365.99,
+      360.0,
+      354.26,
+      348.76,
+      343.47,
+      338.39,
+      333.49,
+      328.76,
+      324.19,
+      319.77,
+      315.58,
+      311.77,
+      308.52,
+      305.6,
+      302.83,
+      300.35,
+      298.27,
+      296.57,
+      295.19,
+      294.39,
+      294.87,
+      297.18,
+      301.07,
+      306.1,
+      311.93,
+      318.34,
+      325.5,
+      333.28,
+      341.54,
+      350.16,
+      358.99,
+      367.87,
+      376.68,
+      385.36,
       393.87,
-      387.5,
-      381.26,
-      375.17,
-      369.19,
-      363.34,
-      357.62,
-      352.0,
-      346.49,
-      341.08,
-      335.77,
-      330.56,
-      326.34,
-      322.2,
-      318.14,
-      314.16,
-      310.26,
-      306.44,
-      302.69,
-      299.01,
-      295.41,
-      291.87,
-      288.4,
-      284.99,
-      281.64,
-      278.36,
-      275.12,
-      271.95,
-      268.83,
-      265.76,
-      262.74,
-      259.77,
-      256.85,
-      253.97,
-      251.13,
-      248.35,
-      245.6,
-      242.9,
-      240.26,
-      237.66,
-      235.13,
-      232.66,
-      230.24,
-      227.88,
-      225.57,
-      223.31,
-      221.1,
-      219.02,
-      217.25,
-      217.64,
-      220.94,
-      227.78,
-      237.2,
-      247.63,
-      257.81,
-      267.28,
-      276.06,
-      284.2,
-      292.08,
-      299.73,
-      307.14,
-      314.28,
-      321.13,
-      327.68,
-      333.96,
-      339.98,
-      345.76,
-      351.3,
-      356.6,
-      361.62,
-      366.38,
-      370.79
+      402.0,
+      409.85,
+      417.41,
+      424.67,
+      431.61,
+      438.21,
+      444.44,
+      450.24,
+      455.6,
+      460.48,
+      464.89,
+      468.78,
+      471.95,
+      474.17,
+      475.36,
+      475.55,
+      474.79,
+      473.27,
+      471.4,
+      469.87,
+      469.28,
+      469.94,
+      472.11,
+      475.9,
+      481.37,
+      488.31,
+      496.69,
+      506.12,
+      516.25,
+      526.83,
+      537.69,
+      548.68,
+      559.55,
+      570.3,
+      580.94,
+      591.4,
+      601.62,
+      611.52,
+      621.07,
+      630.18,
+      638.8,
+      646.88,
+      654.38,
+      661.34,
+      667.67,
+      673.99,
+      679.33,
+      683.0,
+      684.94,
+      685.04,
+      683.27,
+      679.86,
+      675.09,
+      669.16,
+      662.27,
+      654.63,
+      646.4,
+      638.48,
+      630.79,
+      622.97
     ],
     "n_mucum_meta": [
       {
-        "stage_cm": 1495.0,
+        "stage_cm": 614.0,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 1489.11,
+        "stage_cm": 612.34,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 1465.95,
+        "stage_cm": 607.12,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 1417.77,
+        "stage_cm": 596.85,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 1358.89,
+        "stage_cm": 584.22,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 1298.41,
+        "stage_cm": 570.94,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 1236.28,
+        "stage_cm": 557.06,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 1175.7,
+        "stage_cm": 543.17,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 1119.63,
+        "stage_cm": 529.42,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 1067.77,
+        "stage_cm": 515.93,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 1020.18,
+        "stage_cm": 502.49,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 975.97,
+        "stage_cm": 489.67,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 935.19,
+        "stage_cm": 477.49,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 898.21,
+        "stage_cm": 465.97,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 863.73,
+        "stage_cm": 454.97,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 831.62,
+        "stage_cm": 444.53,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 801.73,
+        "stage_cm": 434.7,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 773.63,
+        "stage_cm": 425.42,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 748.39,
+        "stage_cm": 416.67,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 725.07,
+        "stage_cm": 408.39,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 703.08,
+        "stage_cm": 400.57,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 682.48,
+        "stage_cm": 393.0,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 663.26,
+        "stage_cm": 385.74,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 645.18,
+        "stage_cm": 378.83,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 628.1,
+        "stage_cm": 372.26,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 612.11,
+        "stage_cm": 365.99,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 597.1,
+        "stage_cm": 360.0,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 582.98,
+        "stage_cm": 354.26,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 569.67,
+        "stage_cm": 348.76,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 557.09,
+        "stage_cm": 343.47,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 545.16,
+        "stage_cm": 338.39,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 533.81,
+        "stage_cm": 333.49,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 522.98,
+        "stage_cm": 328.76,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 512.63,
+        "stage_cm": 324.19,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 502.73,
+        "stage_cm": 319.77,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 493.22,
+        "stage_cm": 315.58,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 484.1,
+        "stage_cm": 311.77,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 475.31,
+        "stage_cm": 308.52,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 466.84,
+        "stage_cm": 305.6,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 458.67,
+        "stage_cm": 302.83,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 450.76,
+        "stage_cm": 300.35,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 443.08,
+        "stage_cm": 298.27,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 435.46,
+        "stage_cm": 296.57,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 428.07,
+        "stage_cm": 295.19,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 420.89,
+        "stage_cm": 294.39,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 413.89,
+        "stage_cm": 294.87,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 407.06,
+        "stage_cm": 297.18,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 400.39,
+        "stage_cm": 301.07,
+        "ok": true,
+        "source": "n_blend"
+      },
+      {
+        "stage_cm": 306.1,
+        "ok": true,
+        "source": "n_blend"
+      },
+      {
+        "stage_cm": 311.93,
+        "ok": true,
+        "source": "n_blend"
+      },
+      {
+        "stage_cm": 318.34,
+        "ok": true,
+        "source": "n_blend"
+      },
+      {
+        "stage_cm": 325.5,
+        "ok": true,
+        "source": "n_blend"
+      },
+      {
+        "stage_cm": 333.28,
+        "ok": true,
+        "source": "n_blend"
+      },
+      {
+        "stage_cm": 341.54,
+        "ok": true,
+        "source": "n_blend"
+      },
+      {
+        "stage_cm": 350.16,
+        "ok": true,
+        "source": "n_blend"
+      },
+      {
+        "stage_cm": 358.99,
+        "ok": true,
+        "source": "n_blend"
+      },
+      {
+        "stage_cm": 367.87,
+        "ok": true,
+        "source": "n_blend"
+      },
+      {
+        "stage_cm": 376.68,
+        "ok": true,
+        "source": "n_blend"
+      },
+      {
+        "stage_cm": 385.36,
         "ok": true,
         "source": "n_blend"
       },
@@ -1628,1808 +1683,1753 @@
         "source": "n_blend"
       },
       {
-        "stage_cm": 387.5,
+        "stage_cm": 402.0,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 381.26,
+        "stage_cm": 409.85,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 375.17,
+        "stage_cm": 417.41,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 369.19,
+        "stage_cm": 424.67,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 363.34,
+        "stage_cm": 431.61,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 357.62,
+        "stage_cm": 438.21,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 352.0,
+        "stage_cm": 444.44,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 346.49,
+        "stage_cm": 450.24,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 341.08,
+        "stage_cm": 455.6,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 335.77,
+        "stage_cm": 460.48,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 330.56,
+        "stage_cm": 464.89,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 326.34,
+        "stage_cm": 468.78,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 322.2,
+        "stage_cm": 471.95,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 318.14,
+        "stage_cm": 474.17,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 314.16,
+        "stage_cm": 475.36,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 310.26,
+        "stage_cm": 475.55,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 306.44,
+        "stage_cm": 474.79,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 302.69,
+        "stage_cm": 473.27,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 299.01,
+        "stage_cm": 471.4,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 295.41,
+        "stage_cm": 469.87,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 291.87,
+        "stage_cm": 469.28,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 288.4,
+        "stage_cm": 469.94,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 284.99,
+        "stage_cm": 472.11,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 281.64,
+        "stage_cm": 475.9,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 278.36,
+        "stage_cm": 481.37,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 275.12,
+        "stage_cm": 488.31,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 271.95,
+        "stage_cm": 496.69,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 268.83,
+        "stage_cm": 506.12,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 265.76,
+        "stage_cm": 516.25,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 262.74,
+        "stage_cm": 526.83,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 259.77,
+        "stage_cm": 537.69,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 256.85,
+        "stage_cm": 548.68,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 253.97,
+        "stage_cm": 559.55,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 251.13,
+        "stage_cm": 570.3,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 248.35,
+        "stage_cm": 580.94,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 245.6,
+        "stage_cm": 591.4,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 242.9,
+        "stage_cm": 601.62,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 240.26,
+        "stage_cm": 611.52,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 237.66,
+        "stage_cm": 621.07,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 235.13,
+        "stage_cm": 630.18,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 232.66,
+        "stage_cm": 638.8,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 230.24,
+        "stage_cm": 646.88,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 227.88,
+        "stage_cm": 654.38,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 225.57,
+        "stage_cm": 661.34,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 223.31,
+        "stage_cm": 667.67,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 221.1,
+        "stage_cm": 673.99,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 219.02,
+        "stage_cm": 679.33,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 217.25,
+        "stage_cm": 683.0,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 217.64,
+        "stage_cm": 684.94,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 220.94,
+        "stage_cm": 685.04,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 227.78,
+        "stage_cm": 683.27,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 237.2,
+        "stage_cm": 679.86,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 247.63,
+        "stage_cm": 675.09,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 257.81,
+        "stage_cm": 669.16,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 267.28,
+        "stage_cm": 662.27,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 276.06,
+        "stage_cm": 654.63,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 284.2,
+        "stage_cm": 646.4,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 292.08,
+        "stage_cm": 638.48,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 299.73,
+        "stage_cm": 630.79,
         "ok": true,
         "source": "n_blend"
       },
       {
-        "stage_cm": 307.14,
-        "ok": true,
-        "source": "n_blend"
-      },
-      {
-        "stage_cm": 314.28,
-        "ok": true,
-        "source": "n_blend"
-      },
-      {
-        "stage_cm": 321.13,
-        "ok": true,
-        "source": "n_blend"
-      },
-      {
-        "stage_cm": 327.68,
-        "ok": true,
-        "source": "n_blend"
-      },
-      {
-        "stage_cm": 333.96,
-        "ok": true,
-        "source": "n_blend"
-      },
-      {
-        "stage_cm": 339.98,
-        "ok": true,
-        "source": "n_blend"
-      },
-      {
-        "stage_cm": 345.76,
-        "ok": true,
-        "source": "n_blend"
-      },
-      {
-        "stage_cm": 351.3,
-        "ok": true,
-        "source": "n_blend"
-      },
-      {
-        "stage_cm": 356.6,
-        "ok": true,
-        "source": "n_blend"
-      },
-      {
-        "stage_cm": 361.62,
-        "ok": true,
-        "source": "n_blend"
-      },
-      {
-        "stage_cm": 366.38,
-        "ok": true,
-        "source": "n_blend"
-      },
-      {
-        "stage_cm": 370.79,
+        "stage_cm": 622.97,
         "ok": true,
         "source": "n_blend"
       }
     ],
     "n_mucum_anchored_cm": [
-      1495.0,
-      1489.11,
-      1465.95,
-      1417.77,
-      1358.89,
-      1298.41,
-      1236.28,
-      1175.7,
-      1119.63,
-      1067.77,
-      1020.18,
-      975.97,
-      935.19,
-      898.21,
-      863.73,
-      831.62,
-      801.73,
-      773.63,
-      748.39,
-      725.07,
-      703.08,
-      682.48,
-      663.26,
-      645.18,
-      628.1,
-      612.11,
-      597.1,
-      582.98,
-      569.67,
-      557.09,
-      545.16,
-      533.81,
-      522.98,
-      512.63,
-      502.73,
-      493.22,
-      484.1,
-      475.31,
-      466.84,
-      458.67,
-      450.76,
-      443.08,
-      435.46,
-      428.07,
-      420.89,
-      413.89,
-      407.06,
-      400.39,
-      393.87,
-      387.5,
-      381.26,
-      375.17,
-      369.19,
-      363.34,
-      357.62,
-      352.0,
-      346.49,
-      341.08,
-      335.77,
-      330.56,
-      326.34,
-      322.2,
-      318.14,
-      314.16,
-      310.26,
-      306.44,
-      302.69,
-      299.01,
-      295.41,
-      291.87,
-      288.4,
-      284.99,
-      281.64,
-      278.36,
-      275.12,
-      271.95,
-      268.83,
-      265.76,
-      262.74,
-      259.77,
-      256.85,
-      253.97,
-      251.13,
-      248.35,
-      245.6,
-      242.9,
-      240.26,
-      237.66,
-      235.13,
-      232.66,
-      230.24,
-      227.88,
-      225.57,
-      223.31,
-      221.1,
-      219.02,
-      217.25,
-      217.64,
-      220.94,
-      227.78,
-      237.2,
+      614.0,
+      611.44,
+      603.38,
+      587.52,
+      568.03,
+      547.52,
+      526.1,
+      504.65,
+      483.43,
+      462.6,
+      441.85,
+      422.06,
+      403.26,
+      385.47,
+      368.49,
+      352.38,
+      337.2,
+      322.87,
+      309.37,
+      296.58,
+      284.51,
+      272.83,
+      261.62,
+      250.95,
+      240.81,
+      231.13,
+      221.88,
+      213.02,
+      204.53,
+      196.36,
+      188.52,
+      180.95,
+      173.65,
+      166.6,
+      159.77,
+      153.31,
+      147.42,
+      142.41,
+      137.9,
+      133.62,
+      129.79,
+      126.58,
+      123.96,
+      121.83,
+      120.59,
+      121.33,
+      124.9,
+      130.91,
+      138.67,
+      147.67,
+      157.57,
+      168.62,
+      180.63,
+      193.38,
+      206.69,
+      220.32,
+      234.03,
       247.63,
-      257.81,
-      267.28,
-      276.06,
-      284.2,
-      292.08,
-      299.73,
-      307.14,
-      314.28,
-      321.13,
-      327.68,
-      333.96,
-      339.98,
-      345.76,
-      351.3,
-      356.6,
-      361.62,
-      366.38,
-      370.79
+      261.03,
+      274.17,
+      286.72,
+      298.84,
+      310.51,
+      321.72,
+      332.43,
+      342.62,
+      352.24,
+      361.19,
+      369.47,
+      377.0,
+      383.81,
+      389.81,
+      394.71,
+      398.13,
+      399.97,
+      400.26,
+      399.09,
+      396.74,
+      393.86,
+      391.5,
+      390.58,
+      391.6,
+      394.95,
+      400.8,
+      409.25,
+      419.96,
+      432.9,
+      447.46,
+      463.1,
+      479.43,
+      496.19,
+      513.16,
+      529.94,
+      546.54,
+      562.96,
+      579.11,
+      594.89,
+      610.17,
+      624.91,
+      638.98,
+      652.29,
+      664.76,
+      676.34,
+      687.08,
+      696.85,
+      706.61,
+      714.86,
+      720.52,
+      723.52,
+      723.67,
+      720.94,
+      715.67,
+      708.31,
+      699.15,
+      688.52,
+      676.72,
+      664.02,
+      651.79,
+      639.92,
+      627.85
     ],
     "delta_n_from_now_cm": [
       0.0,
-      -5.89,
-      -29.05,
-      -77.23,
-      -136.11,
-      -196.59,
-      -258.72,
-      -319.3,
-      -375.37,
-      -427.23,
-      -474.82,
-      -519.03,
-      -559.81,
-      -596.79,
-      -631.27,
-      -663.38,
-      -693.27,
-      -721.37,
-      -746.61,
-      -769.93,
-      -791.92,
-      -812.52,
-      -831.74,
-      -849.82,
-      -866.9,
-      -882.89,
-      -897.9,
-      -912.02,
-      -925.33,
-      -937.91,
-      -949.84,
-      -961.19,
-      -972.02,
-      -982.37,
-      -992.27,
-      -1001.78,
-      -1010.9,
-      -1019.69,
-      -1028.16,
-      -1036.33,
-      -1044.24,
-      -1051.92,
-      -1059.54,
-      -1066.93,
-      -1074.11,
-      -1081.11,
-      -1087.94,
-      -1094.61,
-      -1101.13,
-      -1107.5,
-      -1113.74,
-      -1119.83,
-      -1125.81,
-      -1131.66,
-      -1137.38,
-      -1143.0,
-      -1148.51,
-      -1153.92,
-      -1159.23,
-      -1164.44,
-      -1168.66,
-      -1172.8,
-      -1176.86,
-      -1180.84,
-      -1184.74,
-      -1188.56,
-      -1192.31,
-      -1195.99,
-      -1199.59,
-      -1203.13,
-      -1206.6,
-      -1210.01,
-      -1213.36,
-      -1216.64,
-      -1219.88,
-      -1223.05,
-      -1226.17,
-      -1229.24,
-      -1232.26,
-      -1235.23,
-      -1238.15,
-      -1241.03,
-      -1243.87,
-      -1246.65,
-      -1249.4,
-      -1252.1,
-      -1254.74,
-      -1257.34,
-      -1259.87,
-      -1262.34,
-      -1264.76,
-      -1267.12,
-      -1269.43,
-      -1271.69,
-      -1273.9,
-      -1275.98,
-      -1277.75,
-      -1277.36,
-      -1274.06,
-      -1267.22,
-      -1257.8,
-      -1247.37,
-      -1237.19,
-      -1227.72,
-      -1218.94,
-      -1210.8,
-      -1202.92,
-      -1195.27,
-      -1187.86,
-      -1180.72,
-      -1173.87,
-      -1167.32,
-      -1161.04,
-      -1155.02,
-      -1149.24,
-      -1143.7,
-      -1138.4,
-      -1133.38,
-      -1128.62,
-      -1124.21
+      -2.56,
+      -10.62,
+      -26.48,
+      -45.97,
+      -66.48,
+      -87.9,
+      -109.35,
+      -130.57,
+      -151.4,
+      -172.15,
+      -191.94,
+      -210.74,
+      -228.53,
+      -245.51,
+      -261.62,
+      -276.8,
+      -291.13,
+      -304.63,
+      -317.42,
+      -329.49,
+      -341.17,
+      -352.38,
+      -363.05,
+      -373.19,
+      -382.87,
+      -392.12,
+      -400.98,
+      -409.47,
+      -417.64,
+      -425.48,
+      -433.05,
+      -440.35,
+      -447.4,
+      -454.23,
+      -460.69,
+      -466.58,
+      -471.59,
+      -476.1,
+      -480.38,
+      -484.21,
+      -487.42,
+      -490.04,
+      -492.17,
+      -493.41,
+      -492.67,
+      -489.1,
+      -483.09,
+      -475.33,
+      -466.33,
+      -456.43,
+      -445.38,
+      -433.37,
+      -420.62,
+      -407.31,
+      -393.68,
+      -379.97,
+      -366.37,
+      -352.97,
+      -339.83,
+      -327.28,
+      -315.16,
+      -303.49,
+      -292.28,
+      -281.57,
+      -271.38,
+      -261.76,
+      -252.81,
+      -244.53,
+      -237.0,
+      -230.19,
+      -224.19,
+      -219.29,
+      -215.87,
+      -214.03,
+      -213.74,
+      -214.91,
+      -217.26,
+      -220.14,
+      -222.5,
+      -223.42,
+      -222.4,
+      -219.05,
+      -213.2,
+      -204.75,
+      -194.04,
+      -181.1,
+      -166.54,
+      -150.9,
+      -134.57,
+      -117.81,
+      -100.84,
+      -84.06,
+      -67.46,
+      -51.04,
+      -34.89,
+      -19.11,
+      -3.83,
+      10.91,
+      24.98,
+      38.29,
+      50.76,
+      62.34,
+      73.08,
+      82.85,
+      92.61,
+      100.86,
+      106.52,
+      109.52,
+      109.67,
+      106.94,
+      101.67,
+      94.31,
+      85.15,
+      74.52,
+      62.72,
+      50.02,
+      37.79,
+      25.92,
+      13.85
     ]
   },
   "q_mucum_band_m3s": [
     {
-      "min": 6031.688,
-      "max": 6031.688,
-      "primary": 6031.688
+      "min": 1526.266,
+      "max": 1526.266,
+      "primary": 1526.266
     },
     {
-      "min": 5898.68,
-      "max": 6023.375,
-      "primary": 5994.079
+      "min": 1492.609,
+      "max": 1524.162,
+      "primary": 1518.84
     },
     {
-      "min": 5408.923,
-      "max": 6022.283,
-      "primary": 5849.0
+      "min": 1368.681,
+      "max": 1523.884,
+      "primary": 1495.942
     },
     {
-      "min": 4579.809,
-      "max": 6015.16,
-      "primary": 5559.626
+      "min": 1158.881,
+      "max": 1522.078,
+      "primary": 1452.573
     },
     {
-      "min": 3783.05,
-      "max": 5988.947,
-      "primary": 5223.736
+      "min": 957.268,
+      "max": 1515.44,
+      "primary": 1401.191
     },
     {
-      "min": 3136.87,
-      "max": 5943.072,
-      "primary": 4894.934
+      "min": 793.758,
+      "max": 1503.825,
+      "primary": 1348.776
     },
     {
-      "min": 2595.309,
-      "max": 5878.318,
-      "primary": 4572.807
+      "min": 656.72,
+      "max": 1487.43,
+      "primary": 1295.461
     },
     {
-      "min": 2155.662,
-      "max": 5798.076,
-      "primary": 4272.765
+      "min": 545.471,
+      "max": 1467.113,
+      "primary": 1243.322
     },
     {
-      "min": 1792.764,
-      "max": 5705.774,
-      "primary": 3994.188
+      "min": 453.643,
+      "max": 1443.739,
+      "primary": 1192.904
     },
     {
-      "min": 1494.833,
-      "max": 5604.868,
-      "primary": 3740.227
+      "min": 378.254,
+      "max": 1418.181,
+      "primary": 1144.917
     },
     {
-      "min": 1248.541,
-      "max": 5498.295,
-      "primary": 3509.521
+      "min": 315.932,
+      "max": 1391.182,
+      "primary": 1099.603
     },
     {
-      "min": 1044.834,
-      "max": 5388.494,
-      "primary": 3301.315
+      "min": 264.386,
+      "max": 1363.358,
+      "primary": 1057.107
     },
     {
-      "min": 875.734,
-      "max": 5277.357,
-      "primary": 3113.685
+      "min": 221.597,
+      "max": 1335.185,
+      "primary": 1017.401
     },
     {
-      "min": 735.117,
-      "max": 5166.301,
-      "primary": 2944.841
+      "min": 186.015,
+      "max": 1307.024,
+      "primary": 980.388
     },
     {
-      "min": 617.896,
-      "max": 5056.344,
-      "primary": 2792.817
+      "min": 156.353,
+      "max": 1279.133,
+      "primary": 945.915
     },
     {
-      "min": 520.001,
-      "max": 4948.185,
-      "primary": 2655.79
+      "min": 131.582,
+      "max": 1251.691,
+      "primary": 913.803
     },
     {
-      "min": 438.091,
-      "max": 4842.274,
-      "primary": 2532.029
+      "min": 110.855,
+      "max": 1224.812,
+      "primary": 883.857
     },
     {
-      "min": 369.446,
-      "max": 4738.874,
-      "primary": 2419.972
+      "min": 93.485,
+      "max": 1198.564,
+      "primary": 855.887
     },
     {
-      "min": 311.83,
-      "max": 4638.116,
-      "primary": 2318.209
+      "min": 78.906,
+      "max": 1172.983,
+      "primary": 829.709
     },
     {
-      "min": 263.406,
-      "max": 4540.034,
-      "primary": 2225.49
+      "min": 66.653,
+      "max": 1148.076,
+      "primary": 805.147
     },
     {
-      "min": 222.658,
-      "max": 4444.599,
-      "primary": 2140.711
+      "min": 56.342,
+      "max": 1123.838,
+      "primary": 782.042
     },
     {
-      "min": 188.332,
-      "max": 4351.74,
-      "primary": 2062.902
+      "min": 47.656,
+      "max": 1100.252,
+      "primary": 760.249
     },
     {
-      "min": 159.386,
-      "max": 4261.365,
-      "primary": 1991.215
+      "min": 40.331,
+      "max": 1077.295,
+      "primary": 739.636
     },
     {
-      "min": 134.957,
-      "max": 4173.365,
-      "primary": 1924.911
+      "min": 34.15,
+      "max": 1054.939,
+      "primary": 720.086
     },
     {
-      "min": 114.322,
-      "max": 4087.632,
-      "primary": 1863.355
+      "min": 28.928,
+      "max": 1033.158,
+      "primary": 701.496
     },
     {
-      "min": 96.88,
-      "max": 4004.057,
-      "primary": 1805.994
+      "min": 24.515,
+      "max": 1011.925,
+      "primary": 683.773
     },
     {
-      "min": 82.128,
-      "max": 3922.536,
-      "primary": 1752.343
+      "min": 20.782,
+      "max": 991.213,
+      "primary": 666.836
     },
     {
-      "min": 69.644,
-      "max": 3842.969,
-      "primary": 1701.973
+      "min": 17.623,
+      "max": 970.997,
+      "primary": 650.614
     },
     {
-      "min": 59.073,
-      "max": 3765.266,
-      "primary": 1654.507
+      "min": 14.948,
+      "max": 951.256,
+      "primary": 635.044
     },
     {
-      "min": 50.119,
-      "max": 3689.342,
-      "primary": 1609.613
+      "min": 12.682,
+      "max": 931.968,
+      "primary": 620.07
     },
     {
-      "min": 42.532,
-      "max": 3615.123,
-      "primary": 1567.002
+      "min": 10.762,
+      "max": 913.114,
+      "primary": 605.644
     },
     {
-      "min": 36.1,
-      "max": 3542.539,
-      "primary": 1526.424
+      "min": 9.135,
+      "max": 894.678,
+      "primary": 591.724
     },
     {
-      "min": 30.646,
-      "max": 3471.524,
-      "primary": 1487.676
+      "min": 7.755,
+      "max": 876.65,
+      "primary": 578.274
     },
     {
-      "min": 26.019,
-      "max": 3402.016,
-      "primary": 1450.592
+      "min": 6.584,
+      "max": 859.016,
+      "primary": 565.263
     },
     {
-      "min": 22.094,
-      "max": 3333.958,
-      "primary": 1415.021
+      "min": 5.591,
+      "max": 841.768,
+      "primary": 552.663
     },
     {
-      "min": 18.764,
-      "max": 3267.301,
-      "primary": 1380.839
+      "min": 4.928,
+      "max": 825.096,
+      "primary": 540.6
     },
     {
-      "min": 15.937,
-      "max": 3201.995,
-      "primary": 1347.932
+      "min": 4.682,
+      "max": 809.015,
+      "primary": 529.162
     },
     {
-      "min": 13.537,
-      "max": 3137.999,
-      "primary": 1316.201
+      "min": 4.828,
+      "max": 793.629,
+      "primary": 518.511
     },
     {
-      "min": 11.499,
-      "max": 3075.28,
-      "primary": 1285.56
+      "min": 5.131,
+      "max": 778.919,
+      "primary": 508.513
     },
     {
-      "min": 9.769,
-      "max": 3013.808,
-      "primary": 1255.932
+      "min": 5.47,
+      "max": 764.999,
+      "primary": 499.118
     },
     {
-      "min": 8.3,
-      "max": 2953.556,
-      "primary": 1227.251
+      "min": 5.845,
+      "max": 751.944,
+      "primary": 490.463
     },
     {
-      "min": 7.052,
-      "max": 2894.499,
-      "primary": 1199.458
+      "min": 6.247,
+      "max": 739.832,
+      "primary": 482.716
     },
     {
-      "min": 5.992,
-      "max": 2836.615,
-      "primary": 1172.5
+      "min": 6.668,
+      "max": 728.69,
+      "primary": 475.928
     },
     {
-      "min": 5.092,
-      "max": 2779.882,
-      "primary": 1146.329
+      "min": 7.102,
+      "max": 718.546,
+      "primary": 470.074
     },
     {
-      "min": 4.327,
-      "max": 2724.277,
-      "primary": 1120.897
+      "min": 8.378,
+      "max": 709.609,
+      "primary": 465.441
     },
     {
-      "min": 3.677,
-      "max": 2669.779,
-      "primary": 1096.16
+      "min": 13.197,
+      "max": 701.663,
+      "primary": 462.486
     },
     {
-      "min": 3.124,
-      "max": 2616.368,
-      "primary": 1072.08
+      "min": 24.565,
+      "max": 694.906,
+      "primary": 462.31
     },
     {
-      "min": 2.655,
-      "max": 2564.022,
-      "primary": 1048.626
+      "min": 42.57,
+      "max": 689.897,
+      "primary": 465.616
     },
     {
-      "min": 2.257,
-      "max": 2512.722,
-      "primary": 1025.777
+      "min": 65.611,
+      "max": 687.58,
+      "primary": 472.576
     },
     {
-      "min": 1.918,
-      "max": 2462.446,
-      "primary": 1003.51
+      "min": 72.374,
+      "max": 688.628,
+      "primary": 482.954
     },
     {
-      "min": 1.63,
-      "max": 2413.174,
-      "primary": 981.804
+      "min": 74.119,
+      "max": 693.465,
+      "primary": 496.602
     },
     {
-      "min": 1.385,
-      "max": 2364.885,
-      "primary": 960.64
+      "min": 77.08,
+      "max": 702.571,
+      "primary": 513.578
     },
     {
-      "min": 1.177,
-      "max": 2317.559,
-      "primary": 939.997
+      "min": 81.196,
+      "max": 716.139,
+      "primary": 533.578
     },
     {
-      "min": 1.001,
-      "max": 2271.178,
-      "primary": 919.858
+      "min": 86.236,
+      "max": 784.065,
+      "primary": 556.066
     },
     {
-      "min": 0.85,
-      "max": 2225.721,
-      "primary": 900.205
+      "min": 91.928,
+      "max": 879.991,
+      "primary": 580.643
     },
     {
-      "min": 0.723,
-      "max": 2181.172,
-      "primary": 881.021
+      "min": 97.864,
+      "max": 974.788,
+      "primary": 606.791
     },
     {
-      "min": 0.614,
-      "max": 2137.513,
-      "primary": 862.292
+      "min": 103.488,
+      "max": 1068.051,
+      "primary": 634.001
     },
     {
-      "min": 0.522,
-      "max": 2094.726,
-      "primary": 844.004
+      "min": 108.47,
+      "max": 1159.126,
+      "primary": 661.84
     },
     {
-      "min": 0.444,
-      "max": 2052.794,
-      "primary": 826.143
+      "min": 112.807,
+      "max": 1246.984,
+      "primary": 689.994
     },
     {
-      "min": 0.377,
-      "max": 2011.7,
-      "primary": 808.696
+      "min": 116.781,
+      "max": 1330.734,
+      "primary": 718.26
     },
     {
-      "min": 0.321,
-      "max": 1971.428,
-      "primary": 791.65
+      "min": 120.561,
+      "max": 1409.795,
+      "primary": 746.323
     },
     {
-      "min": 0.273,
-      "max": 1931.962,
-      "primary": 774.994
+      "min": 124.232,
+      "max": 1483.749,
+      "primary": 773.995
     },
     {
-      "min": 0.232,
-      "max": 1893.285,
-      "primary": 758.716
+      "min": 127.835,
+      "max": 1552.44,
+      "primary": 801.043
     },
     {
-      "min": 0.197,
-      "max": 1855.383,
-      "primary": 742.808
+      "min": 131.389,
+      "max": 1616.205,
+      "primary": 827.355
     },
     {
-      "min": 0.167,
-      "max": 1818.238,
-      "primary": 727.26
+      "min": 134.903,
+      "max": 1675.705,
+      "primary": 852.786
     },
     {
-      "min": 0.142,
-      "max": 1781.838,
-      "primary": 712.066
+      "min": 138.379,
+      "max": 1731.038,
+      "primary": 877.242
     },
     {
-      "min": 0.121,
-      "max": 1746.166,
-      "primary": 697.214
+      "min": 141.818,
+      "max": 1779.981,
+      "primary": 900.502
     },
     {
-      "min": 0.103,
-      "max": 1711.209,
-      "primary": 682.696
+      "min": 145.218,
+      "max": 1819.101,
+      "primary": 922.3
     },
     {
-      "min": 0.087,
-      "max": 1676.951,
-      "primary": 668.503
+      "min": 148.579,
+      "max": 1846.21,
+      "primary": 942.458
     },
     {
-      "min": 0.074,
-      "max": 1643.379,
-      "primary": 654.626
+      "min": 151.899,
+      "max": 1859.636,
+      "primary": 960.75
     },
     {
-      "min": 0.063,
-      "max": 1610.48,
-      "primary": 641.057
+      "min": 155.173,
+      "max": 1858.319,
+      "primary": 977.266
     },
     {
-      "min": 0.054,
-      "max": 1578.239,
-      "primary": 627.789
+      "min": 158.331,
+      "max": 1842.136,
+      "primary": 991.755
     },
     {
-      "min": 0.046,
-      "max": 1546.644,
-      "primary": 614.812
+      "min": 161.203,
+      "max": 1813.631,
+      "primary": 1003.564
     },
     {
-      "min": 0.039,
-      "max": 1515.682,
-      "primary": 602.119
+      "min": 163.609,
+      "max": 1776.727,
+      "primary": 1011.835
     },
     {
-      "min": 0.033,
-      "max": 1485.339,
-      "primary": 589.702
+      "min": 165.374,
+      "max": 1734.137,
+      "primary": 1016.289
     },
     {
-      "min": 0.028,
-      "max": 1455.605,
-      "primary": 577.555
+      "min": 166.307,
+      "max": 1688.447,
+      "primary": 1017.016
     },
     {
-      "min": 0.024,
-      "max": 1426.465,
-      "primary": 565.67
+      "min": 166.261,
+      "max": 1644.137,
+      "primary": 1014.216
     },
     {
-      "min": 0.02,
-      "max": 1397.91,
-      "primary": 554.042
+      "min": 165.235,
+      "max": 1607.005,
+      "primary": 1008.623
     },
     {
-      "min": 0.017,
-      "max": 1369.926,
-      "primary": 542.663
+      "min": 163.563,
+      "max": 1580.565,
+      "primary": 1001.576
     },
     {
-      "min": 0.015,
-      "max": 1342.502,
-      "primary": 531.528
+      "min": 162.152,
+      "max": 1571.569,
+      "primary": 995.386
     },
     {
-      "min": 0.012,
-      "max": 1315.628,
-      "primary": 520.63
+      "min": 162.483,
+      "max": 1586.485,
+      "primary": 992.13
     },
     {
-      "min": 0.011,
-      "max": 1289.292,
-      "primary": 509.964
+      "min": 165.863,
+      "max": 1625.888,
+      "primary": 993.067
     },
     {
-      "min": 0.009,
-      "max": 1263.486,
-      "primary": 499.525
+      "min": 173.123,
+      "max": 1687.546,
+      "primary": 999.209
     },
     {
-      "min": 0.008,
-      "max": 1238.2,
-      "primary": 489.307
+      "min": 184.774,
+      "max": 1768.532,
+      "primary": 1011.214
     },
     {
-      "min": 0.006,
-      "max": 1213.429,
-      "primary": 479.308
+      "min": 201.073,
+      "max": 1867.701,
+      "primary": 1029.59
     },
     {
-      "min": 0.006,
-      "max": 1189.182,
-      "primary": 469.533
+      "min": 221.761,
+      "max": 1979.586,
+      "primary": 1053.867
     },
     {
-      "min": 0.005,
-      "max": 1165.456,
-      "primary": 459.982
+      "min": 245.851,
+      "max": 2097.505,
+      "primary": 1083.124
     },
     {
-      "min": 0.004,
-      "max": 1142.25,
-      "primary": 450.656
+      "min": 272.257,
+      "max": 2219.249,
+      "primary": 1116.756
     },
     {
-      "min": 0.003,
-      "max": 1119.555,
-      "primary": 441.555
+      "min": 299.966,
+      "max": 2343.16,
+      "primary": 1153.944
     },
     {
-      "min": 0.003,
-      "max": 1097.37,
-      "primary": 432.68
+      "min": 328.082,
+      "max": 2467.365,
+      "primary": 1193.846
     },
     {
-      "min": 0.002,
-      "max": 1075.689,
-      "primary": 424.024
+      "min": 356.014,
+      "max": 2590.626,
+      "primary": 1235.758
     },
     {
-      "min": 0.002,
-      "max": 1054.524,
-      "primary": 415.588
+      "min": 383.488,
+      "max": 2711.841,
+      "primary": 1279.076
     },
     {
-      "min": 0.002,
-      "max": 1033.867,
-      "primary": 407.365
+      "min": 410.491,
+      "max": 2830.158,
+      "primary": 1323.32
     },
     {
-      "min": 0.002,
-      "max": 1013.711,
-      "primary": 399.351
+      "min": 437.008,
+      "max": 2945.054,
+      "primary": 1368.076
     },
     {
-      "min": 0.001,
-      "max": 994.121,
-      "primary": 391.568
+      "min": 463.023,
+      "max": 3056.215,
+      "primary": 1413.012
     },
     {
-      "min": 0.001,
-      "max": 975.075,
-      "primary": 384.072
+      "min": 488.525,
+      "max": 3163.279,
+      "primary": 1457.849
     },
     {
-      "min": 0.001,
-      "max": 956.633,
-      "primary": 377.017
+      "min": 513.506,
+      "max": 3265.259,
+      "primary": 1502.243
     },
     {
-      "min": 0.207,
-      "max": 939.082,
-      "primary": 370.973
+      "min": 537.966,
+      "max": 3361.137,
+      "primary": 1545.796
     },
     {
-      "min": 2.18,
-      "max": 922.292,
-      "primary": 367.008
+      "min": 561.907,
+      "max": 3449.824,
+      "primary": 1588.201
     },
     {
-      "min": 8.389,
-      "max": 906.55,
-      "primary": 367.191
+      "min": 585.335,
+      "max": 3527.079,
+      "primary": 1629.082
     },
     {
-      "min": 19.566,
-      "max": 892.532,
-      "primary": 372.603
+      "min": 608.256,
+      "max": 3587.219,
+      "primary": 1668.079
     },
     {
-      "min": 23.114,
-      "max": 881.465,
-      "primary": 382.622
+      "min": 630.68,
+      "max": 3626.699,
+      "primary": 1704.916
     },
     {
-      "min": 26.822,
-      "max": 874.118,
-      "primary": 395.465
+      "min": 652.615,
+      "max": 3643.425,
+      "primary": 1739.268
     },
     {
-      "min": 31.314,
-      "max": 870.473,
-      "primary": 409.647
+      "min": 674.033,
+      "max": 3636.547,
+      "primary": 1771.33
     },
     {
-      "min": 36.332,
-      "max": 870.335,
-      "primary": 424.81
+      "min": 694.486,
+      "max": 3606.183,
+      "primary": 1800.766
     },
     {
-      "min": 41.678,
-      "max": 873.324,
-      "primary": 440.809
+      "min": 712.818,
+      "max": 3555.234,
+      "primary": 1826.197
     },
     {
-      "min": 47.215,
-      "max": 878.993,
-      "primary": 457.563
+      "min": 727.842,
+      "max": 3487.985,
+      "primary": 1845.983
     },
     {
-      "min": 52.804,
-      "max": 886.886,
-      "primary": 474.942
+      "min": 738.652,
+      "max": 3407.737,
+      "primary": 1859.154
     },
     {
-      "min": 58.176,
-      "max": 896.583,
-      "primary": 492.804
+      "min": 744.703,
+      "max": 3318.388,
+      "primary": 1865.454
     },
     {
-      "min": 62.897,
-      "max": 907.7,
-      "primary": 510.951
+      "min": 745.732,
+      "max": 3223.622,
+      "primary": 1864.462
     },
     {
-      "min": 66.757,
-      "max": 919.902,
-      "primary": 529.222
+      "min": 742.006,
+      "max": 3125.946,
+      "primary": 1856.12
     },
     {
-      "min": 69.83,
-      "max": 932.901,
-      "primary": 547.444
+      "min": 734.52,
+      "max": 3027.408,
+      "primary": 1841.346
     },
     {
-      "min": 72.447,
-      "max": 988.388,
-      "primary": 565.486
+      "min": 724.363,
+      "max": 2929.532,
+      "primary": 1821.298
     },
     {
-      "min": 74.806,
-      "max": 1056.863,
-      "primary": 583.266
+      "min": 712.45,
+      "max": 2833.299,
+      "primary": 1796.896
     },
     {
-      "min": 77.013,
-      "max": 1123.384,
-      "primary": 600.711
+      "min": 699.465,
+      "max": 2739.357,
+      "primary": 1768.959
     },
     {
-      "min": 79.122,
-      "max": 1187.67,
-      "primary": 617.753
+      "min": 685.889,
+      "max": 2648.208,
+      "primary": 1738.328
     },
     {
-      "min": 81.164,
-      "max": 1249.017,
-      "primary": 634.277
+      "min": 672.044,
+      "max": 2560.252,
+      "primary": 1705.701
     },
     {
-      "min": 83.153,
-      "max": 1306.577,
-      "primary": 650.169
+      "min": 658.142,
+      "max": 2475.768,
+      "primary": 1671.629
     },
     {
-      "min": 85.097,
-      "max": 1359.5,
-      "primary": 665.317
+      "min": 644.317,
+      "max": 2395.933,
+      "primary": 1636.68
     },
     {
-      "min": 87.0,
-      "max": 1405.196,
-      "primary": 679.391
+      "min": 630.653,
+      "max": 2321.614,
+      "primary": 1601.328
     }
   ],
   "n_mucum_anchored_band_cm": [
     {
-      "min": 1495.0,
-      "max": 1495.0,
-      "primary": 1495.0
+      "min": 614.0,
+      "max": 614.0,
+      "primary": 614.0
     },
     {
-      "min": 1474.17,
-      "max": 1493.7,
-      "primary": 1489.11
+      "min": 606.46,
+      "max": 613.53,
+      "primary": 611.44
     },
     {
-      "min": 1395.52,
-      "max": 1493.53,
-      "primary": 1465.95
+      "min": 578.11,
+      "max": 613.47,
+      "primary": 603.38
     },
     {
-      "min": 1254.5,
-      "max": 1492.42,
-      "primary": 1417.77
+      "min": 527.78,
+      "max": 613.06,
+      "primary": 587.52
     },
     {
-      "min": 1107.41,
-      "max": 1488.33,
-      "primary": 1358.89
+      "min": 476.02,
+      "max": 611.58,
+      "primary": 568.03
     },
     {
-      "min": 977.29,
-      "max": 1481.14,
-      "primary": 1298.41
+      "min": 430.9,
+      "max": 608.98,
+      "primary": 547.52
     },
     {
-      "min": 858.37,
-      "max": 1470.96,
-      "primary": 1236.28
+      "min": 390.27,
+      "max": 605.29,
+      "primary": 526.1
     },
     {
-      "min": 753.14,
-      "max": 1458.26,
-      "primary": 1175.7
+      "min": 354.85,
+      "max": 600.7,
+      "primary": 504.65
     },
     {
-      "min": 671.63,
-      "max": 1443.56,
-      "primary": 1119.63
+      "min": 323.48,
+      "max": 595.39,
+      "primary": 483.43
     },
     {
-      "min": 606.96,
-      "max": 1427.36,
-      "primary": 1067.77
+      "min": 295.16,
+      "max": 589.55,
+      "primary": 462.6
     },
     {
-      "min": 549.68,
-      "max": 1410.11,
-      "primary": 1020.18
+      "min": 267.35,
+      "max": 583.33,
+      "primary": 441.85
     },
     {
-      "min": 498.96,
-      "max": 1392.17,
-      "primary": 975.97
+      "min": 242.75,
+      "max": 576.87,
+      "primary": 422.06
     },
     {
-      "min": 453.92,
-      "max": 1373.84,
-      "primary": 935.19
+      "min": 220.93,
+      "max": 570.28,
+      "primary": 403.26
     },
     {
-      "min": 413.87,
-      "max": 1355.35,
-      "primary": 898.21
+      "min": 201.55,
+      "max": 563.65,
+      "primary": 385.47
     },
     {
-      "min": 378.19,
-      "max": 1336.86,
-      "primary": 863.73
+      "min": 184.3,
+      "max": 557.02,
+      "primary": 368.49
     },
     {
-      "min": 346.36,
-      "max": 1318.49,
-      "primary": 831.62
+      "min": 168.93,
+      "max": 550.44,
+      "primary": 352.38
     },
     {
-      "min": 317.93,
-      "max": 1300.32,
-      "primary": 801.73
+      "min": 155.21,
+      "max": 543.95,
+      "primary": 337.2
     },
     {
-      "min": 291.34,
-      "max": 1282.41,
-      "primary": 773.63
+      "min": 142.96,
+      "max": 537.55,
+      "primary": 322.87
     },
     {
-      "min": 265.45,
-      "max": 1264.78,
-      "primary": 748.39
+      "min": 132.0,
+      "max": 531.27,
+      "primary": 309.37
     },
     {
-      "min": 242.27,
-      "max": 1247.45,
-      "primary": 725.07
+      "min": 122.18,
+      "max": 525.1,
+      "primary": 296.58
     },
     {
-      "min": 221.49,
-      "max": 1230.42,
-      "primary": 703.08
+      "min": 113.38,
+      "max": 519.05,
+      "primary": 284.51
     },
     {
-      "min": 202.85,
-      "max": 1213.69,
-      "primary": 682.48
+      "min": 105.49,
+      "max": 513.11,
+      "primary": 272.83
     },
     {
-      "min": 186.12,
-      "max": 1197.24,
-      "primary": 663.26
+      "min": 98.41,
+      "max": 507.28,
+      "primary": 261.62
     },
     {
-      "min": 171.08,
-      "max": 1181.08,
-      "primary": 645.18
+      "min": 92.04,
+      "max": 501.56,
+      "primary": 250.95
     },
     {
-      "min": 157.57,
-      "max": 1165.18,
-      "primary": 628.1
+      "min": 86.32,
+      "max": 495.95,
+      "primary": 240.81
     },
     {
-      "min": 145.42,
-      "max": 1149.53,
-      "primary": 612.11
+      "min": 81.18,
+      "max": 490.43,
+      "primary": 231.13
     },
     {
-      "min": 134.48,
-      "max": 1134.12,
-      "primary": 597.1
+      "min": 76.54,
+      "max": 485.0,
+      "primary": 221.88
     },
     {
-      "min": 124.64,
-      "max": 1118.94,
-      "primary": 582.98
+      "min": 72.38,
+      "max": 479.67,
+      "primary": 213.02
     },
     {
-      "min": 115.77,
-      "max": 1103.97,
-      "primary": 569.67
+      "min": 68.62,
+      "max": 474.41,
+      "primary": 204.53
     },
     {
-      "min": 107.78,
-      "max": 1089.21,
-      "primary": 557.09
+      "min": 65.24,
+      "max": 469.24,
+      "primary": 196.36
     },
     {
-      "min": 100.58,
-      "max": 1074.65,
-      "primary": 545.16
+      "min": 62.19,
+      "max": 464.14,
+      "primary": 188.52
     },
     {
-      "min": 94.09,
-      "max": 1060.27,
-      "primary": 533.81
+      "min": 59.44,
+      "max": 459.12,
+      "primary": 180.95
     },
     {
-      "min": 88.24,
-      "max": 1046.07,
-      "primary": 522.98
+      "min": 56.97,
+      "max": 454.17,
+      "primary": 173.65
     },
     {
-      "min": 82.97,
-      "max": 1032.04,
-      "primary": 512.63
+      "min": 54.73,
+      "max": 449.3,
+      "primary": 166.6
     },
     {
-      "min": 78.21,
-      "max": 1018.18,
-      "primary": 502.73
+      "min": 52.72,
+      "max": 444.49,
+      "primary": 159.77
     },
     {
-      "min": 73.91,
-      "max": 1004.48,
-      "primary": 493.22
+      "min": 51.3,
+      "max": 439.8,
+      "primary": 153.31
     },
     {
-      "min": 70.04,
-      "max": 990.93,
-      "primary": 484.1
+      "min": 50.75,
+      "max": 435.25,
+      "primary": 147.42
     },
     {
-      "min": 66.54,
-      "max": 977.52,
-      "primary": 475.31
+      "min": 51.08,
+      "max": 430.86,
+      "primary": 142.41
     },
     {
-      "min": 63.38,
-      "max": 964.26,
-      "primary": 466.84
+      "min": 51.74,
+      "max": 426.64,
+      "primary": 137.9
     },
     {
-      "min": 60.54,
-      "max": 951.15,
-      "primary": 458.67
+      "min": 52.46,
+      "max": 422.61,
+      "primary": 133.62
     },
     {
-      "min": 57.96,
-      "max": 938.17,
-      "primary": 450.76
+      "min": 53.25,
+      "max": 418.81,
+      "primary": 129.79
     },
     {
-      "min": 55.64,
-      "max": 925.34,
-      "primary": 443.08
+      "min": 54.06,
+      "max": 415.26,
+      "primary": 126.58
     },
     {
-      "min": 53.55,
-      "max": 912.64,
-      "primary": 435.46
+      "min": 54.9,
+      "max": 411.97,
+      "primary": 123.96
     },
     {
-      "min": 51.65,
-      "max": 900.08,
-      "primary": 428.07
+      "min": 55.74,
+      "max": 408.97,
+      "primary": 121.83
     },
     {
-      "min": 49.94,
-      "max": 887.65,
-      "primary": 420.89
+      "min": 58.11,
+      "max": 406.3,
+      "primary": 120.59
     },
     {
-      "min": 48.4,
-      "max": 875.36,
-      "primary": 413.89
+      "min": 66.03,
+      "max": 403.93,
+      "primary": 121.33
     },
     {
-      "min": 47.01,
-      "max": 863.19,
-      "primary": 407.06
+      "min": 81.24,
+      "max": 401.89,
+      "primary": 124.9
     },
     {
-      "min": 45.75,
-      "max": 851.16,
-      "primary": 400.39
+      "min": 100.62,
+      "max": 400.38,
+      "primary": 130.91
     },
     {
-      "min": 44.61,
-      "max": 839.27,
-      "primary": 393.87
+      "min": 121.32,
+      "max": 399.68,
+      "primary": 138.67
     },
     {
-      "min": 43.59,
-      "max": 827.5,
-      "primary": 387.5
+      "min": 126.84,
+      "max": 400.0,
+      "primary": 147.67
     },
     {
-      "min": 42.66,
-      "max": 815.85,
-      "primary": 381.26
+      "min": 128.24,
+      "max": 401.46,
+      "primary": 157.57
     },
     {
-      "min": 41.82,
-      "max": 804.34,
-      "primary": 375.17
+      "min": 130.57,
+      "max": 404.2,
+      "primary": 168.62
     },
     {
-      "min": 41.07,
-      "max": 792.94,
-      "primary": 369.19
+      "min": 133.77,
+      "max": 408.25,
+      "primary": 180.63
     },
     {
-      "min": 40.38,
-      "max": 781.67,
-      "primary": 363.34
+      "min": 137.6,
+      "max": 428.12,
+      "primary": 193.38
     },
     {
-      "min": 39.76,
-      "max": 770.53,
-      "primary": 357.62
+      "min": 141.82,
+      "max": 455.09,
+      "primary": 206.69
     },
     {
-      "min": 39.21,
-      "max": 759.5,
-      "primary": 352.0
+      "min": 146.12,
+      "max": 480.67,
+      "primary": 220.32
     },
     {
-      "min": 38.7,
-      "max": 748.59,
-      "primary": 346.49
+      "min": 150.11,
+      "max": 504.92,
+      "primary": 234.03
     },
     {
-      "min": 38.25,
-      "max": 737.8,
-      "primary": 341.08
-    },
-    {
-      "min": 37.84,
-      "max": 727.13,
-      "primary": 335.77
-    },
-    {
-      "min": 37.47,
-      "max": 716.57,
-      "primary": 330.56
-    },
-    {
-      "min": 37.13,
-      "max": 708.45,
-      "primary": 326.34
-    },
-    {
-      "min": 36.83,
-      "max": 700.43,
-      "primary": 322.2
-    },
-    {
-      "min": 36.56,
-      "max": 692.51,
-      "primary": 318.14
-    },
-    {
-      "min": 36.31,
-      "max": 684.69,
-      "primary": 314.16
-    },
-    {
-      "min": 36.09,
-      "max": 676.96,
-      "primary": 310.26
-    },
-    {
-      "min": 35.88,
-      "max": 669.34,
-      "primary": 306.44
-    },
-    {
-      "min": 35.7,
-      "max": 661.8,
-      "primary": 302.69
-    },
-    {
-      "min": 35.54,
-      "max": 654.36,
-      "primary": 299.01
-    },
-    {
-      "min": 35.39,
-      "max": 647.02,
-      "primary": 295.41
-    },
-    {
-      "min": 35.25,
-      "max": 639.76,
-      "primary": 291.87
-    },
-    {
-      "min": 35.13,
-      "max": 632.6,
-      "primary": 288.4
-    },
-    {
-      "min": 35.02,
-      "max": 625.52,
-      "primary": 284.99
-    },
-    {
-      "min": 34.92,
-      "max": 618.54,
-      "primary": 281.64
-    },
-    {
-      "min": 34.84,
-      "max": 611.64,
-      "primary": 278.36
-    },
-    {
-      "min": 34.75,
-      "max": 604.82,
-      "primary": 275.12
-    },
-    {
-      "min": 34.68,
-      "max": 598.09,
-      "primary": 271.95
-    },
-    {
-      "min": 34.62,
-      "max": 591.45,
-      "primary": 268.83
-    },
-    {
-      "min": 34.56,
-      "max": 584.88,
-      "primary": 265.76
-    },
-    {
-      "min": 34.5,
-      "max": 578.4,
-      "primary": 262.74
-    },
-    {
-      "min": 34.45,
-      "max": 572.0,
-      "primary": 259.77
-    },
-    {
-      "min": 34.41,
-      "max": 565.68,
-      "primary": 256.85
-    },
-    {
-      "min": 34.37,
-      "max": 559.44,
-      "primary": 253.97
-    },
-    {
-      "min": 34.33,
-      "max": 553.27,
-      "primary": 251.13
-    },
-    {
-      "min": 34.3,
-      "max": 547.19,
-      "primary": 248.35
-    },
-    {
-      "min": 34.27,
-      "max": 541.18,
-      "primary": 245.6
-    },
-    {
-      "min": 34.25,
-      "max": 535.25,
-      "primary": 242.9
-    },
-    {
-      "min": 34.22,
-      "max": 529.41,
-      "primary": 240.26
-    },
-    {
-      "min": 34.2,
-      "max": 523.65,
-      "primary": 237.66
-    },
-    {
-      "min": 34.18,
-      "max": 517.97,
-      "primary": 235.13
-    },
-    {
-      "min": 34.16,
-      "max": 512.38,
-      "primary": 232.66
-    },
-    {
-      "min": 34.15,
-      "max": 506.87,
-      "primary": 230.24
-    },
-    {
-      "min": 34.13,
-      "max": 501.46,
-      "primary": 227.88
-    },
-    {
-      "min": 34.12,
-      "max": 496.13,
-      "primary": 225.57
-    },
-    {
-      "min": 34.11,
-      "max": 490.9,
-      "primary": 223.31
-    },
-    {
-      "min": 34.1,
-      "max": 485.77,
-      "primary": 221.1
-    },
-    {
-      "min": 34.09,
-      "max": 480.75,
-      "primary": 219.02
-    },
-    {
-      "min": 34.08,
-      "max": 475.85,
-      "primary": 217.25
-    },
-    {
-      "min": 36.38,
-      "max": 471.15,
-      "primary": 217.64
-    },
-    {
-      "min": 44.39,
-      "max": 466.63,
-      "primary": 220.94
-    },
-    {
-      "min": 58.13,
-      "max": 462.36,
-      "primary": 227.78
-    },
-    {
-      "min": 74.97,
-      "max": 458.54,
-      "primary": 237.2
-    },
-    {
-      "min": 79.47,
-      "max": 455.5,
+      "min": 153.58,
+      "max": 527.84,
       "primary": 247.63
     },
     {
-      "min": 83.91,
-      "max": 453.48,
-      "primary": 257.81
+      "min": 156.54,
+      "max": 549.31,
+      "primary": 261.03
     },
     {
-      "min": 88.98,
-      "max": 452.47,
-      "primary": 267.28
+      "min": 159.23,
+      "max": 569.24,
+      "primary": 274.17
     },
     {
-      "min": 94.33,
-      "max": 452.43,
-      "primary": 276.06
+      "min": 161.75,
+      "max": 587.62,
+      "primary": 286.72
     },
     {
-      "min": 99.74,
-      "max": 453.26,
-      "primary": 284.2
+      "min": 164.17,
+      "max": 604.46,
+      "primary": 298.84
     },
     {
-      "min": 105.08,
-      "max": 454.82,
-      "primary": 292.08
+      "min": 166.51,
+      "max": 619.82,
+      "primary": 310.51
     },
     {
-      "min": 110.23,
-      "max": 456.99,
-      "primary": 299.73
+      "min": 168.81,
+      "max": 633.85,
+      "primary": 321.72
     },
     {
-      "min": 114.99,
-      "max": 459.64,
-      "primary": 307.14
+      "min": 171.05,
+      "max": 646.75,
+      "primary": 332.43
     },
     {
-      "min": 119.04,
-      "max": 462.67,
-      "primary": 314.28
+      "min": 173.25,
+      "max": 658.59,
+      "primary": 342.62
     },
     {
-      "min": 122.27,
-      "max": 465.98,
-      "primary": 321.13
+      "min": 175.4,
+      "max": 668.94,
+      "primary": 352.24
     },
     {
-      "min": 124.79,
-      "max": 469.49,
-      "primary": 327.68
+      "min": 177.51,
+      "max": 677.14,
+      "primary": 361.19
     },
     {
-      "min": 126.9,
-      "max": 484.26,
-      "primary": 333.96
+      "min": 179.58,
+      "max": 682.78,
+      "primary": 369.47
     },
     {
-      "min": 128.78,
-      "max": 502.06,
-      "primary": 339.98
+      "min": 181.61,
+      "max": 685.57,
+      "primary": 377.0
     },
     {
-      "min": 130.52,
-      "max": 518.93,
-      "primary": 345.76
+      "min": 183.59,
+      "max": 685.29,
+      "primary": 383.81
     },
     {
-      "min": 132.17,
-      "max": 534.88,
-      "primary": 351.3
+      "min": 185.49,
+      "max": 681.94,
+      "primary": 389.81
     },
     {
-      "min": 133.74,
-      "max": 549.8,
-      "primary": 356.6
+      "min": 187.2,
+      "max": 676.0,
+      "primary": 394.71
     },
     {
-      "min": 135.26,
-      "max": 563.54,
-      "primary": 361.62
+      "min": 188.62,
+      "max": 668.26,
+      "primary": 398.13
     },
     {
-      "min": 136.74,
-      "max": 575.97,
-      "primary": 366.38
+      "min": 189.67,
+      "max": 659.25,
+      "primary": 399.97
     },
     {
-      "min": 138.17,
-      "max": 586.56,
-      "primary": 370.79
+      "min": 190.21,
+      "max": 649.49,
+      "primary": 400.26
+    },
+    {
+      "min": 190.19,
+      "max": 639.93,
+      "primary": 399.09
+    },
+    {
+      "min": 189.58,
+      "max": 631.84,
+      "primary": 396.74
+    },
+    {
+      "min": 188.6,
+      "max": 626.03,
+      "primary": 393.86
+    },
+    {
+      "min": 187.76,
+      "max": 624.05,
+      "primary": 391.5
+    },
+    {
+      "min": 187.96,
+      "max": 627.34,
+      "primary": 390.58
+    },
+    {
+      "min": 189.95,
+      "max": 635.96,
+      "primary": 391.6
+    },
+    {
+      "min": 194.19,
+      "max": 649.3,
+      "primary": 394.95
+    },
+    {
+      "min": 200.85,
+      "max": 666.53,
+      "primary": 400.8
+    },
+    {
+      "min": 209.91,
+      "max": 687.24,
+      "primary": 409.25
+    },
+    {
+      "min": 221.02,
+      "max": 710.1,
+      "primary": 419.96
+    },
+    {
+      "min": 233.47,
+      "max": 738.5,
+      "primary": 432.9
+    },
+    {
+      "min": 246.62,
+      "max": 768.93,
+      "primary": 447.46
+    },
+    {
+      "min": 259.9,
+      "max": 799.12,
+      "primary": 463.1
+    },
+    {
+      "min": 272.92,
+      "max": 828.65,
+      "primary": 479.43
+    },
+    {
+      "min": 285.45,
+      "max": 857.29,
+      "primary": 496.19
+    },
+    {
+      "min": 297.41,
+      "max": 884.85,
+      "primary": 513.16
+    },
+    {
+      "min": 307.9,
+      "max": 911.21,
+      "primary": 529.94
+    },
+    {
+      "min": 317.54,
+      "max": 936.33,
+      "primary": 546.54
+    },
+    {
+      "min": 326.79,
+      "max": 960.21,
+      "primary": 562.96
+    },
+    {
+      "min": 335.66,
+      "max": 982.83,
+      "primary": 579.11
+    },
+    {
+      "min": 344.18,
+      "max": 1004.06,
+      "primary": 594.89
+    },
+    {
+      "min": 352.37,
+      "max": 1023.73,
+      "primary": 610.17
+    },
+    {
+      "min": 360.25,
+      "max": 1041.71,
+      "primary": 624.91
+    },
+    {
+      "min": 367.83,
+      "max": 1057.19,
+      "primary": 638.98
+    },
+    {
+      "min": 375.15,
+      "max": 1069.14,
+      "primary": 652.29
+    },
+    {
+      "min": 382.2,
+      "max": 1076.93,
+      "primary": 664.76
+    },
+    {
+      "min": 389.01,
+      "max": 1080.22,
+      "primary": 676.34
+    },
+    {
+      "min": 395.57,
+      "max": 1078.87,
+      "primary": 687.08
+    },
+    {
+      "min": 401.77,
+      "max": 1072.88,
+      "primary": 696.85
+    },
+    {
+      "min": 407.26,
+      "max": 1062.79,
+      "primary": 706.61
+    },
+    {
+      "min": 411.72,
+      "max": 1049.37,
+      "primary": 714.86
+    },
+    {
+      "min": 414.91,
+      "max": 1033.2,
+      "primary": 720.52
+    },
+    {
+      "min": 416.69,
+      "max": 1014.99,
+      "primary": 723.52
+    },
+    {
+      "min": 416.99,
+      "max": 995.43,
+      "primary": 723.67
+    },
+    {
+      "min": 415.9,
+      "max": 974.98,
+      "primary": 720.94
+    },
+    {
+      "min": 413.7,
+      "max": 954.06,
+      "primary": 715.67
+    },
+    {
+      "min": 410.69,
+      "max": 932.97,
+      "primary": 708.31
+    },
+    {
+      "min": 407.15,
+      "max": 911.91,
+      "primary": 699.15
+    },
+    {
+      "min": 403.27,
+      "max": 891.03,
+      "primary": 688.52
+    },
+    {
+      "min": 399.17,
+      "max": 870.46,
+      "primary": 676.72
+    },
+    {
+      "min": 394.97,
+      "max": 850.29,
+      "primary": 664.02
+    },
+    {
+      "min": 390.71,
+      "max": 830.62,
+      "primary": 651.79
+    },
+    {
+      "min": 386.44,
+      "max": 811.75,
+      "primary": 639.92
+    },
+    {
+      "min": 382.19,
+      "max": 793.92,
+      "primary": 627.85
     }
   ],
   "rating_curve_mucum": {

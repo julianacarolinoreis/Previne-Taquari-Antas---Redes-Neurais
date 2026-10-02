@@ -1,0 +1,58 @@
+name: G040 multi-event propagation diagnostics
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/analyze_g040_multi_event_propagation.py"
+      - "scripts/build_g040_routing_search_contract.py"
+      - ".github/workflows/g040-multi-event-propagation.yml"
+      - "assets/data/hec_hms_g040_full_basin/whole_basin_historical_hydro_events_latest.json"
+      - "assets/data/hec_hms_g040_full_basin/historical_hydro_events/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: g040-multi-event-propagation
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Analyze observed propagation across events
+        run: python -B scripts/analyze_g040_multi_event_propagation.py
+      - name: Build routing search contract
+        run: python -B scripts/build_g040_routing_search_contract.py
+      - name: Publish diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-g040-routing-bot"
+          git config user.email "previne-g040-routing-bot@users.noreply.github.com"
+          P="assets/data/hec_hms_g040_full_basin/whole_basin_multi_event_propagation_diagnostics_latest.json"
+          C="assets/data/hec_hms_g040_full_basin/whole_basin_routing_search_contract_latest.json"
+          cp "$P" /tmp/
+          cp "$C" /tmp/
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp /tmp/whole_basin_multi_event_propagation_diagnostics_latest.json "$P"
+            cp /tmp/whole_basin_routing_search_contract_latest.json "$C"
+            git add -- "$P" "$C"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "bot: update G040 multi-event propagation diagnostics [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt*2))
+          done
+          exit 1

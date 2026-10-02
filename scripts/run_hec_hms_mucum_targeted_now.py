@@ -15,6 +15,8 @@ import calibrate_hec_hms_live_event as cal
 OUT=ROOT/"assets/data/estudo_bacia_taquari_antas"
 OUT_JSON=OUT/"hec_hms_targeted_now_latest.json"
 OUT_CSV=OUT/"hec_hms_targeted_now_candidates.csv"
+CANONICAL=OUT/"hec_hms_spatial_forecast_mucum_latest.json"
+CANONICAL_SERIES=OUT/"hec_hms_spatial_forecast_mucum"/"primary_series.csv"
 
 CANDIDATES=[
  ("base",25,2.0,15,15,0.35),
@@ -47,6 +49,11 @@ def main():
     if len(sys.argv)<2:
         raise SystemExit("usage: run_hec_hms_mucum_targeted_now.py /path/to/hec-hms.sh")
     hec=sys.argv[1]
+    # The targeted search is diagnostic. Preserve the already-produced
+    # operational baseline so repeated candidate runs cannot contaminate the
+    # canonical product consumed by the platform.
+    canonical_backup = CANONICAL.read_bytes() if CANONICAL.exists() else None
+    series_backup = CANONICAL_SERIES.read_bytes() if CANONICAL_SERIES.exists() else None
     rows=[]
     pkgs={}
     for label,il,cl,tc,st,ifm in CANDIDATES:
@@ -85,11 +92,17 @@ def main():
     fields=sorted({k for r in rows for k in r})
     with OUT_CSV.open("w",newline="",encoding="utf-8") as fh:
         w=csv.DictWriter(fh,fieldnames=fields,extrasaction="ignore");w.writeheader();w.writerows(rows)
+    # Restore the baseline generated immediately before this diagnostic search.
+    if canonical_backup is not None:
+        CANONICAL.write_bytes(canonical_backup)
+    if series_backup is not None:
+        CANONICAL_SERIES.write_bytes(series_backup)
     print(json.dumps({
       "selected":bp,
       "metrics":final,
       "targeted_score":best["targeted_score"],
-      "artifact":str(OUT_JSON.relative_to(ROOT))
+      "artifact":str(OUT_JSON.relative_to(ROOT)),
+      "canonical_restored": canonical_backup is not None
     },ensure_ascii=False))
 if __name__=="__main__":
     main()

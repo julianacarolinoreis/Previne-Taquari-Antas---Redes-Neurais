@@ -15,6 +15,7 @@ DATA = ROOT / "assets" / "data" / "estudo_caso_territorio"
 REPLAY = ROOT / "assets" / "data" / "research_event_replay_latest.json"
 ACERVO = ROOT / "assets" / "data" / "acervo_pesquisas.json"
 DEPLOY = ROOT / ".github" / "workflows" / "deploy-pages.yml"
+STZ_HISTORICAL = DATA / "santa_tereza_event_spatial.json"
 
 CITIES = {
     "santa_tereza": {
@@ -181,6 +182,17 @@ class EstudoCasoTerritorioTests(unittest.TestCase):
         self.assertIn("module-tabs", html)
         self.assertIn("module-frame", html)
         self.assertIn("juntos-stage", html)
+        self.assertIn("historical-comparison", html)
+        self.assertIn("comparison-event-grid", html)
+        self.assertIn("comparison-table-body", html)
+        self.assertIn("renderHistoricalComparison", js)
+        self.assertIn("comparison-map-toggle", html)
+        self.assertIn("drawHistoricalComparisonOverlay", js)
+        self.assertIn("L.featureGroup()", js)
+        self.assertIn("historicalSpatial", js)
+        self.assertIn("santa_tereza_event_spatial.json", js)
+        self.assertIn("historicalSpatialEvent", js)
+        self.assertIn("road_centerline_edges_touched", js)
         self.assertIn("hud-cockpit", html)
         self.assertIn("sit-threat", html)
         self.assertIn(".hud-cockpit", css)
@@ -196,7 +208,8 @@ class EstudoCasoTerritorioTests(unittest.TestCase):
         self.assertTrue((DATA / "rota_cenario_santa_tereza.json").exists())
         self.assertTrue((DATA / "rota_cenario_mucum.json").exists())
         self.assertTrue((DATA / "casos_acoplados.json").exists())
-        # RNA formatter must not convert cm→m (HAND collision)
+        self.assertTrue(STZ_HISTORICAL.exists())
+        # RNA formatter must not perform an undocumented generic cm→m HAND conversion.
         self.assertNotIn('n / 100).toFixed', js)
         self.assertIn("Math.round(n).toLocaleString('pt-BR') + ' cm'", js)
 
@@ -211,9 +224,22 @@ class EstudoCasoTerritorioTests(unittest.TestCase):
         ids = {c["id"] for c in doc["cases"]}
         self.assertIn("live", ids)
         self.assertIn("st-e4-set2023", ids)
+        self.assertIn("st-e6-nov2023", ids)
         self.assertIn("st-e9-mai2024", ids)
         self.assertIn("mucum-e27-mai2024-hotel", ids)
         self.assertIn("mucum-e35-jul2026", ids)
+        comparative_analysis = doc.get("comparative_analysis")
+        self.assertIsInstance(comparative_analysis, dict)
+        self.assertEqual(
+            comparative_analysis.get("event_ids"),
+            ["st-e4-set2023", "st-e6-nov2023", "st-e9-mai2024"],
+        )
+        nov = next(c for c in doc["cases"] if c["id"] == "st-e6-nov2023")
+        self.assertEqual(nov["rna"]["catalog_event"], 6)
+        self.assertEqual(nov["dataset_role"], "treino")
+        self.assertAlmostEqual(
+            nov["raw_event_telemetry"]["rain_24h_before_raw_peak_mm"], 119.6
+        )
         hotel = next(c for c in doc["cases"] if c["id"] == "mucum-e27-mai2024-hotel")
         self.assertEqual(hotel["mode"], "coupled")
         self.assertEqual(hotel["hand_m"], 25)
@@ -229,6 +255,50 @@ class EstudoCasoTerritorioTests(unittest.TestCase):
         self.assertIn("st-e4-set2023", js)
         self.assertNotIn("cm * 0.01", js)
         self.assertNotIn("/ 100)", js.split("drawMarks")[0][-200:] + js.split("drawMarks")[-1][:200])
+
+    def test_santa_tereza_event_specific_lidar_hand_reconstructions(self) -> None:
+        doc = json.loads(STZ_HISTORICAL.read_text(encoding="utf-8"))
+        self.assertEqual(doc["status"], "research_historical_spatialization_not_observed_boundary")
+        self.assertAlmostEqual(doc["calibration"]["gauge_zero_hand_m"], 1.6)
+        self.assertEqual(doc["calibration"]["d8_scheme"], "esri")
+        self.assertGreater(doc["calibration"]["d8_scheme_score"], 0.9)
+
+        rows = {row["case_id"]: row for row in doc["events"]}
+        self.assertEqual(set(rows), {"st-e4-set2023", "st-e6-nov2023", "st-e9-mai2024"})
+        self.assertAlmostEqual(rows["st-e4-set2023"]["gauge_peak_m"], 24.04)
+        self.assertAlmostEqual(rows["st-e4-set2023"]["contour_level_m"], 22.4)
+        self.assertAlmostEqual(rows["st-e6-nov2023"]["gauge_peak_m"], 21.61)
+        self.assertAlmostEqual(rows["st-e6-nov2023"]["contour_level_m"], 20.0)
+        self.assertAlmostEqual(rows["st-e9-mai2024"]["gauge_peak_m"], 22.42)
+        self.assertAlmostEqual(rows["st-e9-mai2024"]["contour_level_m"], 20.8)
+        self.assertAlmostEqual(
+            rows["st-e9-mai2024"]["sensitivity"]["contour_level_m"], 20.7
+        )
+
+        areas = []
+        for row in rows.values():
+            scenario = row["scenario"]
+            self.assertGreater(scenario["contour_area_ha"], 0)
+            self.assertGreater(scenario["cells_200m_touched"], 0)
+            self.assertGreater(scenario["population_area_weighted_proxy"], 0)
+            self.assertGreater(scenario["road_centerline_edges_touched"], 0)
+            self.assertLessEqual(
+                scenario["road_centerline_edges_touched"],
+                scenario["road_centerline_edges_total"],
+            )
+            self.assertEqual(
+                len(scenario["wet_edge_ids"]),
+                scenario["road_centerline_edges_touched"],
+            )
+            areas.append(round(float(scenario["contour_area_ha"]), 1))
+        self.assertEqual(len(set(areas)), 3)
+
+        contours = doc["event_contours"]["features"]
+        self.assertEqual(len(contours), 3)
+        self.assertEqual(
+            sorted(round(float(f["properties"]["contour_level_m"]), 1) for f in contours),
+            [20.0, 20.8, 22.4],
+        )
 
     def test_rota_edges_flag_flooded_segments(self) -> None:
         for city, path in (

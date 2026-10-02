@@ -1,0 +1,621 @@
+{
+  "schema_version": "g040_stage2_master_readiness_v1",
+  "generated_at_utc": "2026-10-02T03:19:32.889326Z",
+  "research_only": true,
+  "status": {
+    "foundation_ready": true,
+    "branch_model_calibratable": true,
+    "operational_ready": false,
+    "overall": "BRANCH_MODEL_CALIBRATABLE_RESEARCH_ONLY"
+  },
+  "gates": {
+    "bho6_branch_topology": {
+      "pass": true,
+      "detail": {
+        "counts": {
+          "sources": 4,
+          "subbasins": 8,
+          "reaches": 11,
+          "junctions": 11,
+          "mainstem_checkpoints": 8
+        },
+        "audits": {
+          "reach_length_closure": [
+            {
+              "interval": "86472000_to_86510000",
+              "expected_km": 43.975,
+              "skeleton_km": 43.975,
+              "difference_km": 0.0,
+              "pass": true
+            },
+            {
+              "interval": "86510000_to_86720000",
+              "expected_km": 17.774,
+              "skeleton_km": 17.774,
+              "difference_km": 0.0,
+              "pass": true
+            },
+            {
+              "interval": "86720000_to_86743000",
+              "expected_km": 35.113,
+              "skeleton_km": 35.113,
+              "difference_km": 0.0,
+              "pass": true
+            },
+            {
+              "interval": "86743000_to_86879000",
+              "expected_km": 15.989,
+              "skeleton_km": 15.989,
+              "difference_km": 0.0,
+              "pass": true
+            },
+            {
+              "interval": "86879000_to_86879300",
+              "expected_km": 1.472,
+              "skeleton_km": 1.472,
+              "difference_km": 0.0,
+              "pass": true
+            },
+            {
+              "interval": "86879300_to_86895000",
+              "expected_km": 37.183,
+              "skeleton_km": 37.183,
+              "difference_km": 0.0,
+              "pass": true
+            },
+            {
+              "interval": "86895000_to_86950000",
+              "expected_km": 23.523,
+              "skeleton_km": 23.523,
+              "difference_km": 0.0,
+              "pass": true
+            },
+            {
+              "interval": "86950000_to_86996000",
+              "expected_km": 29.624,
+              "skeleton_km": 29.624,
+              "difference_km": 0.0,
+              "pass": true
+            }
+          ],
+          "all_reach_lengths_close": true,
+          "area_budget_closed": true,
+          "topology_passed": true
+        }
+      }
+    },
+    "dynamic_boundary_mass_balance": {
+      "pass": true,
+      "detail": {
+        "scenario": "live_available_boundaries",
+        "active_boundary_codes": [
+          "86500000"
+        ],
+        "effective_rainfall_runoff_area_km2": 11640.039,
+        "closure_error_km2": 0.0
+      },
+      "blocker": "boundary area budget does not close"
+    },
+    "rain_support": {
+      "pass": true,
+      "detail": {
+        "status": "RAIN_SUPPORT_READY_DYNAMIC_SCENARIO",
+        "support_point_count": 0,
+        "total_support_area_km2": null
+      },
+      "blocker": "build BHO6 rain support mesh"
+    },
+    "observed_full_grid": {
+      "pass": true,
+      "detail": {
+        "status": "OBSERVED_RAIN_READY",
+        "grid_cells": 600,
+        "valid_rain_station_count": 69
+      },
+      "blocker": "publish observed 600-cell field with all-valid-station IDW2"
+    },
+    "ifs_full_grid": {
+      "pass": true,
+      "detail": {
+        "status": "IFS_FULLGRID_FORCING_READY_CYCLE_ID_UNVERIFIED",
+        "grid_cells": 600,
+        "exact_cycle_id_available": false
+      },
+      "blocker": "complete 600-cell ECMWF field and attach exact cycle provenance for operational promotion"
+    },
+    "merged_rain": {
+      "pass": true,
+      "detail": {
+        "status": "MERGED_RAIN_FORCING_READY_RESEARCH_CYCLE_ID_UNVERIFIED",
+        "grid_cells": 600,
+        "operational_promotion_allowed": false
+      },
+      "blocker": "merge observed and forecast full-grid fields"
+    },
+    "historical_benchmark": {
+      "pass": true,
+      "detail": {
+        "event_count": 6,
+        "required_event_count": 6
+      },
+      "blocker": "recover missing benchmark events"
+    },
+    "hec_branch_compute": {
+      "pass": true,
+      "detail": {
+        "candidate_id": "SMOKE_E1",
+        "compute_ok": true,
+        "returncode": 0,
+        "scores": {
+          "86510000": {
+            "pairs": 72,
+            "mean_observed_m3s": 3955.0783333333334,
+            "mean_simulated_m3s": 3807.1842885835267,
+            "rmse_m3s": 348.4073540112213,
+            "normalized_rmse": 0.08809113869499119,
+            "mae_m3s": 291.73450912077897,
+            "nse": 0.9416607379468102,
+            "kge": 0.8271098899326045,
+            "correlation": 0.991697964893858,
+            "pbias_pct": -3.7393455270748066,
+            "volume_error_pct": -3.7393455270748426,
+            "observed_peak_m3s": 6310.5,
+            "simulated_peak_m3s": 6662.713820549256,
+            "peak_error_pct": 5.58139324220356,
+            "observed_peak_time_utc": "2026-09-30T02:00:00Z",
+            "simulated_peak_time_utc": "2026-09-30T03:00:00Z",
+            "peak_timing_error_h": 1.0,
+            "derivative_rmse_m3s_h": 51.234425879299245,
+            "rise_fall_sign_skill": 0.9154929577464789,
+            "observed_last_m3s": 2260.24,
+            "simulated_last_m3s": 1915.80231735801,
+            "last_error_pct": -15.238987127118795
+          },
+          "86720000": {
+            "pairs": 72,
+            "mean_observed_m3s": 4835.323055555553,
+            "mean_simulated_m3s": 3777.321022488805,
+            "rmse_m3s": 1157.374404104815,
+            "normalized_rmse": 0.2393582374553129,
+            "mae_m3s": 1058.00203306675,
+            "nse": 0.6091616894479972,
+            "kge": 0.7681857647864304,
+            "correlation": 0.9680834770908417,
+            "pbias_pct": -21.8806896852767,
+            "volume_error_pct": -21.880689685276668,
+            "observed_peak_m3s": 8032.61,
+            "simulated_peak_m3s": 6638.113501938298,
+            "peak_error_pct": -17.36044072924867,
+            "observed_peak_time_utc": "2026-09-30T03:00:00Z",
+            "simulated_peak_time_utc": "2026-09-30T05:00:00Z",
+            "peak_timing_error_h": 2.0,
+            "derivative_rmse_m3s_h": 77.19657278340381,
+            "rise_fall_sign_skill": 0.9154929577464789,
+            "observed_last_m3s": 2461.76,
+            "simulated_last_m3s": 2060.78435878676,
+            "last_error_pct": -16.288169489033866
+          },
+          "86743000": {
+            "pairs": 0,
+            "status": "insufficient_observed_Q"
+          },
+          "86879000": {
+            "pairs": 0,
+            "status": "insufficient_observed_Q"
+          },
+          "86879300": {
+            "pairs": 71,
+            "mean_observed_m3s": 6736.004225352116,
+            "mean_simulated_m3s": 3701.0134221311505,
+            "rmse_m3s": 3111.9160121032105,
+            "normalized_rmse": 0.4619824911022141,
+            "mae_m3s": 3034.990803220964,
+            "nse": -1.235473105914891,
+            "kge": 0.5261452294261018,
+            "correlation": 0.9476409814925097,
+            "pbias_pct": -45.056248507063756,
+            "volume_error_pct": -45.05624850706376,
+            "observed_peak_m3s": 9569.58,
+            "simulated_peak_m3s": 6481.772800294828,
+            "peak_error_pct": -32.266904082573866,
+            "observed_peak_time_utc": "2026-09-30T09:00:00Z",
+            "simulated_peak_time_utc": "2026-09-30T10:00:00Z",
+            "peak_timing_error_h": 1.0,
+            "derivative_rmse_m3s_h": 109.9309241977688,
+            "rise_fall_sign_skill": 0.9428571428571428,
+            "observed_last_m3s": 3853.71,
+            "simulated_last_m3s": 2443.1730399109665,
+            "last_error_pct": -36.60205256983617
+          },
+          "86895000": {
+            "pairs": 72,
+            "mean_observed_m3s": 6246.20388888889,
+            "mean_simulated_m3s": 3453.8015867113945,
+            "rmse_m3s": 2925.527833716913,
+            "normalized_rmse": 0.4683689302747564,
+            "mae_m3s": 2792.402302177495,
+            "nse": -1.675751336384851,
+            "kge": 0.5350628345358512,
+            "correlation": 0.8903244594061361,
+            "pbias_pct": -44.705590016758535,
+            "volume_error_pct": -44.70559001675855,
+            "observed_peak_m3s": 7900.56,
+            "simulated_peak_m3s": 6161.55332382318,
+            "peak_error_pct": -22.011182450064553,
+            "observed_peak_time_utc": "2026-09-30T16:00:00Z",
+            "simulated_peak_time_utc": "2026-09-30T15:00:00Z",
+            "peak_timing_error_h": -1.0,
+            "derivative_rmse_m3s_h": 140.55440650424651,
+            "rise_fall_sign_skill": 0.8873239436619719,
+            "observed_last_m3s": 5727.77,
+            "simulated_last_m3s": 3183.1150164939377,
+            "last_error_pct": -44.42662647952105
+          }
+        }
+      },
+      "blocker": "fix HEC-HMS branch-project compute before calibration"
+    },
+    "hec_multievent_calibration": {
+      "pass": false,
+      "detail": {
+        "status": null,
+        "fixed_split": {},
+        "best_calibration_candidate": null,
+        "candidate_count": 0
+      },
+      "blocker": "run fixed E22_SEP2023 + E24_NOV2023 multi-event calibration and retain only candidates supported by both events"
+    },
+    "native_hec145": {
+      "pass": false,
+      "detail": {
+        "target_subbasins": 145,
+        "target_reaches": 72,
+        "native_project_recovered": false,
+        "legacy_meteorologic_assignment_missing_bacias": [
+          99
+        ]
+      },
+      "blocker": "recover or independently reconstruct/verify native 145-subbasin + 72-reach topology"
+    },
+    "sma_branch_parameters": {
+      "pass": false,
+      "detail": {
+        "rows": 11,
+        "fully_sourced_parameter_rows": 0,
+        "target": "current BHO6 branch model"
+      },
+      "blocker": "select PET and source-backed soil/storage/percolation priors for the 11 current components; do not infer from CN"
+    },
+    "sma_145_transfer": {
+      "pass": false,
+      "detail": {
+        "rows": 145,
+        "fully_sourced_parameter_rows": 0,
+        "target": "legacy 145-unit transfer"
+      },
+      "blocker": "transfer only after native/reconstructed 145 geometry-topology is independently verified"
+    },
+    "mgb_inputs": {
+      "pass": false,
+      "detail": {
+        "manifest_status": "INPUT_PREPARATION_PENDING",
+        "readiness_status": "MGB_PREPROCESSING_CAN_START_MET_FORCING_INCOMPLETE",
+        "blockers": [
+          "hydrologically_consistent_dem_selected",
+          "temperature_forcing_ready",
+          "relative_humidity_forcing_ready",
+          "wind_forcing_ready",
+          "solar_or_sunshine_forcing_ready",
+          "pressure_or_supported_equivalent_ready",
+          "pet_or_energy_balance_strategy_selected",
+          "mini_basins_generated",
+          "hru_fractions_generated"
+        ],
+        "soil_source_candidate_found": true,
+        "land_cover_source_candidate_found": true
+      },
+      "blocker": "close MGB meteorological forcing, select/condition DEM, then generate mini-basins/HRUs"
+    },
+    "hec_ras_inputs": {
+      "pass": false,
+      "detail": {
+        "manifest_status": "HYDRAULIC_INPUTS_PENDING",
+        "pilot_status": "PILOT_SOURCE_AUDIT_READY_GEOMETRY_AND_DATUM_BLOCKED",
+        "bathymetry_candidate_found": true,
+        "pilots": [
+          {
+            "name": "Santa Tereza",
+            "gates": {
+              "horizontal_crs_identified": true,
+              "current_raw_lidar_materialized_for_ras": false,
+              "vertical_datum_reconciled": false,
+              "channel_bathymetry_audited": false,
+              "bridges_structures_audited": false,
+              "upstream_hydrograph_validated": false,
+              "downstream_boundary_validated": false
+            }
+          },
+          {
+            "name": "Muçum",
+            "gates": {
+              "horizontal_crs_identified": true,
+              "terrain_source_materialized": true,
+              "vertical_datum_reconciled": false,
+              "channel_bathymetry_audited": false,
+              "bridges_structures_audited": false,
+              "upstream_hydrograph_validated": false,
+              "downstream_boundary_validated": false,
+              "independent_flood_mark_reference_available": true
+            }
+          }
+        ]
+      },
+      "blocker": "reconcile terrain/bathymetry vertical datums, structures and boundaries for Santa Tereza/Mucum pilots"
+    },
+    "assimilation_generalized": {
+      "pass": false,
+      "detail": {
+        "contract_status": "partial_existing_mucum_to_be_generalized",
+        "readiness_status": "BOUNDARY_ASSIMILATION_READY_INTERNAL_STATE_UPDATE_BLOCKED",
+        "summary": {
+          "control_count": 13,
+          "stage1_boundary_update_count": 2,
+          "diagnostic_checkpoint_count": 7,
+          "internal_state_update_count": 0
+        },
+        "stage1_contract": {
+          "method": "replace explicit source/boundary time-series values only with quality-controlled fresh observed discharge",
+          "timestamp_alignment_required": true,
+          "unit_alignment_required": true,
+          "rating_curve_provenance_required_if_flow_is_derived": true,
+          "missing_rule": "do not synthesize observed Q; tributary contributing area returns to rainfall-runoff where applicable"
+        },
+        "internal_state_contract": {
+          "status": "NOT_IMPLEMENTED",
+          "candidate_states": [
+            "routing storage",
+            "channel discharge/level",
+            "baseflow state",
+            "SMA soil/groundwater states"
+          ],
+          "next_methods": [
+            "documented deterministic nudging/state correction",
+            "ensemble/sequential assimilation after replay validation"
+          ],
+          "forbidden": "visual curve shift presented as physical state assimilation"
+        }
+      },
+      "blocker": "boundary replacement is allowed where fresh Q exists; internal state update is still unimplemented and must be replay-validated"
+    },
+    "ensemble_validated": {
+      "pass": false,
+      "detail": {
+        "contract_status": "scaffold",
+        "members": [
+          {
+            "member_id": "RNA_STZ_2H_EVENTWISE",
+            "family": "RNA",
+            "location": "Santa Tereza",
+            "target_variable": "stage",
+            "target_unit": "cm",
+            "horizon_h": 2,
+            "status": "research_replay_not_operational",
+            "auditable_event_replay": true,
+            "independent_test_events": [
+              {
+                "evento": "12",
+                "inicio": "2025-06-18 10:00",
+                "fim": "2025-07-04 15:00",
+                "mae_cm": 4.46,
+                "peak_timing_error_h": 0.0
+              }
+            ],
+            "eligible_for_skill_weight": true,
+            "limitations": [
+              "stage member only; not discharge",
+              "cannot be averaged with discharge HEC/MGB output without a validated common-variable mapping",
+              "eventwise replay package is research-only"
+            ]
+          },
+          {
+            "member_id": "RNA_STZ_8H_RESEARCH",
+            "family": "RNA",
+            "location": "Santa Tereza",
+            "target_variable": "stage",
+            "target_unit": "cm",
+            "horizon_h": 8,
+            "status": "treino_rna_v1_concluido_nao_operacional",
+            "test_metrics": {
+              "n": 362,
+              "rmse_cm": 82.59532864788878,
+              "mae_cm": 46.58992178033507,
+              "nse": 0.8754083255886249,
+              "persistencia_rmse_cm": 102.3505657000296,
+              "persistencia_mae_cm": 57.43646408839779,
+              "skill_rmse_vs_pers": 0.1930154163489407
+            },
+            "eligible_for_skill_weight": true,
+            "limitations": [
+              "research MLP, not the operational MATLAB model",
+              "must be replayed on the same fixed benchmark events before cross-model weighting",
+              "stage-only output"
+            ]
+          },
+          {
+            "member_id": "RNA_MUCUM_8H_RESEARCH",
+            "family": "RNA",
+            "location": "Muçum",
+            "target_variable": "stage",
+            "target_unit": "cm",
+            "horizon_h": 8,
+            "status": "treino_rna_v1_concluido_nao_operacional",
+            "test_metrics": {
+              "n": 408,
+              "rmse_cm": 57.663080507914515,
+              "mae_cm": 33.48441059573637,
+              "nse": 0.9613438637313494,
+              "persistencia_rmse_cm": 124.20217941948128,
+              "persistencia_mae_cm": 68.23529411764706,
+              "skill_rmse_vs_pers": 0.5357321362843173
+            },
+            "eligible_for_skill_weight": true,
+            "limitations": [
+              "research MLP, not the operational MATLAB model",
+              "must be replayed on the same fixed benchmark events before cross-model weighting",
+              "stage-only output"
+            ]
+          },
+          {
+            "member_id": "HEC_HMS_G040_BRANCH",
+            "family": "HEC-HMS",
+            "location": "G040 mainstem branch model",
+            "target_variable": "discharge",
+            "target_unit": "m3/s",
+            "horizon_h": null,
+            "status": "compute_ok",
+            "eligible_for_skill_weight": true,
+            "limitations": [
+              "event-model branch representation until continuous SMA is calibrated"
+            ]
+          },
+          {
+            "member_id": "MGB_G040",
+            "family": "MGB",
+            "location": "G040",
+            "target_variable": "discharge",
+            "target_unit": "m3/s",
+            "horizon_h": null,
+            "status": "MGB_PREPROCESSING_CAN_START_MET_FORCING_INCOMPLETE",
+            "eligible_for_skill_weight": false,
+            "limitations": [
+              "model has not yet completed source-backed preprocessing/calibration"
+            ]
+          }
+        ],
+        "compatibility": {
+          "stage_ready_member_ids": [
+            "RNA_STZ_2H_EVENTWISE",
+            "RNA_STZ_8H_RESEARCH",
+            "RNA_MUCUM_8H_RESEARCH"
+          ],
+          "discharge_ready_member_ids": [
+            "HEC_HMS_G040_BRANCH"
+          ],
+          "compatible_groups": [
+            {
+              "target_variable": "discharge",
+              "target_unit": "m3/s",
+              "location": "G040 mainstem branch model",
+              "horizon_h": null,
+              "member_ids": [
+                "HEC_HMS_G040_BRANCH"
+              ],
+              "member_count": 1,
+              "ensemble_ready": false
+            },
+            {
+              "target_variable": "stage",
+              "target_unit": "cm",
+              "location": "Muçum",
+              "horizon_h": 8.0,
+              "member_ids": [
+                "RNA_MUCUM_8H_RESEARCH"
+              ],
+              "member_count": 1,
+              "ensemble_ready": false
+            },
+            {
+              "target_variable": "stage",
+              "target_unit": "cm",
+              "location": "Santa Tereza",
+              "horizon_h": 2.0,
+              "member_ids": [
+                "RNA_STZ_2H_EVENTWISE"
+              ],
+              "member_count": 1,
+              "ensemble_ready": false
+            },
+            {
+              "target_variable": "stage",
+              "target_unit": "cm",
+              "location": "Santa Tereza",
+              "horizon_h": 8.0,
+              "member_ids": [
+                "RNA_STZ_8H_RESEARCH"
+              ],
+              "member_count": 1,
+              "ensemble_ready": false
+            }
+          ],
+          "ready_stage_groups": [],
+          "ready_discharge_groups": [],
+          "cross_variable_averaging_allowed": false,
+          "rule": "weights may be estimated only among members predicting the same target variable/unit at the same location/horizon, or after an independently validated transformation",
+          "rating_curve_rule": "never invent stage-discharge conversion"
+        },
+        "weighting_gate": {
+          "fixed_benchmark_required": true,
+          "simple_mean_default": false,
+          "same_events_checkpoints_metrics_required": true,
+          "minimum_ready_members_per_target": 2,
+          "stage_ensemble_ready": false,
+          "discharge_ensemble_ready": false
+        }
+      },
+      "blocker": "need at least two independently benchmarked members for the same variable/location/horizon before skill weighting"
+    }
+  },
+  "blockers": [
+    "hec_multievent_calibration",
+    "native_hec145",
+    "sma_branch_parameters",
+    "sma_145_transfer",
+    "mgb_inputs",
+    "hec_ras_inputs",
+    "assimilation_generalized",
+    "ensemble_validated"
+  ],
+  "workstreams": {
+    "A_rain_and_state": [
+      "observed_full_grid",
+      "ifs_full_grid",
+      "merged_rain",
+      "sma_branch_parameters",
+      "sma_145_transfer"
+    ],
+    "B_hec_network": [
+      "bho6_branch_topology",
+      "hec_branch_compute",
+      "hec_multievent_calibration",
+      "native_hec145"
+    ],
+    "C_tributaries": [
+      "dynamic_boundary_mass_balance",
+      "assimilation_generalized"
+    ],
+    "D_mgb": [
+      "mgb_inputs"
+    ],
+    "E_hec_ras": [
+      "hec_ras_inputs"
+    ],
+    "F_ensemble": [
+      "historical_benchmark",
+      "ensemble_validated"
+    ]
+  },
+  "next_actions_in_order": [
+    "close current full-grid observed+IFS run and publish merged 600-cell artifacts",
+    "complete and refine fixed E22_SEP2023 + E24_NOV2023 multi-event calibration search",
+    "freeze the selected calibration candidate and run E27_MAY2024 + E28_JUN2024 independent validation without retuning",
+    "run E2026_JUL pseudo-operational holdout only after validation parameters are frozen",
+    "recover/verify native 145-subbasin + 72-reach topology in parallel with BHO6 branch model",
+    "select and materialize PET + soil/land-cover inputs for continuous SMA",
+    "prepare MGB mini-basins/HRUs and meteorological forcing without reusing HEC discretization blindly",
+    "audit DNIT bathymetry/vertical datum and terrain for Santa Tereza and Muçum HEC-RAS pilots",
+    "generalize state assimilation to available mainstem/tributary controls",
+    "hindcast HEC-SMA + MGB + RNA and estimate skill-based ensemble weights",
+    "only then enable impact products and any operational promotion discussion"
+  ],
+  "promotion_allowed": false
+}

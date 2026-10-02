@@ -40,7 +40,7 @@ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/Worl
 const CORES={alagada:'#1e5fbf',critica:'#b3382c',apertada:'#e8730c',atencao:'#e3b100',confortavel:'#1b7a5a',sem_dado:'#9aa3a0'};
 const CLASSES_SAIDA=new Set(['alagada','rota_comprometida','critica','apertada','atencao']);
 const ROT={alagada:'atingida no cenário HAND',critica:'margem negativa no modelo',apertada:'margem <15 min no modelo',atencao:'margem <1 h no modelo',confortavel:'margem >1 h no modelo',sem_dado:'sem cobertura HAND no intervalo'};
-let contornosGeo=null,contornosOrdenados=[],prelimLayer=null,prelimControl=null;
+let contornosGeo=null,contornosOrdenados=[];
 function pRing(lon,lat,r){let z=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const xi=r[i][0],yi=r[i][1],xj=r[j][0],yj=r[j][1];if(((yi>lat)!=(yj>lat))&&(lon<(xj-xi)*(lat-yi)/(yj-yi+1e-15)+xi))z=!z;}return z;}
 function pGeom(lon,lat,g){if(!g)return false;if(g.type==='Polygon'){if(!pRing(lon,lat,g.coordinates[0]))return false;for(let k=1;k<g.coordinates.length;k++)if(pRing(lon,lat,g.coordinates[k]))return false;return true;}if(g.type==='MultiPolygon')return g.coordinates.some(p=>{if(!pRing(lon,lat,p[0]))return false;for(let k=1;k<p.length;k++)if(pRing(lon,lat,p[k]))return false;return true;});return false;}
 function bboxGeom(g){let w=Infinity,e=-Infinity,s=Infinity,n=-Infinity;function walk(x){if(!Array.isArray(x))return;if(x.length>=2&&typeof x[0]==='number'&&typeof x[1]==='number'){w=Math.min(w,x[0]);e=Math.max(e,x[0]);s=Math.min(s,x[1]);n=Math.max(n,x[1]);return;}x.forEach(walk);}walk(g&&g.coordinates);return {w,e,s,n};}
@@ -71,16 +71,9 @@ const sld=document.getElementById('sld'),sldTaxa=document.getElementById('sldTax
 function cen(t){return t<=25?'(subida lenta)':t<=100?'(subida moderada)':'(subida rápida · cenário)';}
 function redraw(){taxaCmH=+sldTaxa.value;document.getElementById('taxatxt').textContent=taxaCmH;document.getElementById('taxacen').textContent=cen(taxaCmH);render(Math.max(BANKFULL_M,Math.min(NVMAX,Number(sld.value)||BANKFULL_M)));}
 sld.oninput=redraw;sld.onchange=redraw;sldTaxa.oninput=redraw;sldTaxa.onchange=redraw;redraw();
-Promise.allSettled([
- fetch('../assets/data/santa_tereza_inundacao/contornos_mancha.json').then(r=>{if(!r.ok)throw new Error('contornos '+r.status);return r.json();}),
- fetch('../assets/data/santa_tereza_inundacao/mancha_preliminar_santa_tereza.geojson').then(r=>{if(!r.ok)throw new Error('preliminar '+r.status);return r.json();})
-]).then(res=>{
- if(res[0].status==='fulfilled'){
-  contornosGeo=res[0].value;prepara(contornosGeo);
-  cotaCells=D.cells.map(c=>c.cota);
- }
- if(res[1].status==='fulfilled'){prelimLayer=L.geoJSON(res[1].value,{interactive:false,style:{color:'#7d3cff',weight:1.2,dashArray:'6 5',fillColor:'#7d3cff',fillOpacity:.04}});prelimLayer.bindPopup('<b>Mancha preliminar legada</b><br>Prova de conceito antiga; não entra na classificação atual.');prelimControl=L.control.layers(null,{'Mancha preliminar legada · opcional':prelimLayer},{collapsed:true}).addTo(map);}
- redraw();
-});
+fetch('../assets/data/santa_tereza_inundacao/contornos_mancha.json')
+.then(r=>{if(!r.ok)throw new Error('contornos '+r.status);return r.json();})
+.then(fc=>{contornosGeo=fc;prepara(fc);cotaCells=D.cells.map(c=>c.cota);redraw();})
+.catch(()=>{contornosGeo=null;contornosOrdenados=[];redraw();});
 
 </script></body></html>

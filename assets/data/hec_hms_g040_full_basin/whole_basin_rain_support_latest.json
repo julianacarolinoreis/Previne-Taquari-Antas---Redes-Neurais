@@ -1,0 +1,136 @@
+{
+  "schema_version": "g040_bho6_rain_support_v2_dynamic_boundaries",
+  "generated_at_utc": "2026-10-01T13:54:32.568673Z",
+  "research_only": true,
+  "status": "RAIN_SUPPORT_READY_DYNAMIC_SCENARIO",
+  "method": {
+    "geometry": "BHO6 reach midpoint",
+    "weight": "BHO6 nuareacont",
+    "mesh_scope": "gross incremental mainstem area",
+    "boundary_tagging": "points inside an independent tributary upstream set carry tributary_boundary_code",
+    "scenario_rule": "exclude only points whose tributary boundary is ACTIVE; inactive boundary areas remain rainfall-runoff",
+    "polygon_dependency": false
+  },
+  "source": {
+    "provider": "ANA/SNIRH",
+    "dataset": "BHO6 trecho drenagem",
+    "version": "BHO bho_v_06_02_04 de 2022-10-11"
+  },
+  "intervals": [
+    {
+      "interval_id": "INC_86472000_86510000",
+      "support_points": 3660,
+      "gross_budget_area_km2": 3046.551,
+      "gross_support_area_km2": 3046.550713,
+      "gross_area_error_km2": -0.000287,
+      "gross_weight_sum": 1.0,
+      "boundary_area_checks": {
+        "86500000": {
+          "expected_km2": 1816.359,
+          "support_km2": 1816.35885,
+          "error_km2": -0.00015,
+          "pass": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "interval_id": "INC_86510000_86720000",
+      "support_points": 4592,
+      "gross_budget_area_km2": 3084.945,
+      "gross_support_area_km2": 3084.945504,
+      "gross_area_error_km2": 0.000504,
+      "gross_weight_sum": 1.0,
+      "boundary_area_checks": {
+        "86595000": {
+          "expected_km2": 2431.975,
+          "support_km2": 2431.974822,
+          "error_km2": -0.000178,
+          "pass": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "interval_id": "INC_86720000_86743000",
+      "support_points": 500,
+      "gross_budget_area_km2": 515.674,
+      "gross_support_area_km2": 515.673676,
+      "gross_area_error_km2": -0.000324,
+      "gross_weight_sum": 1.0,
+      "boundary_area_checks": {},
+      "pass": true
+    },
+    {
+      "interval_id": "INC_86743000_86879000",
+      "support_points": 3048,
+      "gross_budget_area_km2": 2976.234,
+      "gross_support_area_km2": 2976.233717,
+      "gross_area_error_km2": -0.000283,
+      "gross_weight_sum": 1.0,
+      "boundary_area_checks": {
+        "86746000": {
+          "expected_km2": 2226.742,
+          "support_km2": 2226.741718,
+          "error_km2": -0.000282,
+          "pass": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "interval_id": "INC_86879000_86879300",
+      "support_points": 700,
+      "gross_budget_area_km2": 579.543,
+      "gross_support_area_km2": 579.54366,
+      "gross_area_error_km2": 0.00066,
+      "gross_weight_sum": 1.0,
+      "boundary_area_checks": {},
+      "pass": true
+    },
+    {
+      "interval_id": "INC_86879300_86895000",
+      "support_points": 1676,
+      "gross_budget_area_km2": 1410.921,
+      "gross_support_area_km2": 1410.921229,
+      "gross_area_error_km2": 0.000229,
+      "gross_weight_sum": 1.0,
+      "boundary_area_checks": {},
+      "pass": true
+    },
+    {
+      "interval_id": "INC_86895000_86950000",
+      "support_points": 1158,
+      "gross_budget_area_km2": 1217.731,
+      "gross_support_area_km2": 1217.730939,
+      "gross_area_error_km2": -6.1e-05,
+      "gross_weight_sum": 1.0,
+      "boundary_area_checks": {},
+      "pass": true
+    },
+    {
+      "interval_id": "INC_86950000_86996000",
+      "support_points": 574,
+      "gross_budget_area_km2": 624.799,
+      "gross_support_area_km2": 624.798532,
+      "gross_area_error_km2": -0.000468,
+      "gross_weight_sum": 1.0,
+      "boundary_area_checks": {},
+      "pass": true
+    }
+  ],
+  "total_support_points": 15908,
+  "total_gross_support_area_km2": 13456.39797,
+  "expected_total_mainstem_area_gain_km2": 13456.398,
+  "all_intervals_close": true,
+  "usage_contract": {
+    "observed": "IDW field sampled at support points after scenario filtering",
+    "forecast": "ECMWF field sampled at same points after scenario filtering",
+    "missing": "never zero-fill",
+    "dynamic_boundaries": true
+  },
+  "artifacts": {
+    "support_points_csv": "assets/data/hec_hms_g040_full_basin/whole_basin_rain_support_points.csv"
+  },
+  "next_step": "filter support mesh with current boundary scenario, then build observed/forecast interval rainfall"
+}

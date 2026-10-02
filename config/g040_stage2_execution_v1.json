@@ -1,0 +1,257 @@
+{
+  "schema_version": "g040_stage2_execution_v1",
+  "research_only": true,
+  "purpose": "Executable workstream contract for PREVINE G040 hydrology-hydraulics research stack.",
+  "workstreams": {
+    "hec_sma_continuous": {
+      "status": "INPUT_SOURCING_AND_METHOD_SELECTION",
+      "first_target": "BHO6 branch architecture with 8 incremental intervals/11 components before any 145-unit transfer",
+      "later_target": "145 legacy HEC units only after native/reconstructed geometry-topology is independently verified",
+      "required_inputs": [
+        "hourly precipitation full-grid",
+        "potential evapotranspiration time series",
+        "soil/land-cover evidence",
+        "initial continuous-state warmup period",
+        "observed discharge/level checkpoints"
+      ],
+      "prohibited": [
+        "derive SMA storages/percolation directly from SCS Curve Number without source/validation",
+        "copy event-calibrated CN/lag into SMA state parameters",
+        "start each forecast event from arbitrary dry/wet initial percentages",
+        "promote one-event fit"
+      ],
+      "parameter_groups": [
+        "canopy_storage",
+        "surface_storage",
+        "soil_storage",
+        "tension_storage",
+        "soil_percolation",
+        "groundwater_1",
+        "groundwater_2",
+        "initial_states"
+      ],
+      "calibration_sequence": [
+        "choose PET source and units/time basis",
+        "initialize only source-backed broad priors",
+        "run continuous warmup",
+        "fit water balance/volume first",
+        "fit hydrograph timing/routing second",
+        "jointly refine peak/timing/rise/recession across calibration events",
+        "freeze parameters before independent validation"
+      ],
+      "validation_events": [
+        "E27_MAY2024",
+        "E28_JUN2024"
+      ],
+      "pseudo_operational_holdout": [
+        "E2026_JUL"
+      ],
+      "pet_strategy": {
+        "hindcast_warmup": {
+          "source": "ERA5-Land hourly",
+          "method": "prefer supplied potential evaporation as external PET first; retain component atmospheric variables for independent sensitivity/alternative ET methods",
+          "purpose": "historical warm-up, continuous state reconstruction, calibration and validation",
+          "operational_role": false
+        },
+        "near_real_time": {
+          "status": "SOURCE_PIPELINE_PENDING",
+          "requirement": "fresh atmospheric forcing with timestamp/provenance; do not extend stale ERA5-Land values forward",
+          "candidate_methods": [
+            "externally calculated Penman-Monteith",
+            "Priestley-Taylor",
+            "Hargreaves where only reliable temperature is available"
+          ],
+          "preferred_rule": "use the same documented method across replay and pseudo-operational evaluation before promotion"
+        },
+        "hec_hms_rule": "continuous SMA must not run with implicit zero PET"
+      }
+    },
+    "mgb": {
+      "status": "INPUT_PREPARATION",
+      "role": "independent basin-scale hydrologic member, not a clone of HEC-HMS",
+      "discretization": "derive MGB mini-basins/HRUs independently from hydrologically consistent terrain and land/soil inputs",
+      "source_candidates": {
+        "soil": [
+          "IBGE 2023 pedology 1:250000",
+          "Embrapa 2011 soil map as coarse independent reference"
+        ],
+        "land_cover": [
+          "MapBiomas source data; alternate 166-unit workbook is evidence only, not a HEC145 crosswalk"
+        ],
+        "precipitation": [
+          "G040 observed full-grid for contemporary replay",
+          "CHIRPS archive for independent historical comparison where resolution is suitable"
+        ],
+        "dem": [
+          "project MDE archive; hydrologically consistent DEM not yet selected"
+        ],
+        "meteorology": [
+          "PET/temperature/humidity/wind/radiation/pressure forcing still to be closed"
+        ],
+        "historical_meteorology": [
+          "ERA5-Land hourly temperature/dewpoint/surface pressure/10m wind/solar radiation variables for hindcast preprocessing"
+        ],
+        "historical_land_state": [
+          "ERA5-Land volumetric soil water layers as independent state diagnostic/assimilation research input, not direct MGB parameter replacement"
+        ]
+      },
+      "outputs_required": [
+        "mini-basin topology",
+        "HRU fractions",
+        "continuous state files",
+        "discharge at shared checkpoints",
+        "event/period skill table"
+      ],
+      "comparison_policy": "same benchmark events/checkpoints/metrics as HEC; no winner chosen on NSE alone"
+    },
+    "hec_ras": {
+      "status": "GEOMETRY_SOURCE_AUDIT",
+      "pilot_order": [
+        "Santa Tereza",
+        "Muçum",
+        "Encantado",
+        "Arroio do Meio",
+        "Lajeado",
+        "Estrela",
+        "Taquari"
+      ],
+      "first_pilots": [
+        "Santa Tereza",
+        "Muçum"
+      ],
+      "source_candidates": {
+        "terrain": [
+          "LiDAR/terrain assets already used in Santa Tereza and Muçum project products"
+        ],
+        "bathymetry": [
+          "DNIT 2024 Porto-Barragem",
+          "DNIT 2025 Porto de Estrela-BRS"
+        ],
+        "structures": [
+          "bridges/culverts/levees from field/GIS inventory when available"
+        ]
+      },
+      "mandatory_audits": [
+        "horizontal CRS",
+        "vertical datum",
+        "terrain-bathymetry seam",
+        "bridge/structure geometry",
+        "Manning provenance",
+        "upstream hydrograph provenance",
+        "downstream boundary/backwater sensitivity"
+      ],
+      "equation_protocol": {
+        "baseline": "Diffusion Wave",
+        "compare": [
+          "SWE-ELM",
+          "SWE-EM where supported/appropriate"
+        ],
+        "prioritize_SWE_when": [
+          "bridges/contractions",
+          "confluences",
+          "rapid expansions",
+          "sharp bends",
+          "confined valleys",
+          "urban multidirectional flow",
+          "strong backwater/momentum"
+        ],
+        "selection": "observational validation, not convenience"
+      },
+      "validation_metrics": [
+        "stage_error",
+        "arrival_time_error",
+        "inundation_CSI_or_F1",
+        "depth_error",
+        "velocity_plausibility",
+        "Manning_sensitivity",
+        "mesh_sensitivity",
+        "boundary_condition_sensitivity"
+      ]
+    },
+    "assimilation": {
+      "status": "GENERALIZATION_REQUIRED",
+      "stage_1": "documented deterministic state/boundary update at fresh observed controls",
+      "stage_2": "sequential/ensemble assimilation research after Stage-1 replay is validated",
+      "state_candidates": [
+        "channel discharge/level",
+        "routing storage",
+        "soil states",
+        "baseflow state"
+      ],
+      "forbidden": "visual curve translation presented as physical state assimilation",
+      "quality_gates": [
+        "timestamp alignment",
+        "station QC",
+        "rating-curve provenance",
+        "state-update method recorded"
+      ]
+    },
+    "ensemble": {
+      "status": "HINDCAST_REQUIRED",
+      "members": [
+        "HEC-HMS continuous/SMA",
+        "MGB",
+        "locally validated RNA"
+      ],
+      "weighting": "skill-based after fixed benchmark/holdout evaluation",
+      "simple_mean_default": false,
+      "report": [
+        "central estimate",
+        "model spread",
+        "member disagreement",
+        "confidence flag",
+        "low-confidence reason"
+      ],
+      "uncertainty_next": [
+        "ECMWF ensemble forcing when exact member/cycle provenance is available"
+      ]
+    },
+    "impact": {
+      "status": "BLOCKED_BY_HYDROLOGIC_AND_HYDRAULIC_VALIDATION",
+      "outputs": [
+        "level",
+        "discharge",
+        "peak time",
+        "flood depth",
+        "velocity",
+        "extent",
+        "arrival time",
+        "threshold exceedance",
+        "exposed sectors/equipment",
+        "candidate dry routes"
+      ],
+      "interface_policy": "observation, forecast and scenario must be visually and semantically distinct",
+      "operational_gate": "independent validation + local procedure/governance; decision support does not replace official civil-defense warning"
+    }
+  },
+  "fixed_benchmark_split": {
+    "development": [
+      "E19_MAY2023"
+    ],
+    "calibration": [
+      "E22_SEP2023",
+      "E24_NOV2023"
+    ],
+    "independent_validation": [
+      "E27_MAY2024",
+      "E28_JUN2024"
+    ],
+    "pseudo_operational_holdout": [
+      "E2026_JUL"
+    ]
+  },
+  "metrics": [
+    "NSE",
+    "KGE",
+    "PBIAS",
+    "RMSE",
+    "MAE",
+    "volume_error",
+    "peak_error",
+    "peak_timing_error",
+    "rise_skill",
+    "recession_skill"
+  ],
+  "no_leakage_rule": "Do not move validation/holdout events into calibration after inspecting results.",
+  "promotion_allowed": false
+}

@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PREVINE · Estado da pesquisa — Santa Tereza</title>
+<title>PREVINE · Pesquisa de transbordamento — Santa Tereza</title>
+<meta name="description" content="Painel auditável da pesquisa PREVINE em Santa Tereza: nível observado, chuva na bacia, previsões de curto prazo, scores experimentais e estado de validação.">
+<meta name="theme-color" content="#0b4f3a">
 <style>
   :root{--bg:#eef3f1;--panel:#fff;--ink:#132019;--muted:#5c6b63;--line:#dfe8e1;--brand:#0f6b4a;--blue:#1e5fbf;--warn:#8a5a12;--warn-bg:#fff5df;--bad:#9b2c22;--bad-bg:#fff0ee;--good:#176b46;--good-bg:#eaf7ef;--shadow:0 8px 28px rgba(20,40,30,.07)}
   *{box-sizing:border-box}
@@ -111,16 +113,187 @@
   .research-status{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 14px}.research-status>div{background:#fff;border:1px solid var(--line);border-radius:11px;padding:10px 11px}.research-status strong{display:block;font-size:11px;line-height:1.2}.research-status span{display:block;color:var(--muted);font-size:10px;margin-top:4px}.research-status .open{border-color:#b7dec4;background:var(--good-bg)}.research-status .open strong{color:var(--good)}.research-status .off{border-color:#edcf91;background:var(--warn-bg)}.research-status .off strong{color:var(--warn)}.research-status .review{border-color:#b7d5ef;background:#f4fbff}.research-status .review strong{color:var(--blue)}
   .table-scroll{overflow-x:auto;max-width:100%}.table-scroll table{min-width:680px}
   @media(max-width:520px){.quick-nav{margin-left:-12px;margin-right:-12px;border-radius:0;border-left:0;border-right:0}.quick-nav-label{font-size:9px}.quick-nav a{font-size:10px}.research-status{grid-template-columns:1fr}.anchor-target{scroll-margin-top:58px}}
+  /* revisão visual 2026-10: leitura em camadas, foco operacional e auditoria */
+  html{scroll-behavior:smooth}
+  body{background:
+    radial-gradient(circle at 12% -8%,rgba(15,107,74,.10),transparent 31rem),
+    radial-gradient(circle at 92% 8%,rgba(30,95,191,.08),transparent 28rem),
+    var(--bg)}
+  .wrap{max-width:1180px}
+  .page-header{position:relative;overflow:hidden;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;padding:22px 24px;margin-bottom:14px;border-radius:22px;color:#fff;background:linear-gradient(125deg,#0b4f3a 0%,#0f6b4a 58%,#155ea2 100%);box-shadow:0 16px 44px rgba(15,70,52,.18)}
+  .page-header:after{content:"";position:absolute;right:-70px;top:-90px;width:250px;height:250px;border-radius:50%;border:44px solid rgba(255,255,255,.07);pointer-events:none}
+  .page-header .mark{width:46px;height:46px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);display:grid;place-items:center;font-weight:900;color:#fff;box-shadow:inset 0 0 0 7px rgba(255,255,255,.06)}
+  .page-header .mark:before{content:"P";font-size:18px}
+  .page-header .kicker,.page-header .subtitle{color:rgba(255,255,255,.78)}
+  .page-header h1{font-size:31px;margin-top:4px}
+  .header-side{position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-end;gap:7px}
+  .page-header .badge{margin:0;color:#603c08;background:#fff3cf;border-color:#f0d890}
+  .header-feed{max-width:300px;font-size:10px;line-height:1.35;text-align:right;color:rgba(255,255,255,.78)}
+  .station-nav{padding:0;margin:0 0 12px;gap:7px}
+  .station-nav::before{content:'Abrir:'}
+  .station-nav a{background:rgba(255,255,255,.78);backdrop-filter:blur(8px)}
+  .quick-nav{top:8px;border-radius:14px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  .quick-nav a[aria-current="true"]{background:var(--brand);border-color:var(--brand);color:#fff}
+  .research-status{gap:10px}
+  .research-status>div{position:relative;padding:13px 14px 13px 40px;min-height:72px}
+  .research-status>div:before{position:absolute;left:14px;top:15px;width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:900}
+  .research-status .review:before{content:"i";background:#dcecff;color:var(--blue)}
+  .research-status .off:before{content:"!";background:#ffe8ad;color:var(--warn)}
+  .hero{padding:20px 22px;border-radius:18px;background:rgba(255,255,255,.88);backdrop-filter:blur(8px)}
+  .hero h2{font-size:20px}
+  .hero p{max-width:970px;font-size:13.5px}
+  .read-first{margin:16px 0 18px}
+  .read-first-head{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-bottom:10px}
+  .read-first-head h2{margin:0;font-size:18px}
+  .read-first-head p{margin:0;color:var(--muted);font-size:11px;text-align:right}
+  .read-first-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  .read-card{display:flex;flex-direction:column;gap:7px;min-height:150px;padding:15px;border-radius:15px;background:#fff;border:1px solid var(--line);text-decoration:none;color:var(--ink);box-shadow:0 5px 18px rgba(20,40,30,.05);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+  .read-card:hover,.read-card:focus-visible{transform:translateY(-2px);box-shadow:0 10px 24px rgba(20,40,30,.09);border-color:#a8d0b9;outline:none}
+  .read-card .step{width:27px;height:27px;border-radius:9px;display:grid;place-items:center;background:#eaf7ef;color:var(--brand);font-size:11px;font-weight:900}
+  .read-card strong{font-size:13px}
+  .read-card span{font-size:10.5px;color:var(--muted);line-height:1.45}
+  .read-card em{margin-top:auto;font-style:normal;font-size:10px;font-weight:800;color:var(--brand)}
+  .scope-note{display:flex;gap:9px;align-items:flex-start;margin-top:10px;padding:10px 12px;border-radius:12px;background:#fff9ec;border:1px solid #ecd9a8;color:#66522c;font-size:10.5px}
+  .scope-note b{color:#634411;white-space:nowrap}
+  .pv-dashboard,.pattern-dashboard,.weather-panel,.short-panel,.shadow,.card{scroll-margin-top:88px}
+  .section{margin-top:24px}
+  .section>h2{font-size:20px;letter-spacing:-.01em}
+  .section>p{max-width:900px}
+  .card{border-radius:16px}
+  table{border-radius:14px}
+  .architecture article,.flow article,.event{transition:border-color .18s ease,transform .18s ease}
+  .architecture article:hover,.flow article:hover,.event:hover{border-color:#b8d8c5;transform:translateY(-1px)}
+  .back-top{position:fixed;right:18px;bottom:18px;z-index:50;width:42px;height:42px;border-radius:50%;border:1px solid #b8d5c3;background:rgba(255,255,255,.92);color:var(--brand);font-weight:900;box-shadow:0 8px 24px rgba(20,40,30,.12);cursor:pointer;opacity:0;pointer-events:none;transform:translateY(8px);transition:.2s}
+  .back-top.show{opacity:1;pointer-events:auto;transform:none}
+  .back-top:focus-visible{outline:3px solid rgba(30,95,191,.25)}
+  @media(max-width:900px){.read-first-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.page-header{grid-template-columns:auto 1fr}.header-side{grid-column:1/-1;align-items:flex-start}.header-feed{text-align:left;max-width:none}}
+  @media(max-width:560px){.page-header{grid-template-columns:1fr;padding:18px;border-radius:16px}.page-header .mark{display:none}.page-header h1{font-size:26px}.read-first-head{display:block}.read-first-head p{text-align:left;margin-top:4px}.read-first-grid{grid-template-columns:1fr}.read-card{min-height:0}.back-top{right:12px;bottom:12px}}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.read-card,.architecture article,.flow article,.event,.back-top{transition:none}}
+
+  /* leitura em camadas */
+  .layer-title{display:flex;align-items:center;gap:12px;margin:24px 0 10px;padding:0 2px}
+  .layer-title>span{flex:0 0 auto;border-radius:999px;background:#e6f3eb;color:var(--brand);padding:5px 8px;font-size:9px;font-weight:900;letter-spacing:.08em}
+  .layer-title strong{display:block;font-size:16px;line-height:1.2}
+  .layer-title small{display:block;margin-top:2px;color:var(--muted);font-size:10.5px}
+  .compact-guide{margin-bottom:16px}
+  .compact-guide-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+  .compact-guide-grid a{display:flex;align-items:center;gap:10px;min-height:70px;padding:11px 13px;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--ink);text-decoration:none;box-shadow:0 3px 12px rgba(20,40,30,.04)}
+  .compact-guide-grid a>b{display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px;border-radius:9px;background:#eaf7ef;color:var(--brand);font-size:11px}
+  .compact-guide-grid a span{min-width:0}.compact-guide-grid a strong{display:block;font-size:12px}.compact-guide-grid a small{display:block;margin-top:2px;color:var(--muted);font-size:9.5px;line-height:1.35}
+  .research-fold{margin-top:20px;border:1px solid #cfded5;border-radius:17px;background:rgba(255,255,255,.78);box-shadow:0 6px 22px rgba(20,40,30,.05);overflow:hidden;scroll-margin-top:86px}
+  .research-fold>summary{display:flex;align-items:center;gap:12px;padding:15px 17px;cursor:pointer;list-style:none;background:linear-gradient(135deg,#f7faf8,#fff)}
+  .research-fold>summary::-webkit-details-marker{display:none}.research-fold>summary:focus-visible{outline:3px solid rgba(30,95,191,.22);outline-offset:-3px}
+  .research-fold .fold-index{flex:0 0 auto;border-radius:999px;padding:5px 8px;background:#eef4f0;color:#51675c;font-size:9px;font-weight:900;letter-spacing:.08em}
+  .research-fold summary div{min-width:0;flex:1}.research-fold summary strong{display:block;font-size:15px}.research-fold summary small{display:block;margin-top:3px;color:var(--muted);font-size:10.5px;line-height:1.35}
+  .fold-action{flex:0 0 auto;color:var(--brand);font-size:10px;font-weight:850}
+  .fold-body{padding:0 16px 16px;border-top:1px solid var(--line)}
+  .fold-body>.section:first-child,.fold-body>.shadow:first-child{margin-top:16px}
+  .experimental-fold{border-color:#d8cfea}.experimental-fold>summary{background:linear-gradient(135deg,#faf8fd,#fff)}.experimental-fold .fold-index{background:#f1ebf8;color:#62468e}
+  .audit-fold{border-color:#cbd9e4}.audit-fold>summary{background:linear-gradient(135deg,#f6f9fc,#fff)}.audit-fold .fold-index{background:#e9f1f8;color:#315f82}
+  .validation-snapshot{margin-top:22px;padding:16px 18px;border:1px solid #c8d8ce;border-radius:17px;background:#fff;box-shadow:0 5px 18px rgba(20,40,30,.05)}
+  .validation-snapshot h2{margin:2px 0 12px;font-size:18px}
+  .validation-snapshot-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  .validation-snapshot-grid article{padding:10px 11px;border:1px solid var(--line);border-radius:11px;background:#f9fbfa}
+  .validation-snapshot-grid span,.validation-snapshot-grid small{display:block;color:var(--muted);font-size:9px}.validation-snapshot-grid strong{display:block;margin:3px 0;font-size:15px}
+  .fold-body .grid{margin-top:16px}
+  @media(max-width:760px){.compact-guide-grid{grid-template-columns:1fr}.compact-guide-grid a{min-height:0}.validation-snapshot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.research-fold>summary{align-items:flex-start}.fold-action{margin-top:2px}}
+  @media(max-width:480px){.validation-snapshot-grid{grid-template-columns:1fr}.layer-title{align-items:flex-start}.research-fold>summary{gap:8px;padding:13px}.fold-body{padding:0 11px 12px}}
+
+
+  /* mobile-first: leitura operacional antes dos detalhes científicos */
+  @media(max-width:640px){
+    body{background:var(--bg)}
+    .wrap{padding:10px 10px 30px}
+    .page-header{margin-bottom:8px;padding:14px 14px 13px;border-radius:15px;gap:8px}
+    .page-header h1{font-size:21px;line-height:1.08;margin:2px 0}
+    .page-header .kicker{font-size:8px;letter-spacing:.07em}
+    .page-header .subtitle{font-size:10px;line-height:1.3}
+    .header-side{gap:4px}
+    .page-header .badge{padding:5px 7px;font-size:8px}
+    .header-feed{font-size:8.5px;line-height:1.3}
+    .station-nav{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:6px;margin:0 -10px 7px;padding:4px 10px 5px;scrollbar-width:none;overscroll-behavior-inline:contain}
+    .station-nav::-webkit-scrollbar{display:none}
+    .station-nav::before{display:none}
+    .station-nav a{flex:0 0 auto;padding:6px 9px;font-size:9px;white-space:nowrap}
+    .quick-nav{top:0;margin:0 -10px 8px;padding:6px 10px;border-radius:0;border-left:0;border-right:0;gap:5px;scrollbar-width:none}
+    .quick-nav::-webkit-scrollbar{display:none}
+    .quick-nav-label{display:none}
+    .quick-nav a{padding:5px 8px;font-size:9px}
+    .research-status{display:grid;grid-template-columns:1fr;gap:5px;margin-bottom:8px}
+    .research-status>div{min-height:0;padding:8px 9px 8px 34px;border-radius:9px}
+    .research-status>div:before{left:11px;top:10px}
+    .research-status strong{font-size:9.5px}
+    .research-status span{font-size:8.5px;margin-top:2px;line-height:1.3}
+    .hero{padding:11px 12px;margin-bottom:8px;border-radius:12px}
+    .hero h2{font-size:14px;margin-bottom:3px}
+    .hero p{font-size:10px;line-height:1.38}
+    .compact-guide{display:none}
+    .layer-title{margin:15px 0 7px;gap:8px}
+    .layer-title>span{font-size:7.5px;padding:4px 6px}
+    .layer-title strong{font-size:14px}
+    .layer-title small{font-size:9px;line-height:1.3}
+    .short-panel,.weather-panel{margin-top:8px;padding:12px;border-radius:13px;box-shadow:0 4px 16px rgba(20,40,30,.05)}
+    .short-panel h2,.weather-panel h2{font-size:15px}
+    .short-panel>p,.weather-panel>p{font-size:10px;line-height:1.35;margin-bottom:7px}
+    .short-grid{grid-template-columns:1fr 1fr;gap:7px}
+    .short-card{min-height:0;padding:9px;border-radius:9px}
+    .short-card b{font-size:20px}
+    .short-card span{font-size:9px}
+    .short-card small{font-size:8.5px;line-height:1.3;margin-top:4px}
+    .short-card.shadow-card{grid-column:1/-1;min-height:0;background:#faf8fc}
+    .short-panel h3{font-size:11px!important;margin-top:10px!important}
+    .short-chart-card svg{height:126px}
+    .short-chart-legend{font-size:8.5px}
+    .weather-answer{padding:9px;margin:7px 0;font-size:12px}
+    .weather-answer small{font-size:8.5px}
+    .weather-grid{grid-template-columns:1fr 1fr;gap:6px}
+    .weather-stat{min-height:60px;padding:8px}
+    .weather-stat b{font-size:15px}
+    .weather-stat span{font-size:8.5px}
+    .weather-grid .weather-stat:first-child{grid-column:1/-1}
+    .table-scroll{margin-left:-2px;margin-right:-2px}
+    .weather-foot{font-size:8.5px!important;line-height:1.35}
+    .pattern-dashboard{margin-top:8px;border-radius:13px}
+    .pattern-head{padding:13px}
+    .pattern-head h2{font-size:17px}
+    .pattern-head p{font-size:10px;line-height:1.35}
+    .pattern-updated{font-size:9px}
+    .pattern-kpis{grid-template-columns:1fr 1fr;gap:6px;padding:10px 10px 0}
+    .pattern-kpi{min-height:70px;padding:9px}
+    .pattern-kpi strong{font-size:19px}
+    .pattern-kpi span{font-size:9px}
+    .pattern-layout{padding:10px;gap:8px}
+    .pattern-block{padding:10px}
+    .pattern-block h3{font-size:13px}
+    .pattern-block>p{font-size:9px}
+    .research-fold{margin-top:12px;border-radius:13px}
+    .research-fold>summary{padding:11px}
+    .research-fold summary strong{font-size:12px}
+    .research-fold summary small{font-size:8.5px}
+    .fold-index,.fold-action{font-size:7.5px!important}
+    .validation-snapshot{margin-top:13px;padding:11px;border-radius:13px}
+    .validation-snapshot h2{font-size:15px;margin-bottom:8px}
+    .validation-snapshot-grid{grid-template-columns:1fr 1fr;gap:6px}
+    .validation-snapshot-grid article{padding:8px}
+    .validation-snapshot-grid strong{font-size:13px}
+    .back-top{width:36px;height:36px;right:10px;bottom:10px}
+  }
+  @media(max-width:380px){
+    .short-grid{grid-template-columns:1fr}
+    .short-card.shadow-card{grid-column:auto}
+    .validation-snapshot-grid{grid-template-columns:1fr}
+  }
+
 </style>
-<link rel="stylesheet" href="assets/css/pv_dashboard.css">
-<link rel="stylesheet" href="assets/css/gestor_chrome.css">
+<link rel="stylesheet" href="assets/css/pv_dashboard.css?v=20261001f">
+<link rel="stylesheet" href="assets/css/gestor_chrome.css?v=20261001b">
 </head>
 <body>
 <div class="wrap">
-  <header>
+  <header class="page-header">
     <span class="mark" aria-hidden="true"></span>
-    <div><div class="kicker">PREVINE · pesquisa de transbordamento</div><h1>Estado da pesquisa</h1><p class="subtitle">Santa Tereza · estação ANA/SGB 86472600 · bacia Taquari-Antas</p></div>
-    <span class="badge">SEM ALERTA AUTOMÁTICO</span>
+    <div><div class="kicker">PREVINE · pesquisa auditável de transbordamento</div><h1>Santa Tereza · estado da pesquisa</h1><p class="subtitle">Estação ANA/SGB 86472600 · bacia Taquari-Antas · dados observados + previsões + auditoria</p></div>
+    <div class="header-side"><span class="badge">SEM ALERTA AUTOMÁTICO</span><span class="header-feed" id="header-feed">Sincronizando o estado dos feeds…</span></div>
   </header>
 
   <nav class="station-nav" aria-label="Selecionar estação">
@@ -131,12 +304,21 @@
     <a href="pesquisas/estudo-caso-territorio.html">Estudo territorial</a>
     <a href="pesquisas/estudo-caso-resposta-santa-tereza.html">Mesa de exercício</a>
   </nav>
-  <nav class="quick-nav" aria-label="Índice desta página"><span class="quick-nav-label">Você está aqui:</span><a href="#painel-visual">Painel visual</a><a href="#padroes">Padrões</a><a href="#agora">Agora</a><a href="#probabilidade">Probabilidade</a><a href="#previsoes">2 h / 4 h</a><a href="#cenarios">Cenários</a><a href="#base">Base e auditoria</a></nav>
-  <section class="research-status" aria-label="Estado de liberação da pesquisa"><div class="review"><strong>PESQUISA · PROTÓTIPO</strong><span>Dados e cenários experimentais para consulta. Publicado no site não é validação.</span></div><div class="off"><strong>ALERTA AUTOMÁTICO DESATIVADO</strong><span>Isso não bloqueia a pesquisa; apenas impede envio oficial.</span></div><div class="review"><strong>REVISÃO TÉCNICA PENDENTE</strong><span>Calibração operacional, mais eventos e validação por tempestade.</span></div></section>
+  <nav class="quick-nav" aria-label="Índice desta página"><span class="quick-nav-label">Navegar:</span><a href="#painel-visual">Visão atual</a><a href="#previsoes">2 h / 4 h</a><a href="#padroes">Eventos &amp; modelos</a><a href="#pesquisa-experimental">Pesquisa experimental</a><a href="#auditoria">Auditoria</a></nav>
+  <section class="research-status" aria-label="Estado de liberação da pesquisa"><div class="review"><strong>PROTÓTIPO DE PESQUISA</strong><span>Resultados públicos para inspeção e auditoria; publicação não equivale a validação operacional.</span></div><div class="off"><strong>SEM ALERTA AUTOMÁTICO</strong><span>O sistema não emite alerta oficial. SGB/ANA/SACE e Defesa Civil seguem como referências operacionais.</span></div><div class="review"><strong>VALIDAÇÃO EM ANDAMENTO</strong><span>Mais eventos independentes, calibração e revisão técnica ainda são gates para promoção.</span></div></section>
 
   <section class="hero" aria-labelledby="hero-title">
-    <h2 id="hero-title">O que esta página responde</h2>
-    <p>Mostramos o que já foi validado e o resultado da primeira rodada de RNA experimental. A pergunta “vai ou não vai transbordar?” só recebe <strong>0/1 quando há uma decisão recente, nível observado e chuva prevista causalmente alinhada</strong>. <strong>UNKNOWN/STALE não significa que não haverá inundação</strong>; significa que faltam dados atuais confiáveis para afirmar qualquer classe.</p>
+    <h2 id="hero-title">Como interpretar esta página</h2>
+    <p>Primeiro veja <strong>nível observado, chuva e idade dos feeds</strong>. Depois compare as previsões de nível de <strong>2 h e 4 h</strong>. Os horizontes de 24–168 h são <strong>scores experimentais de pesquisa</strong>, e não probabilidades calibradas nem alertas. <strong>dado ausente ou desatualizado nunca significa ausência de risco</strong>; significa que a evidência atual não é suficiente para sustentar uma leitura.</p>
+  </section>
+
+  <section class="read-first compact-guide" aria-labelledby="read-first-title">
+    <div class="read-first-head"><div><div class="kicker">LEITURA RECOMENDADA</div><h2 id="read-first-title">Comece pelo que está acontecendo agora</h2></div><p>Pesquisa histórica e metodologia ficam recolhidas para não competir com os dados atuais.</p></div>
+    <div class="compact-guide-grid">
+      <a href="#painel-visual"><b>1</b><span><strong>Agora</strong><small>nível, chuva e qualidade das fontes</small></span></a>
+      <a href="#previsoes"><b>2</b><span><strong>Próximas horas</strong><small>RNA de nível em 2 h e 4 h</small></span></a>
+      <a href="#padroes"><b>3</b><span><strong>Contexto científico</strong><small>eventos, modelos e limitações</small></span></a>
+    </div>
   </section>
 
   <section class="pv-dashboard anchor-target" id="painel-visual" data-pv-dashboard data-station="santa_tereza" data-threshold="1500" data-weather-feed="assets/data/research_weather_santa_tereza_latest.json" data-basin-feed="assets/data/research_weather_santa_tereza_latest.json" data-prob-feed="assets/data/research_probability_santa_tereza_latest.json" data-live-feed="previsao_ao_vivo.json" aria-labelledby="pv-title-santa">
@@ -155,8 +337,32 @@
     <div class="pv-footer"><span id="pv-updated">Feed meteorológico: — · robô ao vivo: —</span><strong>Pesquisa · sem alerta automático</strong></div>
   </section>
 
+  <div class="layer-title" id="camada-atual"><span>CAMADA 1</span><div><strong>Rio agora e próximas horas</strong><small>Nível observado e previsões de 2 h/4 h aparecem primeiro; meteorologia detalhada vem logo depois.</small></div></div>
+
+  <section class="short-panel" id="previsoes" aria-labelledby="short-title">
+    <h2 id="short-title">Nível previsto · próximas 2 h e 4 h</h2>
+    <p>Previsões pontuais de nível ancoradas na leitura observada mais recente. A versão principal aparece primeiro; a versão B permanece apenas como teste paralelo.</p>
+    <div id="short-grid" class="short-grid"><div class="short-card"><b>Carregando…</b><span>previsões curtas</span></div></div>
+    <p id="short-meta" class="weather-foot">Carregando o pacote ao vivo…</p>
+    <h3 style="font-size:14px;margin:12px 0 2px">Últimas 24 h: observado × previsto</h3>
+    <p>As linhas usam somente previsões marcadas como <strong>conferidas</strong> pelo robô, no horário-alvo exato. Linha azul = observado; laranja = 2 h/4 h; roxa tracejada = versão B.</p>
+    <div id="short-charts" class="short-chart-pair"><div class="short-chart-card"><h3>Carregando gráfico…</h3></div></div>
+    <p id="short-chart-meta" class="short-chart-legend"><span class="blue">observado</span> · <span class="orange">RNA principal</span> · <span class="purple">versão B · teste</span>.</p>
+  </section>
+
+  <section class="weather-panel" id="meteorologia" aria-labelledby="weather-title">
+    <h2 id="weather-title">Meteorologia atual · ECMWF IFS</h2>
+    <p id="weather-meta">Carregando rodada meteorológica, nível observado e cobertura espacial…</p>
+    <div class="weather-answer" id="weather-answer">Carregando a rodada atual…<small>Esta cadeia mostra chuva prevista e contexto hidrometeorológico; não produz, sozinha, uma decisão de inundação.</small></div>
+    <div class="weather-grid" id="weather-grid"></div>
+    <div class="table-scroll"><table class="weather-table"><thead><tr><th>Horizonte</th><th>Chuva no ponto</th><th>Média montante</th><th>Máxima montante</th><th>Umidade do solo</th><th>Triagem interna</th></tr></thead><tbody id="weather-horizons"><tr><td colspan="6">Carregando rodada…</td></tr></tbody></table></div>
+    <p class="weather-foot" id="weather-foot">Fonte, emissão, cobertura e limitações serão exibidas quando o feed carregar.</p>
+  </section>
+
+  <div class="layer-title"><span>CAMADA 2</span><div><strong>Padrões e comparação científica</strong><small>Eventos históricos e divergência entre modelos, separados do monitoramento atual.</small></div></div>
+
   <section class="pattern-dashboard anchor-target" id="padroes" data-pattern-dashboard data-pattern-feed="assets/data/research_visual_patterns_santa_tereza_latest.json" aria-labelledby="pattern-title-santa">
-    <div class="pattern-head"><div><div class="pattern-kicker">Pesquisa visual · padrões antes das cheias</div><h2 id="pattern-title-santa">O que os modelos mostram para Santa Tereza?</h2><p>Compare os picos históricos catalogados com chuva prevista, RNA do feed e probabilidade GEFS. A divergência entre modelos fica visível, sem esconder a fonte.</p></div><span class="pattern-updated">Carregando feed visual…</span></div>
+    <div class="pattern-head"><div><div class="pattern-kicker">Pesquisa visual · padrões antes das cheias</div><h2 id="pattern-title-santa">O que os modelos mostram para Santa Tereza?</h2><p>Compare os picos históricos catalogados com chuva prevista, RNA do feed e score GEFS experimental quando a fonte estiver atual. Fontes desatualizadas são ocultadas, não reaproveitadas como se fossem atuais.</p></div><span class="pattern-updated">Carregando feed visual…</span></div>
     <div class="pattern-kpis" id="pattern-kpis"><div class="pattern-empty">Carregando eventos e modelos…</div></div>
     <div class="pattern-layout">
       <div class="pattern-block"><h3>Padrões nas cheias anteriores</h3><p>Os cartões mostram os picos acima da cota de pesquisa e a dificuldade registrada no catálogo de modelos.</p><div id="pattern-events" class="pattern-events"><div class="pattern-empty">Carregando eventos…</div></div></div>
@@ -166,8 +372,11 @@
     <div class="pattern-foot"><span id="pattern-source">Fonte visual: carregando…</span> · <a href="assets/data/research_visual_patterns_santa_tereza_latest.json">Abrir dados visuais e proveniência →</a></div>
   </section>
 
-  <section class="shadow" aria-labelledby="shadow-title">
-    <h2 id="shadow-title">RNA experimental · modo sombra</h2>
+  <details class="research-fold experimental-fold" id="pesquisa-experimental">
+    <summary><span class="fold-index">CAMADA 3</span><div><strong>Pesquisa experimental de médio e longo prazo</strong><small>Scores, RNA retrospectiva e avaliação por horizonte. Abra para examinar a pesquisa além da previsão curta.</small></div><span class="fold-action">abrir</span></summary>
+    <div class="fold-body">
+      <section class="shadow" aria-labelledby="shadow-title">
+    <h2 id="shadow-title">RNA experimental · teste retrospectivo</h2>
     <p>A RNA foi ajustada com os cinco eventos disponíveis, usando nível do rio, chuva antecedente (24/72/168/336 h) e chuva prevista emitida. Ela está estudando o que antecedeu cada cheia, mas ainda não é uma probabilidade operacional.</p>
     <div class="shadow-grid">
       <div class="shadow-stat"><b>5</b><span>eventos usados</span></div>
@@ -187,65 +396,74 @@
     <p style="margin:8px 0 0;font-size:10.5px;color:var(--muted)"><strong>Importante:</strong> estes valores são ajuste completo sobre os próprios eventos e não são uma previsão atual calibrada.</p>
     </details>
   </section>
+      
+      
+    </div>
+  </details>
 
-  <section class="section" aria-labelledby="probability-current-title" style="border:1px solid #efd59b;background:#fff8e8">
+  <section class="section" id="probabilidade" aria-labelledby="probability-current-title" style="border:1px solid #efd59b;background:#fff8e8">
     <h2 id="probability-current-title">Score experimental de cruzar 1.500 cm</h2>
     <p id="current-probability-values"><strong>Carregando a rodada GEFS/NOAA…</strong></p>
     <p id="current-probability-reading" style="margin:8px 0 0"><strong>Como ler:</strong> os percentuais são estimativas de pesquisa em escala 0–100; não representam frequência real, não são previsão pontual de chuva e não são alerta oficial.</p>
-    <p id="current-probability-meta" style="margin:8px 0 0;font-size:10.5px;color:var(--muted)">A idade, a emissão e a fonte da rodada serão mostradas aqui. Se a rodada estiver velha ou incompatível, o estado será UNKNOWN/STALE.</p>
+    <p id="current-probability-meta" style="margin:8px 0 0;font-size:10.5px;color:var(--muted)">A idade, a emissão e a fonte da rodada serão mostradas aqui. Se a rodada estiver antiga ou incompatível, os scores serão ocultados.</p>
     <a href="assets/data/research_probability_santa_tereza_latest.json">Ver cálculo, rodada e hashes (JSON) →</a>
   </section>
 
   <section class="section binary-research" id="resultado-binario" aria-labelledby="binary-title-santa">
     <h2 id="binary-title-santa">Score experimental por horizonte — sem VAI / NÃO VAI</h2>
-    <p class="binary-rule">O corte de 50% foi <strong>retirado da leitura pública</strong>. Nos folds de Santa Tereza o recall nesse limiar é nulo em 24–72 h; “NÃO VAI” vira falso negativo. UNKNOWN/STALE nunca significa que não haverá inundação. O JSON de auditoria ainda guarda a regra antiga.</p>
-    <div id="binary-current" class="binary-grid" aria-live="polite"><div class="binary-card unknown is-unknown"><b>UNKNOWN</b><span>consultando fonte</span></div></div>
+    <p class="binary-rule">O corte de 50% foi <strong>retirado da leitura pública</strong>. Nos testes retrospectivos de Santa Tereza, esse corte produziu eventos perdidos em horizontes importantes; por isso a página não publica “VAI / NÃO VAI”. Dado ausente ou desatualizado nunca significa que não haverá inundação. O JSON de auditoria ainda guarda a regra antiga.</p>
+    <div id="binary-current" class="binary-grid" aria-live="polite"><div class="binary-card unknown is-unknown"><b>Verificando dados</b><span>consultando a fonte experimental</span></div></div>
     <p id="binary-source" class="binary-source">Carregando fonte e idade da rodada…</p>
     <details class="binary-evaluation" id="binary-evaluation"><summary><h3 style="display:inline">Auditoria retrospectiva (não é decisão)</h3></summary><p>Carregando avaliação retrospectiva…</p></details>
     <div class="source-list"><a href="assets/data/research_binary_decision_santa_tereza_latest.json">Abrir decisão binária e avaliação (JSON) →</a></div>
   </section>
 
-  <section class="weather-panel" aria-labelledby="weather-title">
-    <h2 id="weather-title">Robô meteorológico · rodada atual</h2>
-    <p id="weather-meta">Carregando IFS, ANA, chuva antecedente e score experimental…</p>
-    <div class="weather-answer" id="weather-answer">Carregando resposta de 24 horas…<small>Não transformar ausência de dados em “não vai inundar”.</small></div>
-    <div class="weather-grid" id="weather-grid"></div>
-    <table class="weather-table"><thead><tr><th>Horizonte</th><th>Chuva no ponto</th><th>Média da bacia</th><th>Máxima</th><th>Score RNA</th><th>Triagem</th></tr></thead><tbody id="weather-horizons"><tr><td colspan="6">Carregando rodada…</td></tr></tbody></table>
-    <p class="weather-foot" id="weather-foot">Fonte, emissão, disponibilidade e hashes serão exibidos quando o feed carregar.</p>
+  
+
+  
+
+  <section class="validation-snapshot" aria-labelledby="validation-snapshot-title">
+    <div><span class="kicker">ESTADO CIENTÍFICO</span><h2 id="validation-snapshot-title">O que está liberado — e o que ainda não está</h2></div>
+    <div class="validation-snapshot-grid">
+      <article><span>Definição do evento</span><strong>1.500 cm</strong><small>limiar usado no estudo</small></article>
+      <article><span>Base independente</span><strong>5 eventos</strong><small>avaliação por tempestade</small></article>
+      <article><span>RNA</span><strong>em teste</strong><small>não participa de alerta</small></article>
+      <article><span>Alerta automático</span><strong>desativado</strong><small>fontes oficiais permanecem externas</small></article>
+    </div>
   </section>
 
-  <section class="short-panel" aria-labelledby="short-title">
-    <h2 id="short-title">Robô ao vivo: nível previsto nas próximas horas</h2>
-    <p>Estas são previsões de nível, não probabilidades de inundação. A versão A continua principal; a versão B é uma comparação em sombra e não substitui a A.</p>
-    <div id="short-grid" class="short-grid"><div class="short-card"><b>Carregando…</b><span>previsões curtas</span></div></div>
-    <p id="short-meta" class="weather-foot">Carregando o pacote ao vivo…</p>
-    <h3 style="font-size:14px;margin:12px 0 2px">Últimas 24 h: observado × previsto</h3>
-    <p>As linhas usam somente previsões marcadas como <strong>conferidas</strong> pelo robô, no horário-alvo exato. Linha azul = observado; laranja = 2 h/4 h; roxa tracejada = versão B.</p>
-    <div id="short-charts" class="short-chart-pair"><div class="short-chart-card"><h3>Carregando gráfico…</h3></div></div>
-    <p id="short-chart-meta" class="short-chart-legend"><span class="blue">observado</span> · <span class="orange">RNA principal</span> · <span class="purple">versão B sombra</span>.</p>
-  </section>
-
-  <section class="section" aria-labelledby="scenario-title">
+  <details class="research-fold audit-fold" id="auditoria">
+    <summary><span class="fold-index">CAMADA 4</span><div><strong>Auditoria, método e cenários de teste</strong><small>Contrato científico, eventos, arquitetura, critérios de liberação e cenários artificiais.</small></div><span class="fold-action">abrir</span></summary>
+    <div class="fold-body">
+      
+      
+      <section class="section" id="cenarios" aria-labelledby="scenario-title">
     <h2 id="scenario-title">Cenas hipotéticas: como o ajuste reage</h2>
-    <p>Para responder à pergunta “se o rio estiver assim e a chuva prevista for assim, o que o modelo faria?”, testamos cinco combinações artificiais. Elas não são a situação atual e não geram alerta. A classe 1 abaixo é apenas <strong>p≥0,5 para diagnóstico</strong>.</p>
+    <p>Para responder à pergunta “se o rio estiver assim e a chuva prevista for assim, o que o modelo faria?”, testamos cinco combinações artificiais. Elas não são a situação atual e não geram alerta. O destaque abaixo indica apenas que o valor ficou <strong>acima do corte histórico de 50% usado no diagnóstico</strong>.</p>
     <table><thead><tr><th>Cena</th><th>Nível</th><th>24 h</th><th>48 h</th><th>72 h</th><th>120 h</th><th>168 h</th></tr></thead><tbody>
       <tr><td>Rio baixo / tempo seco</td><td>300 cm</td><td>0,1%</td><td>0,6%</td><td>32,3%</td><td>0,2%</td><td>0,9%</td></tr>
       <tr><td>Rio normal / chuva moderada</td><td>450 cm</td><td>0,9%</td><td>3,9%</td><td>48,3%</td><td>1,0%</td><td>2,2%</td></tr>
-      <tr><td>Atenção / chuva moderada</td><td>600 cm</td><td>5,5%</td><td>32,0%</td><td><strong>83,4% · classe 1*</strong></td><td>20,9%</td><td>39,9%</td></tr>
-      <tr><td>Alerta / chuva forte</td><td>900 cm</td><td><strong>93,2% · classe 1*</strong></td><td><strong>97,8% · classe 1*</strong></td><td><strong>99,4% · classe 1*</strong></td><td><strong>100% · classe 1*</strong></td><td><strong>100% · classe 1*</strong></td></tr>
-      <tr><td>Perto do transbordamento / chuva forte</td><td>1200 cm</td><td><strong>99,9% · classe 1*</strong></td><td><strong>100% · classe 1*</strong></td><td><strong>100% · classe 1*</strong></td><td><strong>100% · classe 1*</strong></td><td><strong>100% · classe 1*</strong></td></tr>
+      <tr><td>Atenção / chuva moderada</td><td>600 cm</td><td>5,5%</td><td>32,0%</td><td><strong>83,4% · acima do corte*</strong></td><td>20,9%</td><td>39,9%</td></tr>
+      <tr><td>Alerta / chuva forte</td><td>900 cm</td><td><strong>93,2% · acima do corte*</strong></td><td><strong>97,8% · acima do corte*</strong></td><td><strong>99,4% · acima do corte*</strong></td><td><strong>100% · acima do corte*</strong></td><td><strong>100% · acima do corte*</strong></td></tr>
+      <tr><td>Perto do transbordamento / chuva forte</td><td>1200 cm</td><td><strong>99,9% · acima do corte*</strong></td><td><strong>100% · acima do corte*</strong></td><td><strong>100% · acima do corte*</strong></td><td><strong>100% · acima do corte*</strong></td><td><strong>100% · acima do corte*</strong></td></tr>
     </tbody></table>
-    <p style="margin:8px 0 0;font-size:10.5px;color:var(--muted)"><strong>* Atenção:</strong> esta é uma prova de sensibilidade do modelo ajustado com os cinco eventos, não uma probabilidade calibrada. <a href="assets/data/cenarios_rna_experimental_20260810.json">Abrir cenários e calibração em JSON ↗</a></p>
+    <p style="margin:8px 0 0;font-size:10.5px;color:var(--muted)"><strong>* Atenção:</strong> o corte de 50% aparece somente nesta prova de sensibilidade histórica; não é usado como decisão pública e estes valores não são probabilidades operacionais calibradas. <a href="assets/data/cenarios_rna_experimental_20260810.json">Abrir cenários e calibração em JSON ↗</a></p>
   </section>
+      
+      
+      
+      
+    </div>
+  </details>
 
   <section class="grid" aria-label="Estado atual dos dados">
     <article class="card metric"><div class="label">Estação ANA/SGB</div><div class="value">86472600</div><div class="detail">Santa Tereza; a idade da leitura é verificada nos feeds abaixo</div></article>
     <article class="card metric"><div class="label">Chuva GEFS</div><div class="value state-running">CONCLUÍDA</div><div class="detail">backfill com hash e emissão rastreáveis; contagem vem do feed</div></article>
     <article class="card metric"><div class="label">Alerta público</div><div class="value state-blocked">DESATIVADO</div><div class="detail">SGB/ANA/SACE continuam sendo as fontes oficiais</div></article>
-    <article class="card metric"><div class="label">RNA</div><div class="value state-blocked">MODO SOMBRA</div><div class="detail">piloto executado; promoção e alerta continuam bloqueados</div></article>
+    <article class="card metric"><div class="label">RNA</div><div class="value state-blocked">EM TESTE</div><div class="detail">roda em paralelo para avaliação; não participa de alertas</div></article>
   </section>
 
-  <section class="section" aria-labelledby="validated-title">
+  <section class="section" id="base" aria-labelledby="validated-title">
     <h2 id="validated-title">O que já foi validado</h2>
     <p>Contrato atual da pesquisa, separado de qualquer resultado legado que ainda apareça no acervo do site.</p>
     <table><thead><tr><th>Item</th><th>Contrato</th><th>Estado</th></tr></thead><tbody>
@@ -283,11 +501,11 @@
   </section>
 
   <section class="section two" aria-labelledby="gates-title">
-    <div class="card"><h2 id="gates-title">Gates científicos</h2><table><tbody>
+    <div class="card"><h2 id="gates-title">Critérios para liberação</h2><table><tbody>
       <tr><td>Definição do evento</td><td><span class="pill wait">em revisão</span></td></tr>
       <tr><td>Histórico de chuva emitida</td><td><span class="pill ok">GEFS concluído</span></td></tr>
-      <tr><td>Rodada experimental</td><td><span class="pill wait">5 eventos · modo sombra</span></td></tr>
-      <tr><td>RNA operacional</td><td><span class="pill no">bloqueada</span></td></tr>
+      <tr><td>Rodada experimental</td><td><span class="pill wait">5 eventos · teste em paralelo</span></td></tr>
+      <tr><td>RNA operacional</td><td><span class="pill no">não liberada</span></td></tr>
       <tr><td>Alerta público automático</td><td><span class="pill no">desativado</span></td></tr>
     </tbody></table></div>
     <div class="card"><h2>Como será liberado</h2><p style="font-size:12px;color:var(--muted);margin:0">Antes de qualquer promoção, os modelos serão comparados com persistência, climatologia, regressão logística, gradiente e hazard discreto. A avaliação usará recall por evento, eventos perdidos, falsos alertas, antecedência e calibração — não apenas acurácia.</p><div class="note"><strong>Regra de segurança:</strong> nenhum dado ausente será convertido em zero e nenhuma probabilidade será publicada sem calibração e revisão humana.</div></div>
@@ -299,40 +517,55 @@
       <article><h3>Backfill concluído</h3><p>GEFS histórico arquivado com emissão, disponibilidade e hashes.</p></article>
       <article><h3>Variáveis integradas</h3><p>Nível, chuva antecedente e chuva prevista já entram no piloto.</p></article>
       <article><h3>Baselines comparados</h3><p>Logística, gradiente e MLP foram comparados por horizonte.</p></article>
-      <article><h3>Modo sombra ativo</h3><p>A RNA estuda os cinco eventos sem produzir alerta público.</p></article>
+      <article><h3>Teste paralelo ativo</h3><p>A RNA estuda os cinco eventos sem produzir alerta público.</p></article>
       <article><h3>Revisão humana</h3><p>Promover somente com evidência por evento e aprovação operacional.</p></article>
     </div>
   </section>
 
-  <div class="note"><strong>Pesquisa + atualização:</strong> este painel combina o contrato científico com os feeds ao vivo somente para inspeção. A atualização operacional continua nos robôs próprios; dados atrasados aparecem como UNKNOWN/STALE e não como “não vai inundar”.</div>
+  <div class="note"><strong>Pesquisa + atualização:</strong> este painel combina o contrato científico com os feeds ao vivo somente para inspeção. A atualização operacional continua nos robôs próprios; dados atrasados são marcados como desatualizados e nunca convertidos em “não vai inundar”.</div>
   <nav aria-label="Navegação da pesquisa"><a href="index.html">Página inicial</a><a href="santa_tereza_previsao_inundacao.html">Monitoramento de Santa Tereza</a><a href="pesquisa_status_mucum.html">Pesquisa de Muçum</a><a href="mucum_previsao_inundacao.html">Monitoramento de Muçum</a><a href="mucum_inundacao.html">Histórico de Muçum</a></nav>
   <footer>PREVINE · pesquisa auditável · dados atrasados ou incompletos são exibidos como estado de qualidade, não como ausência de risco.</footer>
 </div>
+<button class="back-top" id="back-top" type="button" aria-label="Voltar ao topo" title="Voltar ao topo">↑</button>
 <script src="assets/js/live_feed.js?v=20260916-nunca-atrasado"></script>
 <script>
 (function(){
-  [['.weather-panel','agora'],['.short-panel','previsoes']].forEach(([sel,id])=>{const n=document.querySelector(sel);if(n&&!n.id)n.id=id});
-  const sections=[...document.querySelectorAll('.section')];
-  const byTitle=t=>sections.find(n=>(n.querySelector('h2')?.textContent||'').includes(t));
-  [['Chance atual de transbordamento','probabilidade'],['Cenas hipotéticas','cenarios'],['O que já foi validado','base']].forEach(([t,id])=>{const n=byTitle(t);if(n&&!n.id)n.id=id});
-  document.querySelectorAll('.pill.no').forEach(n=>{const t=n.textContent.trim();if(t==='bloqueada')n.textContent='promoção bloqueada';if(t==='desativado')n.textContent='desativado (operação)'});
+  [['.weather-panel','meteorologia'],['.short-panel','previsoes']].forEach(([sel,id])=>{const n=document.querySelector(sel);if(n&&!n.id)n.id=id});
+  document.querySelectorAll('.pill.no').forEach(n=>{const t=n.textContent.trim();if(t==='desativado')n.textContent='desativado (operação)'});
   const feed='assets/data/research_weather_santa_tereza_latest.json';
   const br=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
   const el=id=>document.getElementById(id);
   const parseFeedDate=v=>{if(v==null||v==='')return new Date('');const s=String(v).trim().replace(' ','T');if(/^\d{4}-\d{2}-\d{2}$/.test(s))return new Date(`${s}T00:00:00-03:00`);return new Date(/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)?s:`${s}-03:00`);};
   const fmtTime=v=>{const d=parseFeedDate(v);return Number.isFinite(d.getTime())?d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';};
-  const mm=v=>v==null?'—':br.format(Number(v))+' mm';
-  const score=v=>v==null?'—':br.format(Number(v)*100)+'%';
+  const mm=v=>v==null||!Number.isFinite(Number(v))?'—':br.format(Number(v))+' mm';
+  const soil=v=>v==null||!Number.isFinite(Number(v))?'—':Number(v).toFixed(3).replace('.',',')+' m³/m³';
+  const ageHours=v=>{const d=parseFeedDate(v);return Number.isFinite(d.getTime())?Math.max(0,(Date.now()-d.getTime())/3600000):NaN;};
+  const ageLabel=h=>!Number.isFinite(h)?'idade desconhecida':h>=48?br.format(h/24)+' dias':br.format(h)+' h';
+  const researchStatus=v=>String(v||'').toUpperCase()==='RESEARCH_SCREENING'?'triagem meteorológica de pesquisa':'pesquisa';
   function render(d){
-    const o=d.observation||{}, f=d.forecast||{}, r=d.rna||{}, a=d.answer_24h||{};
-    el('weather-meta').textContent=`Status: ${d.status||'indisponível'} · Rodada IFS: ${fmtTime(f.run_time_utc)} · disponível: ${fmtTime(f.available_at_utc)} · decisão: ${fmtTime(d.generated_at_utc)}.`;
-    el('weather-answer').innerHTML=`24 h: ${a.label||'resultado indisponível'}<small>Nível atual ${o.level_cm==null?'—':br.format(o.level_cm)+' cm'} · variação 24 h ${o.change_24h_cm==null?'—':(o.change_24h_cm>0?'+':'')+br.format(o.change_24h_cm)+' cm'} · score experimental ${score(a.score)} · não é alerta oficial.</small>`;
-    el('weather-grid').innerHTML=[['Nível atual',o.level_cm==null?'—':br.format(o.level_cm)+' cm'],['Chuva observada 24 h',mm(o.rain_observed_24h_mm)],['Chuva observada 72 h',mm(o.rain_observed_72h_mm)],['Chuva IFS 24 h',mm((f.horizons||[]).find(x=>x.horizon_hours===24)?.basin_mean_mm)],['RNA 24 h',score(a.score)]].map(x=>`<div class="weather-stat"><b>${x[1]}</b><span>${x[0]}</span></div>`).join('');
-    const scores=r.scores||{};
-    el('weather-horizons').innerHTML=(f.horizons||[]).map(h=>{const s=scores[String(h.horizon_hours)];const tri=h.screening_threshold_mm==null?'sem limiar de triagem':(h.basin_max_mm<h.screening_threshold_mm?'abaixo do limiar':'acima do limiar');return `<tr><td><strong>+${h.horizon_hours} h</strong></td><td>${mm(h.target_santa_tereza_mm)}</td><td>${mm(h.basin_mean_mm)}</td><td>${mm(h.basin_max_mm)}</td><td>${score(s)} <span class="pill wait">experimental</span></td><td>${tri}</td></tr>`;}).join('')||'<tr><td colspan="6">Rodada meteorológica indisponível.</td></tr>';
-    el('weather-foot').textContent=`Observação: ${o.quality||'qualidade não informada'} · fonte meteorológica: ${f.source||'—'} · ${f.grid_points||'—'} pontos únicos · ${f.complete_rows||'—'} linhas completas. RNA treinada em GEFS e aplicada ao IFS; calibração IFS ainda não concluída.`;
+    const o=d.observation||{}, f=d.forecast||{}, rm=d.risk_model||{}, hs=Array.isArray(d.horizons)?d.horizons:(f.horizons||[]);
+    const h=n=>hs.find(x=>Number(x.hours??x.horizon_hours)===n)||{};
+    const h24=h(24),h72=h(72),h168=h(168);
+    const probAge=ageHours(rm.probability_feed_generated_at_utc);
+    const probFresh=Number.isFinite(probAge)&&probAge<=36;
+    el('weather-meta').textContent=`${researchStatus(d.status)} · rodada IFS: ${fmtTime(f.run_time_utc)} · disponível desde ${fmtTime(f.available_at_utc)} · observação: ${fmtTime(o.observed_at_utc||o.timestamp_utc)}.`;
+    el('weather-answer').innerHTML=`Rodada meteorológica disponível<small>Nível observado: ${o.level_cm==null?'—':br.format(o.level_cm)+' cm'} · chuva média a montante em 72 h: ${mm(h72.basin_mean_mm)} · ${probFresh?'há um feed GEFS experimental separado e atual':'o score GEFS separado está desatualizado e foi excluído desta leitura'}.</small>`;
+    el('weather-grid').innerHTML=[
+      ['Nível observado',o.level_cm==null?'—':br.format(o.level_cm)+' cm'],
+      ['Chuva prevista · +24 h',mm(h24.basin_mean_mm)],
+      ['Chuva prevista · +72 h',mm(h72.basin_mean_mm)],
+      ['Chuva prevista · +168 h',mm(h168.basin_mean_mm)],
+      ['Umidade do solo · +24 h',soil(h24.soil_moisture_model_mean_m3m3)]
+    ].map(x=>`<div class="weather-stat"><b>${x[1]}</b><span>${x[0]}</span></div>`).join('');
+    el('weather-horizons').innerHTML=hs.map(row=>{
+      const hours=row.hours??row.horizon_hours;
+      const tri=row.screening_threshold_mm==null?'sem corte interno':(Number(row.basin_max_mm)<Number(row.screening_threshold_mm)?'abaixo do corte interno':'acima do corte interno');
+      return `<tr><td><strong>+${hours} h</strong></td><td>${mm(row.rain_point_mm??row.target_santa_tereza_mm)}</td><td>${mm(row.basin_mean_mm)}</td><td>${mm(row.basin_max_mm)}</td><td>${soil(row.soil_moisture_model_mean_m3m3)}</td><td>${tri}</td></tr>`;
+    }).join('')||'<tr><td colspan="6">Rodada meteorológica indisponível.</td></tr>';
+    const probText=probFresh?`score GEFS separado: ${ageLabel(probAge)} de idade`:`score GEFS separado ocultado: última geração há ${ageLabel(probAge)}`;
+    el('weather-foot').textContent=`Observação: ${o.quality||'qualidade não informada'} · fonte meteorológica: ${f.source||d.forecast_provider||'ECMWF IFS'} · ${f.unique_upstream_grid_cells||f.grid_points||'—'} células/pontos espaciais · ${probText}. O agregado a montante é proxy espacial, não média hidrológica oficial da bacia.`;
   }
-  fetch(feed+'?cb='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()}).then(render).catch(()=>{el('weather-meta').textContent='Robô meteorológico indisponível no momento.';el('weather-answer').innerHTML='UNKNOWN: sem dados meteorológicos atuais.<small>Isso não significa “não vai inundar”.</small>';});
+  fetch(feed+'?cb='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()}).then(render).catch(()=>{el('weather-meta').textContent='Dados meteorológicos indisponíveis no momento.';el('weather-answer').innerHTML='Sem rodada meteorológica atual.<small>Ausência de dados não significa ausência de risco.</small>';});
 })();
 </script>
 <script>
@@ -351,44 +584,65 @@
     const entries=Array.isArray(horizons)?horizons.map((h,i)=>[String(h.hours??h.horizon_hours??i),h]):Object.entries(horizons);
     const byKey=Object.fromEntries(entries);
     const keys=['24','48','72','120','168'].filter(k=>byKey[k]);
-    if(!keys.length){el('current-probability-values').innerHTML='<strong>UNKNOWN: rodada GEFS sem horizontes disponíveis.</strong>';return;}
-    const values=keys.map(k=>{const h=byKey[k]||{};const v=h.flood_probability_percent??(Number(h.probability)*100);return `<strong>${pct.format(Number(v))}% até ${k} h</strong>`;}).join(' · ');
-    el('current-probability-values').innerHTML=`<strong>Score experimental da rodada GEFS/NOAA:</strong> ${values}.`;
     const generated=iso(p&&p.generated_at_utc), age=Number.isFinite(generated)?Math.max(0,(Date.now()-generated)/3600000):NaN;
+    const ageText=!Number.isFinite(age)?'idade desconhecida':age>=48?pct.format(age/24)+' dias':pct.format(age)+' h';
     const stale=!Number.isFinite(age)||age>36;
-    if(stale){
-      el('current-probability-values').innerHTML='<strong>UNKNOWN/STALE: percentuais ocultados porque a rodada tem mais de 36 h.</strong>';
-      el('current-probability-reading').innerHTML='<strong>Como ler:</strong> não há uma estimativa atual utilizável. Os valores antigos permanecem no JSON para auditoria, mas não representam o momento presente.';
-      el('current-probability-meta').textContent=`Fonte: ${p.forecast_source||'GEFS/NOAA'} · emissão: ${time(p.forecast_run_time_utc)} · disponível: ${time(p.forecast_available_at_utc)} · decisão: ${time(p.decision_time_utc)} · arquivo gerado: ${time(p.generated_at_utc)} · idade aproximada: ${Number.isFinite(age)?pct.format(age)+' h':'—'} · estado: UNKNOWN/STALE.`;
+    if(!keys.length){
+      el('current-probability-values').innerHTML='<strong>Sem score atual.</strong> A rodada GEFS não trouxe horizontes utilizáveis.';
+      el('current-probability-reading').innerHTML='<strong>Como ler:</strong> não há um score experimental utilizável nesta atualização.';
+      el('current-probability-meta').textContent='Fonte GEFS experimental sem valores atuais utilizáveis.';
       return;
     }
-    el('current-probability-reading').innerHTML=stale?'<strong>Como ler:</strong> os valores abaixo são um score experimental arquivado, mas a rodada está <strong>STALE</strong> para representar o momento atual. Não usar como chance real ou alerta.':'<strong>Como ler:</strong> os valores são um score experimental em escala 0–100 para o horizonte indicado. Não são frequência real, previsão pontual de chuva nem alerta oficial.';
-    el('current-probability-meta').textContent=`Fonte: ${p.forecast_source||'GEFS/NOAA'} · emissão: ${time(p.forecast_run_time_utc)} · disponível: ${time(p.forecast_available_at_utc)} · decisão: ${time(p.decision_time_utc)} · arquivo gerado: ${time(p.generated_at_utc)} · idade aproximada: ${Number.isFinite(age)?pct.format(age)+' h':'—'} · estado: ${stale?'UNKNOWN/STALE':'pesquisa-only'}.`;
+    if(stale){
+      el('current-probability-values').innerHTML='<strong>Rodada desatualizada — scores ocultados.</strong>';
+      el('current-probability-reading').innerHTML=`<strong>Como ler:</strong> a última rodada tem ${ageText}. Os percentuais antigos permanecem apenas no arquivo de auditoria e não representam o momento atual.`;
+      el('current-probability-meta').textContent=`Última rodada arquivada: ${time(p.generated_at_utc)} · fonte: ${p.forecast_source||'GEFS/NOAA'} · idade: ${ageText}.`;
+      return;
+    }
+    const values=keys.map(k=>{const h=byKey[k]||{};const raw=h.flood_probability_percent??(Number(h.probability)*100);return Number.isFinite(Number(raw))?`<strong>${pct.format(Number(raw))}% até ${k} h</strong>`:`<strong>sem score até ${k} h</strong>`;}).join(' · ');
+    el('current-probability-values').innerHTML=`<strong>Scores experimentais da rodada GEFS/NOAA:</strong> ${values}.`;
+    el('current-probability-reading').innerHTML='<strong>Como ler:</strong> valores em escala 0–100 de uma cadeia experimental separada. Não são alerta oficial nem devem ser confundidos com a previsão pontual de nível.';
+    el('current-probability-meta').textContent=`Fonte: ${p.forecast_source||'GEFS/NOAA'} · emissão: ${time(p.forecast_run_time_utc)} · disponível: ${time(p.forecast_available_at_utc)} · arquivo gerado: ${time(p.generated_at_utc)} · idade: ${ageText}.`;
   }
   function renderBinary(binary){
     const decisions=Array.isArray(binary&&binary.decisions)?binary.decisions:[];
-    if(!decisions.length){el('binary-current').innerHTML='<div class="binary-card unknown is-unknown"><b>UNKNOWN</b><span>sem evidência neste horizonte</span><small>ausência ≠ “não vai inundar”</small></div>';el('binary-source').textContent='Não foi possível carregar a rodada binária.';return;}
-    const source=binary.source||{};const sourceState=String(source.source_state||'').toLowerCase();
-    const stale=sourceState==='stale'||sourceState==='unknown';
-    el('binary-current').innerHTML=decisions.map(d=>{
-      const prob=d.probability_percent;
-      if(stale||d.decision==='UNKNOWN'||prob==null){
-        return `<div class="binary-card unknown is-unknown"><b>UNKNOWN</b><span>até ${d.hours} h</span><small>sem evidência utilizável · não interpretar como “não vai”</small></div>`;
-      }
-      return `<div class="binary-card score"><b>score ${pct.format(Number(prob))}%</b><span>até ${d.hours} h · experimental</span><small>não é probabilidade calibrada · corte 50% fora da leitura pública</small></div>`;
-    }).join('');
-    const age=Number(source.source_age_hours_at_generation);const state=source.source_state||'—';
-    el('binary-source').textContent=`Rodada de probabilidade gerada em ${time(source.source_generated_at_utc)} · fonte: ${source.forecast_source||'—'} · idade no cálculo: ${Number.isFinite(age)?pct.format(age)+' h':'—'} · estado da fonte: ${state} · calibração: ${source.calibration_status||'—'}.`;
-    const ev=binary.evaluation||{};const verdict=ev.model_verdict||'SEM_AVALIACAO';const bad=verdict==='NAO_FUNCIONA_DE_FORMA_CONFIAVEL';const partial=verdict!=='SEM_AVALIACAO'&&!bad;const box=el('binary-evaluation');box.className=`binary-evaluation ${bad?'bad':partial?'partial':''}`;
-    const title=bad?'Auditoria: ainda não funciona de forma confiável.':verdict==='SEM_AVALIACAO'?'Auditoria: ainda sem avaliação suficiente.':'Auditoria: sinal parcial; precisa de validação.';
+    const source=binary&&binary.source||{};
+    const sourceState=String(source.source_state||'').toLowerCase();
+    const age=Number(source.source_age_hours_at_generation);
+    const stale=sourceState==='stale'||sourceState==='unknown'||(Number.isFinite(age)&&age>36);
+    const ageLabel=Number.isFinite(age)?(age>=48?`${pct.format(age/24)} dias`:`${pct.format(age)} h`):'idade desconhecida';
+
+    if(!binary||!decisions.length){
+      el('binary-current').className='binary-grid binary-grid-status';
+      el('binary-current').innerHTML='<div class="binary-status unavailable"><div><span class="binary-status-kicker">SCORE EXPERIMENTAL</span><b>Sem rodada atual disponível</b><small>O feed de decisão não entregou evidência utilizável. Isso não significa ausência de risco.</small></div></div>';
+      el('binary-source').textContent='Fonte experimental indisponível no momento.';
+    }else if(stale){
+      el('binary-current').className='binary-grid binary-grid-status';
+      el('binary-current').innerHTML=`<div class="binary-status stale"><div><span class="binary-status-kicker">QUALIDADE DA FONTE</span><b>Rodada desatualizada — scores atuais ocultados</b><small>A última rodada tem ${ageLabel}. Os cinco horizontes não são exibidos porque todos dependem da mesma fonte antiga.</small></div><span class="binary-status-tag">STALE</span></div>`;
+      el('binary-source').textContent=`Última rodada arquivada: ${time(source.source_generated_at_utc)} · fonte: ${source.forecast_source||'—'} · idade: ${ageLabel}. A auditoria abaixo é histórica e permanece disponível para avaliação do método.`;
+    }else{
+      el('binary-current').className='binary-grid';
+      el('binary-current').innerHTML=decisions.map(d=>{
+        const prob=Number(d.probability_percent);
+        if(d.decision==='UNKNOWN'||!Number.isFinite(prob)){
+          return `<div class="binary-card no-score"><b>Sem score</b><span>até ${d.hours} h</span><small>rodada atual sem valor utilizável neste horizonte</small></div>`;
+        }
+        return `<div class="binary-card score"><b>${pct.format(prob)}%*</b><span>até ${d.hours} h · score experimental</span><small>não é probabilidade calibrada nem alerta</small></div>`;
+      }).join('');
+      const calibrated=String(source.calibration_status||'').toLowerCase().includes('true')?'registro de calibração presente':'calibração não confirmada';
+      el('binary-source').textContent=`Rodada atual: ${time(source.source_generated_at_utc)} · fonte: ${source.forecast_source||'—'} · idade: ${ageLabel} · ${calibrated}.`;
+    }
+
+    const ev=binary&&binary.evaluation||{};const verdict=ev.model_verdict||'SEM_AVALIACAO';const bad=verdict==='NAO_FUNCIONA_DE_FORMA_CONFIAVEL';const partial=verdict!=='SEM_AVALIACAO'&&!bad;const box=el('binary-evaluation');box.className=`binary-evaluation ${bad?'bad':partial?'partial':''}`;
+    const title=bad?'Auditoria retrospectiva: desempenho ainda insuficiente.':verdict==='SEM_AVALIACAO'?'Auditoria retrospectiva: evidência ainda insuficiente.':'Auditoria retrospectiva: sinal parcial; precisa de validação.';
     const rows=Array.isArray(ev.by_horizon)?ev.by_horizon:[];
     const table=rows.length?`<table><thead><tr><th>Horizonte</th><th>Detecção / recall em 0,5 (arquivo)</th><th>Sensibilidade</th><th>Leitura</th></tr></thead><tbody>${rows.map(r=>{const detected=r.detected_at_score_0_5==null?(r.sensitivity_percent==null?'—':pct.format(r.sensitivity_percent)+'% recall'):`${r.detected_at_score_0_5}/${r.held_out_events}`;return `<tr><td>${r.hours} h</td><td>${detected}</td><td>${r.sensitivity_percent==null?'—':pct.format(r.sensitivity_percent)+'%'}</td><td>${r.result||'—'}</td></tr>`}).join('')}</tbody></table>`:'';
-    box.innerHTML=`<summary><h3 style="display:inline">${title}</h3></summary><p>O teste retrospectivo usa eventos positivos separados por episódio. O limiar 0,5 permanece só nesta auditoria; não é a resposta pública. ${ev.false_positive_metrics||'Não há métricas de controle falso publicadas para esta rodada.'}</p>${table}`;
+    box.innerHTML=`<summary><h3 style="display:inline">${title}</h3></summary><p>Esta avaliação é retrospectiva e não representa o estado atual do rio. O limiar 0,5 permanece apenas como referência de auditoria. ${ev.false_positive_metrics||'Ainda não há métricas completas de falsos positivos publicadas para esta rodada.'}</p>${table}`;
   }
   function renderShort(live){
     const hs=live&&live.horizontes||{};
-    const keys=['2h','2h_versao_b','4h'].filter(k=>hs[k]);
-    el('short-grid').innerHTML=keys.length?keys.map(k=>{const x=hs[k],a=x.auditoria||{},q=x.qualidade_ao_vivo||{},shadow=k==='2h_versao_b';const status=shadow&&(!q.n_conferidas||q.n_conferidas<1)?'SHADOW · sem validação':(x.status||'sem status');return `<div class="short-card${shadow?' shadow-card':''}"><b>${cm(x.nivel_previsto_cm)}</b><span>${shadow?'2 h versão B · sombra':(k==='2h'?'2 h principal':'4 h')}</span><small>agora ${cm(x.nivel_rio_agora_cm)} · Δ ${x.delta_previsto_cm==null?'—':(Number(x.delta_previsto_cm)>0?'+':'')+cm(x.delta_previsto_cm)}<br>MAE 24 h: ${cm(a.mae_24h_cm)} · maior erro: ${cm(a.maior_erro_abs_24h_cm)}<br>${x.modelo||'modelo ao vivo'} · ${status}</small></div>`}).join(''):'<div class="short-card"><b>UNKNOWN</b><span>sem previsão curta</span></div>';
+    const keys=['2h','4h','2h_versao_b'].filter(k=>hs[k]);
+    el('short-grid').innerHTML=keys.length?keys.map(k=>{const x=hs[k],a=x.auditoria||{},q=x.qualidade_ao_vivo||{},shadow=k==='2h_versao_b';const status=shadow&&(!q.n_conferidas||q.n_conferidas<1)?'SHADOW · sem validação':(x.status||'sem status');return `<div class="short-card${shadow?' shadow-card':''}"><b>${cm(x.nivel_previsto_cm)}</b><span>${shadow?'2 h versão B · sombra':(k==='2h'?'2 h principal':'4 h')}</span><small>agora ${cm(x.nivel_rio_agora_cm)} · Δ ${x.delta_previsto_cm==null?'—':(Number(x.delta_previsto_cm)>0?'+':'')+cm(x.delta_previsto_cm)}<br>MAE 24 h: ${cm(a.mae_24h_cm)} · maior erro: ${cm(a.maior_erro_abs_24h_cm)}<br>${x.modelo||'modelo ao vivo'} · ${status}</small></div>`}).join(''):'<div class="short-card"><b>SEM PREVISÃO ATUAL</b><span>o feed curto não trouxe uma rodada utilizável</span></div>';
     el('short-meta').textContent=live?`Feed ao vivo: gerado ${time(live.gerado_em)} · telemetria ${time(live.telemetria_ultima_em)} · atualização ${time(live.consultado_em)} · idade da telemetria ${live.idade_telemetria_min==null?'—':num(live.idade_telemetria_min)+' min'}.`:'Feed ao vivo indisponível.';
   }
   function chartFor(records,baseKey){
@@ -421,12 +675,52 @@
     const rawRecords=Array.isArray(history&&history.registros)?history.registros:[];
     const records=rawRecords.filter(x=>!isLegacyCascade(x));
     el('short-charts').innerHTML=chartFor(records,'2h')+chartFor(records,'4h');
-    el('short-chart-meta').innerHTML=records.length?`<span class="blue">observado</span> · <span class="orange">RNA principal</span> · <span class="purple">versão B sombra</span> · histórico carregado: ${records.length} registros${rawRecords.length-records.length?' (legado 4h_cascata excluído)':''}; somente alvos conferidos na janela móvel de 24 h.`:'Histórico de previsões indisponível.';
-  }).catch(()=>{el('short-grid').innerHTML='<div class="short-card"><b>UNKNOWN</b><span>dados indisponíveis</span></div>';el('short-charts').innerHTML='<div class="short-chart-card"><h3>Histórico indisponível</h3></div>';el('binary-current').innerHTML='<div class="binary-card unknown is-unknown"><b>UNKNOWN</b><span>dados indisponíveis</span><small>ausência ≠ “não vai inundar”</small></div>';el('binary-evaluation').innerHTML='<summary><h3 style="display:inline">Auditoria indisponível</h3></summary><p>Avaliação retrospectiva não carregou.</p>';el('current-probability-values').innerHTML='<strong>UNKNOWN: feed experimental indisponível.</strong>';});
+    el('short-chart-meta').innerHTML=records.length?`<span class="blue">observado</span> · <span class="orange">RNA principal</span> · <span class="purple">versão B · teste</span> · histórico carregado: ${records.length} registros${rawRecords.length-records.length?' (legado 4h_cascata excluído)':''}; somente alvos conferidos na janela móvel de 24 h.`:'Histórico de previsões indisponível.';
+  }).catch(()=>{el('short-grid').innerHTML='<div class="short-card"><b>DADOS INDISPONÍVEIS</b><span>não foi possível carregar a previsão curta</span></div>';el('short-charts').innerHTML='<div class="short-chart-card"><h3>Histórico indisponível</h3></div>';el('binary-current').innerHTML='<div class="binary-card unknown is-unknown"><b>SEM DADO ATUAL</b><span>fonte experimental indisponível</span><small>ausência de dado não significa ausência de risco</small></div>';el('binary-evaluation').innerHTML='<summary><h3 style="display:inline">Auditoria indisponível</h3></summary><p>Avaliação retrospectiva não carregou.</p>';el('current-probability-values').innerHTML='<strong>Sem score atual: feed experimental indisponível.</strong>';});
 })();
 </script>
-<script src="assets/js/research_patterns_dashboard.js"></script>
-<script src="assets/js/pv_dashboard.js"></script>
+<script>
+(function(){
+  const topBtn=document.getElementById('back-top');
+  const headerFeed=document.getElementById('header-feed');
+  const pvUpdated=document.getElementById('pv-updated');
+  const navLinks=[...document.querySelectorAll('.quick-nav a[href^="#"]')];
+
+  const syncHeader=()=>{
+    const txt=(pvUpdated&&pvUpdated.textContent||'').trim();
+    if(headerFeed) headerFeed.textContent=txt && !/—/.test(txt) ? txt : 'Estado dos feeds disponível no painel abaixo.';
+  };
+  syncHeader();
+  if(pvUpdated&&window.MutationObserver)new MutationObserver(syncHeader).observe(pvUpdated,{childList:true,subtree:true,characterData:true});
+
+  const onScroll=()=>{if(topBtn) topBtn.classList.toggle('show',window.scrollY>650);};
+  addEventListener('scroll',onScroll,{passive:true}); onScroll();
+  if(topBtn)topBtn.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
+
+  document.querySelectorAll('.research-fold').forEach(d=>{
+    const action=d.querySelector('.fold-action');
+    const sync=()=>{if(action)action.textContent=d.open?'fechar':'abrir';};
+    d.addEventListener('toggle',sync);sync();
+  });
+  navLinks.forEach(a=>a.addEventListener('click',()=>{
+    const target=document.querySelector(a.getAttribute('href'));
+    if(target&&target.matches('details.research-fold'))target.open=true;
+  }));
+  const targets=navLinks.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if('IntersectionObserver' in window){
+    const io=new IntersectionObserver(entries=>{
+      const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];
+      if(!visible)return;
+      navLinks.forEach(a=>a.removeAttribute('aria-current'));
+      const active=navLinks.find(a=>a.getAttribute('href')==='#'+visible.target.id);
+      if(active)active.setAttribute('aria-current','true');
+    },{rootMargin:'-20% 0px -65% 0px',threshold:[0,.15,.35]});
+    targets.forEach(t=>io.observe(t));
+  }
+})();
+</script>
+<script src="assets/js/research_patterns_dashboard.js?v=20261001e"></script>
+<script src="assets/js/pv_dashboard.js?v=20261001f"></script>
 <script src="assets/js/gestor_chrome.js" data-page="ficha" data-place="santa"></script>
 </body>
 </html>

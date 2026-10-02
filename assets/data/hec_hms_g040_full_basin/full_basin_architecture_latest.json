@@ -1,0 +1,1904 @@
+{
+  "schema_version": "hec_hms_g040_full_basin_architecture_v1",
+  "generated_at_utc": "2026-09-30T18:57:29.793580Z",
+  "status": "topology_requires_review",
+  "research_only": true,
+  "scope": {
+    "basin": "Taquari-Antas G040",
+    "outlet": "Rio Taquari na confluência com o Rio Jacuí",
+    "official_area_km2": 26430.0,
+    "management_polygons": 32,
+    "management_units": 7,
+    "hec_target_subbasins": 145,
+    "hec_target_reaches": 72,
+    "important_note_2": "The 32 IEDE polygons are audit/grouping units only; they are not HEC computational sub-basins.",
+    "important_note": "Muçum is an internal control point, not the basin outlet."
+  },
+  "area_audit": {
+    "sum_32_projected_km2_epsg31982": 26415.447,
+    "difference_vs_sema_official_km2": -14.553,
+    "difference_vs_sema_official_pct": -0.055
+  },
+  "bho6_audit": {
+    "query": "cocursodag LIKE '786%'",
+    "segment_count": 33133,
+    "segments_not_assigned_to_32_polygons": 2,
+    "source": "https://portal1.snirh.gov.br/server/rest/services/Hosted/main_geoft_bho6_trecho_drenagem/FeatureServer/0/query"
+  },
+  "topology_audit": {
+    "edge_count": 32,
+    "outlet_candidates": [],
+    "terminal_segment_counts_by_subbasin": {
+      "Baixo Taquari": 1
+    },
+    "ambiguities": [
+      {
+        "subbasin": "Arroio Sampaio/Estrela",
+        "candidates": [
+          {
+            "downstream": "Baixo Taquari",
+            "count": 2,
+            "max_area_up_km2": 24522.80006606
+          },
+          {
+            "downstream": "Rio Taquari-Mirim",
+            "count": 2,
+            "max_area_up_km2": 23792.09658297
+          }
+        ]
+      },
+      {
+        "subbasin": "Rio Tega",
+        "candidates": [
+          {
+            "downstream": "Arroio do Inferno",
+            "count": 38,
+            "max_area_up_km2": 7717.96191121
+          },
+          {
+            "downstream": "Arroio Biazus",
+            "count": 1,
+            "max_area_up_km2": 2.47292664
+          }
+        ]
+      },
+      {
+        "subbasin": "Rio Forqueta",
+        "candidates": [
+          {
+            "downstream": "Arroio Seca",
+            "count": 2,
+            "max_area_up_km2": 2845.59935275
+          },
+          {
+            "downstream": "Rio Fão",
+            "count": 3,
+            "max_area_up_km2": 1269.0303474
+          }
+        ]
+      },
+      {
+        "subbasin": "Rio Taquari-Mirim",
+        "candidates": [
+          {
+            "downstream": "Baixo Taquari",
+            "count": 3,
+            "max_area_up_km2": 24548.0152066
+          },
+          {
+            "downstream": "Arroio Sampaio/Estrela",
+            "count": 2,
+            "max_area_up_km2": 24513.98682128
+          }
+        ]
+      },
+      {
+        "subbasin": "Arroio do Inferno",
+        "candidates": [
+          {
+            "downstream": "Rio Burati/Arroio Retiro",
+            "count": 1,
+            "max_area_up_km2": 8263.9625864
+          },
+          {
+            "downstream": "Arroio Biazus",
+            "count": 9,
+            "max_area_up_km2": 8245.46100372
+          },
+          {
+            "downstream": "Rio Tega",
+            "count": 30,
+            "max_area_up_km2": 7712.36060288
+          },
+          {
+            "downstream": "Rio São Marcos",
+            "count": 20,
+            "max_area_up_km2": 7349.96756961
+          }
+        ]
+      },
+      {
+        "subbasin": "Baixo Rio Turvo",
+        "candidates": [
+          {
+            "downstream": "Rio da Prata",
+            "count": 5,
+            "max_area_up_km2": 3045.97062098
+          },
+          {
+            "downstream": "Alto Rio Turvo",
+            "count": 2,
+            "max_area_up_km2": 1.87272165
+          }
+        ]
+      }
+    ],
+    "cycles": [
+      [
+        "Baixo Taquari",
+        "Rio Taquari-Mirim"
+      ]
+    ],
+    "topology_pass": false
+  },
+  "forcing_policy": {
+    "observed_rain": "hourly accumulated precipitation, station QC, spatialized separately for each of the 32 sub-basins; missing never becomes zero",
+    "forecast_rain": "ECMWF/IFS spatial field integrated over each sub-basin polygon",
+    "station_rule": "nested hydrometric gauges are diagnostics/state constraints and are never blindly summed as independent tributaries"
+  },
+  "state_and_calibration_policy": {
+    "initial_state": "use fresh observed non-overlapping branch controls where available; otherwise warm-up from rainfall-runoff states",
+    "publish_gate": "native HEC state must pass level/flow/trend/recent-hydrograph criteria; diagnostic stage shifting cannot promote a run",
+    "calibration": "multi-event and branch-wise first; only then test transferable parameter regions across G040"
+  },
+  "hydraulic_boundary_note": "HEC-HMS can provide basin runoff/flow hydrographs. Forecasting stage/inundation in the lower Taquari where Jacuí/Guaíba backwater matters requires a hydraulic model (e.g. HEC-RAS) downstream of the hydrologic model.",
+  "units_by_ug": {
+    "Alto Taquari-Antas": {
+      "subbasin_count": 6,
+      "area_km2": 5168.461,
+      "rain_station_count": 25,
+      "flow_station_count": 39
+    },
+    "Baixo Taquari-Antas": {
+      "subbasin_count": 7,
+      "area_km2": 5094.015,
+      "rain_station_count": 4,
+      "flow_station_count": 48
+    },
+    "Carreiro": {
+      "subbasin_count": 3,
+      "area_km2": 2561.438,
+      "rain_station_count": 33,
+      "flow_station_count": 37
+    },
+    "Forqueta": {
+      "subbasin_count": 3,
+      "area_km2": 2848.962,
+      "rain_station_count": 10,
+      "flow_station_count": 20
+    },
+    "Guaporé": {
+      "subbasin_count": 3,
+      "area_km2": 2484.907,
+      "rain_station_count": 20,
+      "flow_station_count": 29
+    },
+    "Médio Taquari-Antas": {
+      "subbasin_count": 7,
+      "area_km2": 4478.955,
+      "rain_station_count": 22,
+      "flow_station_count": 42
+    },
+    "Prata": {
+      "subbasin_count": 3,
+      "area_km2": 3778.709,
+      "rain_station_count": 38,
+      "flow_station_count": 45
+    }
+  },
+  "subbasins": [
+    {
+      "id": "SB_01_RIO_QUEBRA_DENTES_ARROIO_MULADA",
+      "objectid": 30,
+      "name": "Rio Quebra-dentes/Arroio Mulada",
+      "ug": "Médio Taquari-Antas",
+      "area_km2_epsg31982": 1375.823,
+      "downstream_subbasin": "Arroio do Inferno",
+      "rain_station_count": 8,
+      "flow_station_count": 3,
+      "flow_control_candidates": [
+        {
+          "code": "86250000",
+          "name": "PASSO SÃO BERNARDO",
+          "network": "ANA",
+          "drainage_area_km2": 6470.0
+        },
+        {
+          "code": "86220600",
+          "name": "PCH PALANQUINHO JUSANTE",
+          "network": "ANA",
+          "drainage_area_km2": 6312.0
+        },
+        {
+          "code": "86220000",
+          "name": "USINA CRIÚVA",
+          "network": "ANA",
+          "drainage_area_km2": 69.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_02_ARROIO_SAO_TOME_BAGUAL",
+      "objectid": 31,
+      "name": "Arroio São Tomé/Bagual",
+      "ug": "Alto Taquari-Antas",
+      "area_km2_epsg31982": 740.746,
+      "downstream_subbasin": "Rio Quebra-dentes/Arroio Mulada",
+      "rain_station_count": 6,
+      "flow_station_count": 8,
+      "flow_control_candidates": [
+        {
+          "code": "86118000",
+          "name": "PCH SERRA DOS CAVALINHOS I BARRAMENTO",
+          "network": "ANA",
+          "drainage_area_km2": 3764.9
+        },
+        {
+          "code": "86110000",
+          "name": "PCH PASSO DO MEIO JUSANTE",
+          "network": "ANA",
+          "drainage_area_km2": 3540.0
+        },
+        {
+          "code": "86170000",
+          "name": "SÃO TOMÉ",
+          "network": "ANA",
+          "drainage_area_km2": 1941.0
+        },
+        {
+          "code": "86162000",
+          "name": "PCH SERRA DOS CAVALINHOS II BARRAMENTO",
+          "network": "ANA",
+          "drainage_area_km2": 352.0
+        },
+        {
+          "code": "86180000",
+          "name": "USINA CAZUZA FERREIRA",
+          "network": "ANA",
+          "drainage_area_km2": 142.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_03_ARROIO_JACARE_AUGUSTA",
+      "objectid": 32,
+      "name": "Arroio Jacaré/Augusta",
+      "ug": "Baixo Taquari-Antas",
+      "area_km2_epsg31982": 710.459,
+      "downstream_subbasin": "Arroio Seca",
+      "rain_station_count": 2,
+      "flow_station_count": 9,
+      "flow_control_candidates": [
+        {
+          "code": "86718000",
+          "name": "RIO TAQUARI (Roca Sales)",
+          "network": "ANA",
+          "drainage_area_km2": 19175.0
+        },
+        {
+          "code": "86720000",
+          "name": "ENCANTADO",
+          "network": "ANA",
+          "drainage_area_km2": 19100.0
+        },
+        {
+          "code": "86720001",
+          "name": "ENCANTADO",
+          "network": "ANA",
+          "drainage_area_km2": 19100.0
+        },
+        {
+          "code": "86730000",
+          "name": "ROCA SALES",
+          "network": "ANA",
+          "drainage_area_km2": 19100.0
+        },
+        {
+          "code": "86697000",
+          "name": "ARROIO JACARÉ (Encantado)",
+          "network": "ANA",
+          "drainage_area_km2": 439.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_04_ARROIO_MARRECAO",
+      "objectid": 33,
+      "name": "Arroio Marrecão",
+      "ug": "Médio Taquari-Antas",
+      "area_km2_epsg31982": 492.716,
+      "downstream_subbasin": "Arroio Jacaré/Augusta",
+      "rain_station_count": 2,
+      "flow_station_count": 4,
+      "flow_control_candidates": [
+        {
+          "code": "86509000",
+          "name": "RIO TAQUARI (Muçum)",
+          "network": "ANA",
+          "drainage_area_km2": 16072.0
+        },
+        {
+          "code": "86510000",
+          "name": "MUÇUM",
+          "network": "ANA",
+          "drainage_area_km2": 16000.0
+        },
+        {
+          "code": "86472500",
+          "name": "RIO TAQUARI (São Valentim do Sul)",
+          "network": "ANA",
+          "drainage_area_km2": 15591.0
+        },
+        {
+          "code": "86472600",
+          "name": "SANTA TEREZA",
+          "network": "ANA",
+          "drainage_area_km2": null
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_05_ARROIO_CASTELHANO",
+      "objectid": 34,
+      "name": "Arroio Castelhano",
+      "ug": "Baixo Taquari-Antas",
+      "area_km2_epsg31982": 699.972,
+      "downstream_subbasin": "Rio Taquari-Mirim",
+      "rain_station_count": 0,
+      "flow_station_count": 3,
+      "flow_control_candidates": [
+        {
+          "code": "86880600",
+          "name": "ARROIO CASTELHANO (Venâncio Aires)",
+          "network": "ANA",
+          "drainage_area_km2": 385.0
+        },
+        {
+          "code": "86886000",
+          "name": "RIACHO CASTELHANO",
+          "network": "ANA",
+          "drainage_area_km2": 379.0
+        },
+        {
+          "code": "86888400",
+          "name": "SANTA CRUZ DO SUL-VENÂNCIO AIRES",
+          "network": "ANA",
+          "drainage_area_km2": 194.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_06_ARROIO_SAMPAIO_ESTRELA",
+      "objectid": 35,
+      "name": "Arroio Sampaio/Estrela",
+      "ug": "Baixo Taquari-Antas",
+      "area_km2_epsg31982": 695.908,
+      "downstream_subbasin": "Baixo Taquari",
+      "rain_station_count": 0,
+      "flow_station_count": 9,
+      "flow_control_candidates": [
+        {
+          "code": "86882000",
+          "name": "BOM RETIRO DO SUL - JUSANTE",
+          "network": "ANA",
+          "drainage_area_km2": 23900.0
+        },
+        {
+          "code": "86885050",
+          "name": "URSULA - MONTANTE",
+          "network": "ANA",
+          "drainage_area_km2": 23900.0
+        },
+        {
+          "code": "86885070",
+          "name": "URSULA - JUSANTE",
+          "network": "ANA",
+          "drainage_area_km2": 23900.0
+        },
+        {
+          "code": "86888000",
+          "name": "JUSANTE JASPER",
+          "network": "ANA",
+          "drainage_area_km2": 23900.0
+        },
+        {
+          "code": "86881000",
+          "name": "BOM RETIRO DO SUL - MONTANTE",
+          "network": "ANA",
+          "drainage_area_km2": 23800.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_07_BAIXO_TAQUARI",
+      "objectid": 36,
+      "name": "Baixo Taquari",
+      "ug": "Baixo Taquari-Antas",
+      "area_km2_epsg31982": 1047.579,
+      "downstream_subbasin": "Rio Taquari-Mirim",
+      "rain_station_count": 1,
+      "flow_station_count": 7,
+      "flow_control_candidates": [
+        {
+          "code": "86996000",
+          "name": "RIO TAQUARI (Triunfo)",
+          "network": "ANA",
+          "drainage_area_km2": 26531.0
+        },
+        {
+          "code": "86995000",
+          "name": "GENERAL CÂMARA J6",
+          "network": "ANA",
+          "drainage_area_km2": 26400.0
+        },
+        {
+          "code": "86950000",
+          "name": "TAQUARI",
+          "network": "ANA",
+          "drainage_area_km2": 25900.0
+        },
+        {
+          "code": "86950001",
+          "name": "TAQUARI",
+          "network": "ANA",
+          "drainage_area_km2": 25900.0
+        },
+        {
+          "code": "86990000",
+          "name": "ASILO PELA",
+          "network": "ANA",
+          "drainage_area_km2": 25900.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_08_ARROIO_BOA_VISTA",
+      "objectid": 37,
+      "name": "Arroio Boa Vista",
+      "ug": "Baixo Taquari-Antas",
+      "area_km2_epsg31982": 578.324,
+      "downstream_subbasin": "Arroio Sampaio/Estrela",
+      "rain_station_count": 1,
+      "flow_station_count": 2,
+      "flow_control_candidates": [
+        {
+          "code": "86855000",
+          "name": "TEUTÔNIA",
+          "network": "ANA",
+          "drainage_area_km2": 395.0
+        },
+        {
+          "code": "86850000",
+          "name": "CAMPESTRE",
+          "network": "ANA",
+          "drainage_area_km2": 47.5
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_09_ARROIO_PINHEIRO_ALTO",
+      "objectid": 38,
+      "name": "Arroio Pinheiro Alto",
+      "ug": "Alto Taquari-Antas",
+      "area_km2_epsg31982": 676.146,
+      "downstream_subbasin": "Arroio São Tomé/Bagual",
+      "rain_station_count": 8,
+      "flow_station_count": 7,
+      "flow_control_candidates": [
+        {
+          "code": "86101000",
+          "name": "PCH PASSO DO MEIO MONTANTE",
+          "network": "ANA",
+          "drainage_area_km2": 2070.0
+        },
+        {
+          "code": "86100000",
+          "name": "PASSO DO GABRIEL",
+          "network": "ANA",
+          "drainage_area_km2": 1820.0
+        },
+        {
+          "code": "86099000",
+          "name": "PCH PEZZI MONTANTE",
+          "network": "ANA",
+          "drainage_area_km2": 1787.0
+        },
+        {
+          "code": "86100800",
+          "name": "PCH PEZZI BARRAMENTO",
+          "network": "ANA",
+          "drainage_area_km2": 1786.0
+        },
+        {
+          "code": "86095000",
+          "name": "RIO DAS ANTAS (Jaquirana)",
+          "network": "ANA",
+          "drainage_area_km2": 1557.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_10_RIO_CAMISAS",
+      "objectid": 39,
+      "name": "Rio Camisas",
+      "ug": "Alto Taquari-Antas",
+      "area_km2_epsg31982": 846.36,
+      "downstream_subbasin": "Arroio Pinheiro Alto",
+      "rain_station_count": 3,
+      "flow_station_count": 5,
+      "flow_control_candidates": [
+        {
+          "code": "86080000",
+          "name": "PASSO DA GARRAFA",
+          "network": "ANA",
+          "drainage_area_km2": 354.0
+        },
+        {
+          "code": "86070000",
+          "name": "USINA SANTANA",
+          "network": "ANA",
+          "drainage_area_km2": 224.0
+        },
+        {
+          "code": "86050000",
+          "name": "CAMISAS",
+          "network": "ANA",
+          "drainage_area_km2": 110.0
+        },
+        {
+          "code": "86060010",
+          "name": "CGH CAMBARÁ BARRAMENTO",
+          "network": "ANA",
+          "drainage_area_km2": 28.63
+        },
+        {
+          "code": "86060000",
+          "name": "USINA ARCADO",
+          "network": "ANA",
+          "drainage_area_km2": 20.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_11_ALTO_RIO_DAS_ANTAS",
+      "objectid": 40,
+      "name": "Alto Rio das Antas",
+      "ug": "Alto Taquari-Antas",
+      "area_km2_epsg31982": 504.535,
+      "downstream_subbasin": "Rio Camisas",
+      "rain_station_count": 1,
+      "flow_station_count": 1,
+      "flow_control_candidates": [
+        {
+          "code": "86030000",
+          "name": "RIO DAS ANTAS (S. José dos Ausentes)",
+          "network": "ANA",
+          "drainage_area_km2": null
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_12_ALTO_RIO_TURVO",
+      "objectid": 41,
+      "name": "Alto Rio Turvo",
+      "ug": "Prata",
+      "area_km2_epsg31982": 2482.624,
+      "downstream_subbasin": "Baixo Rio Turvo",
+      "rain_station_count": 26,
+      "flow_station_count": 24,
+      "flow_control_candidates": [
+        {
+          "code": "86125200",
+          "name": "PCH SALTINHO JUSANTE",
+          "network": "ANA",
+          "drainage_area_km2": 1335.0
+        },
+        {
+          "code": "86125130",
+          "name": "PCH MORRO GRANDE JUSANTE 2",
+          "network": "ANA",
+          "drainage_area_km2": 1160.0
+        },
+        {
+          "code": "86406000",
+          "name": "PCH SANTA CAROLINA JUSANTE",
+          "network": "ANA",
+          "drainage_area_km2": 1142.0
+        },
+        {
+          "code": "86405000",
+          "name": "PCH SANTA CAROLINA BARRAMENTO",
+          "network": "ANA",
+          "drainage_area_km2": 1140.0
+        },
+        {
+          "code": "86404200",
+          "name": "PCH CHIMARRÃO BARRAMENTO",
+          "network": "ANA",
+          "drainage_area_km2": 1121.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_13_LAJEADO_GRANDE",
+      "objectid": 42,
+      "name": "Lajeado Grande",
+      "ug": "Alto Taquari-Antas",
+      "area_km2_epsg31982": 946.649,
+      "downstream_subbasin": "Rio Quebra-dentes/Arroio Mulada",
+      "rain_station_count": 3,
+      "flow_station_count": 12,
+      "flow_control_candidates": [
+        {
+          "code": "86210900",
+          "name": "PCH PALANQUINHO BARRAMENTO",
+          "network": "ANA",
+          "drainage_area_km2": 829.3
+        },
+        {
+          "code": "86213000",
+          "name": "PCH PALANQUINHO JUSANTE DESATIVADA",
+          "network": "ANA",
+          "drainage_area_km2": 828.0
+        },
+        {
+          "code": "86211000",
+          "name": "PCH PALANQUINHO ALÇA",
+          "network": "ANA",
+          "drainage_area_km2": 799.0
+        },
+        {
+          "code": "86200000",
+          "name": "LAGEADO GRANDE",
+          "network": "ANA",
+          "drainage_area_km2": 436.0
+        },
+        {
+          "code": "86195100",
+          "name": "PCH CAZUZA FERREIRA ALÇA",
+          "network": "ANA",
+          "drainage_area_km2": 435.6
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_14_RIO_BURATI_ARROIO_RETIRO",
+      "objectid": 43,
+      "name": "Rio Burati/Arroio Retiro",
+      "ug": "Médio Taquari-Antas",
+      "area_km2_epsg31982": 877.653,
+      "downstream_subbasin": "Arroio Marrecão",
+      "rain_station_count": 6,
+      "flow_station_count": 16,
+      "flow_control_candidates": [
+        {
+          "code": "86472000",
+          "name": "LINHA JOSÉ JÚLIO",
+          "network": "ANA",
+          "drainage_area_km2": 13000.0
+        },
+        {
+          "code": "86470900",
+          "name": "UHE 14 DE JULHO ALÇA",
+          "network": "ANA",
+          "drainage_area_km2": 12929.7
+        },
+        {
+          "code": "86471000",
+          "name": "UHE 14 DE JULHO JUSANTE",
+          "network": "ANA",
+          "drainage_area_km2": 12900.0
+        },
+        {
+          "code": "86470950",
+          "name": "RIO DAS ANTAS (Bento Gonçalves)",
+          "network": "ANA",
+          "drainage_area_km2": 12806.0
+        },
+        {
+          "code": "86470800",
+          "name": "UHE 14 DE JULHO BARRAMENTO",
+          "network": "ANA",
+          "drainage_area_km2": 12757.8
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_15_RIO_TEGA",
+      "objectid": 44,
+      "name": "Rio Tega",
+      "ug": "Médio Taquari-Antas",
+      "area_km2_epsg31982": 429.986,
+      "downstream_subbasin": "Arroio do Inferno",
+      "rain_station_count": 0,
+      "flow_station_count": 3,
+      "flow_control_candidates": [
+        {
+          "code": "86304000",
+          "name": "RIO DAS ANTAS (Nova Pádua)",
+          "network": "ANA",
+          "drainage_area_km2": 7748.0
+        },
+        {
+          "code": "86321000",
+          "name": "UHE CASTRO ALVES TEGA",
+          "network": "ANA",
+          "drainage_area_km2": 285.6
+        },
+        {
+          "code": "86320000",
+          "name": "USINA NOVA PÁDUA",
+          "network": "ANA",
+          "drainage_area_km2": 64.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_16_ALTO_RIO_CARREIRO",
+      "objectid": 45,
+      "name": "Alto Rio Carreiro",
+      "ug": "Carreiro",
+      "area_km2_epsg31982": 1247.643,
+      "downstream_subbasin": "Médio Rio Carreiro",
+      "rain_station_count": 8,
+      "flow_station_count": 4,
+      "flow_control_candidates": [
+        {
+          "code": "86479000",
+          "name": "PCH CAÇADOR PONTE SÃO DOMINGOS",
+          "network": "ANA",
+          "drainage_area_km2": 674.0
+        },
+        {
+          "code": "86476000",
+          "name": "USINA SÃO DOMINGOS",
+          "network": "ANA",
+          "drainage_area_km2": 258.0
+        },
+        {
+          "code": "86478000",
+          "name": "USINA CASCA",
+          "network": "ANA",
+          "drainage_area_km2": 21.0
+        },
+        {
+          "code": "2851072",
+          "name": "IBIRAIARAS",
+          "network": "ANA",
+          "drainage_area_km2": null
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_17_ALTO_RIO_GUAPORE",
+      "objectid": 46,
+      "name": "Alto Rio Guaporé",
+      "ug": "Guaporé",
+      "area_km2_epsg31982": 1537.937,
+      "downstream_subbasin": "Médio Rio Guaporé",
+      "rain_station_count": 9,
+      "flow_station_count": 18,
+      "flow_control_candidates": [
+        {
+          "code": "86541000",
+          "name": "GUAPORÉ",
+          "network": "ANA",
+          "drainage_area_km2": 73190.0
+        },
+        {
+          "code": "86542000",
+          "name": "UNIÃO DA SERRA",
+          "network": "ANA",
+          "drainage_area_km2": 1421.0
+        },
+        {
+          "code": "86520100",
+          "name": "PCH CAPIGUI JUSANTE",
+          "network": "ANA",
+          "drainage_area_km2": 684.0
+        },
+        {
+          "code": "86530000",
+          "name": "USINA MARAU",
+          "network": "ANA",
+          "drainage_area_km2": 226.0
+        },
+        {
+          "code": "86529500",
+          "name": "MARAU",
+          "network": "ANA",
+          "drainage_area_km2": 204.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_18_RIO_FORQUETA",
+      "objectid": 47,
+      "name": "Rio Forqueta",
+      "ug": "Forqueta",
+      "area_km2_epsg31982": 799.143,
+      "downstream_subbasin": "Arroio Seca",
+      "rain_station_count": 0,
+      "flow_station_count": 7,
+      "flow_control_candidates": [
+        {
+          "code": "86746000",
+          "name": "RIO FORQUETA (Travesseiro)",
+          "network": "ANA",
+          "drainage_area_km2": 2239.0
+        },
+        {
+          "code": "86800000",
+          "name": "MARQUES DE SOUZA",
+          "network": "ANA",
+          "drainage_area_km2": 2200.0
+        },
+        {
+          "code": "86780000",
+          "name": "BARRA DO FÃO",
+          "network": "ANA",
+          "drainage_area_km2": 2077.0
+        },
+        {
+          "code": "86747000",
+          "name": "RIO FORQUETINHA (Forquetinha)",
+          "network": "ANA",
+          "drainage_area_km2": 417.0
+        },
+        {
+          "code": "86746900",
+          "name": "PONTE RIO FORQUETINHA",
+          "network": "ANA",
+          "drainage_area_km2": 405.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_19_RIO_TAQUARI_MIRIM",
+      "objectid": 48,
+      "name": "Rio Taquari-Mirim",
+      "ug": "Baixo Taquari-Antas",
+      "area_km2_epsg31982": 837.559,
+      "downstream_subbasin": "Baixo Taquari",
+      "rain_station_count": 0,
+      "flow_station_count": 6,
+      "flow_control_candidates": [
+        {
+          "code": "86890000",
+          "name": "CAPITÃO MIGUEL - MONTANTE",
+          "network": "ANA",
+          "drainage_area_km2": 24600.0
+        },
+        {
+          "code": "86890001",
+          "name": "CAPITÃO MIGUEL - JUSANTE",
+          "network": "ANA",
+          "drainage_area_km2": 24600.0
+        },
+        {
+          "code": "86895000",
+          "name": "PORTO MARIANTE",
+          "network": "ANA",
+          "drainage_area_km2": 24600.0
+        },
+        {
+          "code": "86895001",
+          "name": "PORTO MARIANTE",
+          "network": "ANA",
+          "drainage_area_km2": 24600.0
+        },
+        {
+          "code": "86900000",
+          "name": "PORTO GOMES",
+          "network": "ANA",
+          "drainage_area_km2": 24600.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_20_RIO_TAINHAS",
+      "objectid": 49,
+      "name": "Rio Tainhas",
+      "ug": "Alto Taquari-Antas",
+      "area_km2_epsg31982": 1454.025,
+      "downstream_subbasin": "Arroio São Tomé/Bagual",
+      "rain_station_count": 4,
+      "flow_station_count": 6,
+      "flow_control_candidates": [
+        {
+          "code": "86160010",
+          "name": "PASSO TAINHAS JAQUIRANA",
+          "network": "ANA",
+          "drainage_area_km2": 26429.7
+        },
+        {
+          "code": "86102000",
+          "name": "PCH PASSO DO MEIO MONTANTE TAINHAS",
+          "network": "ANA",
+          "drainage_area_km2": 1400.0
+        },
+        {
+          "code": "86160000",
+          "name": "PASSO TAINHAS",
+          "network": "ANA",
+          "drainage_area_km2": 1120.0
+        },
+        {
+          "code": "86140000",
+          "name": "PASSO DO S",
+          "network": "ANA",
+          "drainage_area_km2": 704.0
+        },
+        {
+          "code": "86120000",
+          "name": "TAINHAS",
+          "network": "ANA",
+          "drainage_area_km2": 207.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_21_RIO_FAO",
+      "objectid": 50,
+      "name": "Rio Fão",
+      "ug": "Forqueta",
+      "area_km2_epsg31982": 1256.82,
+      "downstream_subbasin": "Rio Forqueta",
+      "rain_station_count": 4,
+      "flow_station_count": 4,
+      "flow_control_candidates": [
+        {
+          "code": "86748000",
+          "name": "PCH USINA DO FÃO JUSANTE",
+          "network": "ANA",
+          "drainage_area_km2": 124.0
+        },
+        {
+          "code": "86750000",
+          "name": "USINA SOLEDADE",
+          "network": "ANA",
+          "drainage_area_km2": 119.0
+        },
+        {
+          "code": "86760000",
+          "name": "RIACHO FÃO",
+          "network": "ANA",
+          "drainage_area_km2": 26.0
+        },
+        {
+          "code": "86748001",
+          "name": "CGH SOLEDADE BARRAMENTO",
+          "network": "ANA",
+          "drainage_area_km2": null
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_22_ARROIO_SECA",
+      "objectid": 51,
+      "name": "Arroio Seca",
+      "ug": "Baixo Taquari-Antas",
+      "area_km2_epsg31982": 524.214,
+      "downstream_subbasin": "Arroio Sampaio/Estrela",
+      "rain_station_count": 0,
+      "flow_station_count": 12,
+      "flow_control_candidates": [
+        {
+          "code": "86879000",
+          "name": "LAJEADO",
+          "network": "ANA",
+          "drainage_area_km2": 23272.0
+        },
+        {
+          "code": "86880050",
+          "name": "PICADA DO CARNEIRO",
+          "network": "ANA",
+          "drainage_area_km2": 22600.0
+        },
+        {
+          "code": "86880060",
+          "name": "ESTRELA - EH1",
+          "network": "ANA",
+          "drainage_area_km2": 22600.0
+        },
+        {
+          "code": "86880065",
+          "name": "ESTRELA - EH2",
+          "network": "ANA",
+          "drainage_area_km2": 22600.0
+        },
+        {
+          "code": "86790000",
+          "name": "RIO TAQUARI (Arroio do Meio)",
+          "network": "ANA",
+          "drainage_area_km2": 19757.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_23_ARROIO_DO_INFERNO",
+      "objectid": 52,
+      "name": "Arroio do Inferno",
+      "ug": "Médio Taquari-Antas",
+      "area_km2_epsg31982": 588.081,
+      "downstream_subbasin": "Rio Burati/Arroio Retiro",
+      "rain_station_count": 3,
+      "flow_station_count": 9,
+      "flow_control_candidates": [
+        {
+          "code": "86329000",
+          "name": "RIO DAS ANTAS (Nova Roma do Sul)",
+          "network": "ANA",
+          "drainage_area_km2": 8230.0
+        },
+        {
+          "code": "86330000",
+          "name": "LINHA REPÚBLICA",
+          "network": "ANA",
+          "drainage_area_km2": 8230.0
+        },
+        {
+          "code": "86329001",
+          "name": "NOVA ROMA/FARROUPILHA",
+          "network": "ANA",
+          "drainage_area_km2": 8177.0
+        },
+        {
+          "code": "86310000",
+          "name": "PCH CASTRO ALVES",
+          "network": "ANA",
+          "drainage_area_km2": 7760.0
+        },
+        {
+          "code": "86306000",
+          "name": "UHE CASTRO ALVES ALÇA",
+          "network": "ANA",
+          "drainage_area_km2": 7748.3
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_24_RIO_SAO_MARCOS",
+      "objectid": 53,
+      "name": "Rio São Marcos",
+      "ug": "Médio Taquari-Antas",
+      "area_km2_epsg31982": 511.558,
+      "downstream_subbasin": "Arroio do Inferno",
+      "rain_station_count": 3,
+      "flow_station_count": 7,
+      "flow_control_candidates": [
+        {
+          "code": "86298000",
+          "name": "UHE CASTRO ALVES RS-122",
+          "network": "ANA",
+          "drainage_area_km2": 7370.0
+        },
+        {
+          "code": "86297965",
+          "name": "PCH RIO SÃO MARCOS JUSANTE",
+          "network": "ANA",
+          "drainage_area_km2": 400.0
+        },
+        {
+          "code": "86281000",
+          "name": "PCH RIO SÃO MARCOS JUSANTE DESATIVADA",
+          "network": "ANA",
+          "drainage_area_km2": 259.0
+        },
+        {
+          "code": "86280000",
+          "name": "USINA SÃO MARCOS",
+          "network": "ANA",
+          "drainage_area_km2": 141.0
+        },
+        {
+          "code": "86260000",
+          "name": "ARROIO FAXINAL (SAMAE) CAXIAS",
+          "network": "ANA",
+          "drainage_area_km2": 49.1
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_25_ARROIO_BIAZUS",
+      "objectid": 54,
+      "name": "Arroio Biazus",
+      "ug": "Médio Taquari-Antas",
+      "area_km2_epsg31982": 203.138,
+      "downstream_subbasin": "Arroio do Inferno",
+      "rain_station_count": 0,
+      "flow_station_count": 0,
+      "flow_control_candidates": [],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_26_ALTO_RIO_FORQUETA",
+      "objectid": 55,
+      "name": "Alto Rio Forqueta",
+      "ug": "Forqueta",
+      "area_km2_epsg31982": 792.999,
+      "downstream_subbasin": "Rio Forqueta",
+      "rain_station_count": 6,
+      "flow_station_count": 9,
+      "flow_control_candidates": [
+        {
+          "code": "86745000",
+          "name": "PASSO DO COIMBRA",
+          "network": "ANA",
+          "drainage_area_km2": 791.0
+        },
+        {
+          "code": "86744110",
+          "name": "PCH SALTO FORQUETA JUSANTE",
+          "network": "ANA",
+          "drainage_area_km2": 661.0
+        },
+        {
+          "code": "86743950",
+          "name": "PCH SALTO FORQUETA ALÇA",
+          "network": "ANA",
+          "drainage_area_km2": 647.0
+        },
+        {
+          "code": "86744000",
+          "name": "PCH SALTO FORQUETA JUSANTE DESATIVADA",
+          "network": "ANA",
+          "drainage_area_km2": 647.0
+        },
+        {
+          "code": "86743900",
+          "name": "PCH SALTO FORQUETA BARRAMENTO",
+          "network": "ANA",
+          "drainage_area_km2": 600.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_27_MEDIO_RIO_GUAPORE",
+      "objectid": 56,
+      "name": "Médio Rio Guaporé",
+      "ug": "Guaporé",
+      "area_km2_epsg31982": 559.133,
+      "downstream_subbasin": "Baixo Rio Guaporé",
+      "rain_station_count": 8,
+      "flow_station_count": 7,
+      "flow_control_candidates": [
+        {
+          "code": "86555000",
+          "name": "CGH GUAPORÉ JUSANTE",
+          "network": "ANA",
+          "drainage_area_km2": 2100.0
+        },
+        {
+          "code": "86545000",
+          "name": "CGH GUAPORÉ MONTANTE 1",
+          "network": "ANA",
+          "drainage_area_km2": 2060.0
+        },
+        {
+          "code": "86555800",
+          "name": "RIO GUAPORÉ (Guaporé)",
+          "network": "ANA",
+          "drainage_area_km2": 2042.0
+        },
+        {
+          "code": "86560000",
+          "name": "LINHA COLOMBO",
+          "network": "ANA",
+          "drainage_area_km2": 2030.0
+        },
+        {
+          "code": "86550000",
+          "name": "PCH GUAPORÉ",
+          "network": "ANA",
+          "drainage_area_km2": 2010.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_28_BAIXO_RIO_CARREIRO",
+      "objectid": 57,
+      "name": "Baixo Rio Carreiro",
+      "ug": "Carreiro",
+      "area_km2_epsg31982": 683.003,
+      "downstream_subbasin": "Arroio Marrecão",
+      "rain_station_count": 11,
+      "flow_station_count": 13,
+      "flow_control_candidates": [
+        {
+          "code": "86502700",
+          "name": "RIO CARREIRO (Cotiporã)",
+          "network": "ANA",
+          "drainage_area_km2": 2469.0
+        },
+        {
+          "code": "86507220",
+          "name": "COTIPORÃO/DOIS LAJEADOS",
+          "network": "ANA",
+          "drainage_area_km2": 2456.0
+        },
+        {
+          "code": "86507000",
+          "name": "PCH COTIPORÃ JUSANTE",
+          "network": "ANA",
+          "drainage_area_km2": 2340.0
+        },
+        {
+          "code": "86506000",
+          "name": "PCH COTIPORÃ BARRAMENTO",
+          "network": "ANA",
+          "drainage_area_km2": 2320.0
+        },
+        {
+          "code": "86505500",
+          "name": "PCH LINHA EMILIA JUSANTE",
+          "network": "ANA",
+          "drainage_area_km2": 2290.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_29_BAIXO_RIO_GUAPORE",
+      "objectid": 58,
+      "name": "Baixo Rio Guaporé",
+      "ug": "Guaporé",
+      "area_km2_epsg31982": 387.837,
+      "downstream_subbasin": "Arroio Marrecão",
+      "rain_station_count": 3,
+      "flow_station_count": 4,
+      "flow_control_candidates": [
+        {
+          "code": "86581000",
+          "name": "MUÇUM/ENCANTADO",
+          "network": "ANA",
+          "drainage_area_km2": 2489.0
+        },
+        {
+          "code": "86580000",
+          "name": "SANTA LÚCIA",
+          "network": "ANA",
+          "drainage_area_km2": 2470.0
+        },
+        {
+          "code": "86580001",
+          "name": "SANTA LÚCIA",
+          "network": "ANA",
+          "drainage_area_km2": 2470.0
+        },
+        {
+          "code": "86595000",
+          "name": "BARRA DO ZEFERINO",
+          "network": "ANA",
+          "drainage_area_km2": 2430.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_30_MEDIO_RIO_CARREIRO",
+      "objectid": 59,
+      "name": "Médio Rio Carreiro",
+      "ug": "Carreiro",
+      "area_km2_epsg31982": 630.792,
+      "downstream_subbasin": "Baixo Rio Carreiro",
+      "rain_station_count": 14,
+      "flow_station_count": 20,
+      "flow_control_candidates": [
+        {
+          "code": "86491000",
+          "name": "PCH CAÇADOR JUSANTE",
+          "network": "ANA",
+          "drainage_area_km2": 2118.0
+        },
+        {
+          "code": "86488000",
+          "name": "PCH CAÇADOR MONTANTE",
+          "network": "ANA",
+          "drainage_area_km2": 2090.0
+        },
+        {
+          "code": "86498000",
+          "name": "PCH AUTÓDROMO JUSANTE DESATIVADA",
+          "network": "ANA",
+          "drainage_area_km2": 1820.0
+        },
+        {
+          "code": "86500000",
+          "name": "PASSO CARREIRO",
+          "network": "ANA",
+          "drainage_area_km2": 1820.0
+        },
+        {
+          "code": "86500001",
+          "name": "PASSO CARREIRO",
+          "network": "ANA",
+          "drainage_area_km2": 1820.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_31_RIO_DA_PRATA",
+      "objectid": 60,
+      "name": "Rio da Prata",
+      "ug": "Prata",
+      "area_km2_epsg31982": 729.812,
+      "downstream_subbasin": "Rio Burati/Arroio Retiro",
+      "rain_station_count": 6,
+      "flow_station_count": 15,
+      "flow_control_candidates": [
+        {
+          "code": "86447200",
+          "name": "RIO DA PRATA (Nova Roma do Sul)",
+          "network": "ANA",
+          "drainage_area_km2": 3785.0
+        },
+        {
+          "code": "86447000",
+          "name": "UHE MONTE CLARO BALSA DO PRATA",
+          "network": "ANA",
+          "drainage_area_km2": 3750.0
+        },
+        {
+          "code": "86446000",
+          "name": "PCH JARARACA JUSANTE",
+          "network": "ANA",
+          "drainage_area_km2": 3730.0
+        },
+        {
+          "code": "86445500",
+          "name": "PCH JARARACA ALÇA",
+          "network": "ANA",
+          "drainage_area_km2": 3660.0
+        },
+        {
+          "code": "86125500",
+          "name": "PCH JARARACA BARRAMENTO",
+          "network": "ANA",
+          "drainage_area_km2": 3658.7
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    },
+    {
+      "id": "SB_32_BAIXO_RIO_TURVO",
+      "objectid": 61,
+      "name": "Baixo Rio Turvo",
+      "ug": "Prata",
+      "area_km2_epsg31982": 566.273,
+      "downstream_subbasin": "Rio da Prata",
+      "rain_station_count": 6,
+      "flow_station_count": 6,
+      "flow_control_candidates": [
+        {
+          "code": "86410050",
+          "name": "PCH DA ILHA BALSA DO TURVO",
+          "network": "ANA",
+          "drainage_area_km2": 3000.0
+        },
+        {
+          "code": "86410000",
+          "name": "PASSO BARRA DO GUAIAVEIRA",
+          "network": "ANA",
+          "drainage_area_km2": 2820.0
+        },
+        {
+          "code": "86410001",
+          "name": "PROTÁSIO ALVES/IPÊ",
+          "network": "ANA",
+          "drainage_area_km2": 2820.0
+        },
+        {
+          "code": "86372000",
+          "name": "CGH SALTINHO JUSANTE",
+          "network": "ANA",
+          "drainage_area_km2": 2490.0
+        },
+        {
+          "code": "86640900",
+          "name": "PUTINGA",
+          "network": "ANA",
+          "drainage_area_km2": 28.0
+        }
+      ],
+      "hec_role": "management_enquadramento_unit",
+      "not_hec_computational_unit": true,
+      "routing_status": "coarse_connectivity_audit_only"
+    }
+  ],
+  "topology_edges": [
+    {
+      "upstream_index": 0,
+      "upstream": "Rio Quebra-dentes/Arroio Mulada",
+      "downstream_index": 22,
+      "downstream": "Arroio do Inferno",
+      "evidence_count": 2,
+      "max_area_up_km2": 6531.65558907,
+      "crossing_fids": [
+        1868709,
+        2988347
+      ]
+    },
+    {
+      "upstream_index": 1,
+      "upstream": "Arroio São Tomé/Bagual",
+      "downstream_index": 0,
+      "downstream": "Rio Quebra-dentes/Arroio Mulada",
+      "evidence_count": 1,
+      "max_area_up_km2": 4207.97415878,
+      "crossing_fids": [
+        644180
+      ]
+    },
+    {
+      "upstream_index": 2,
+      "upstream": "Arroio Jacaré/Augusta",
+      "downstream_index": 21,
+      "downstream": "Arroio Seca",
+      "evidence_count": 1,
+      "max_area_up_km2": 19165.71894481,
+      "crossing_fids": [
+        990494
+      ]
+    },
+    {
+      "upstream_index": 3,
+      "upstream": "Arroio Marrecão",
+      "downstream_index": 2,
+      "downstream": "Arroio Jacaré/Augusta",
+      "evidence_count": 2,
+      "max_area_up_km2": 15972.74438719,
+      "crossing_fids": [
+        1218724,
+        5332058
+      ]
+    },
+    {
+      "upstream_index": 4,
+      "upstream": "Arroio Castelhano",
+      "downstream_index": 18,
+      "downstream": "Rio Taquari-Mirim",
+      "evidence_count": 1,
+      "max_area_up_km2": 701.69870765,
+      "crossing_fids": [
+        1904590
+      ]
+    },
+    {
+      "upstream_index": 5,
+      "upstream": "Arroio Sampaio/Estrela",
+      "downstream_index": 6,
+      "downstream": "Baixo Taquari",
+      "evidence_count": 2,
+      "max_area_up_km2": 24522.80006606,
+      "crossing_fids": [
+        266400,
+        1813848
+      ]
+    },
+    {
+      "upstream_index": 6,
+      "upstream": "Baixo Taquari",
+      "downstream_index": 18,
+      "downstream": "Rio Taquari-Mirim",
+      "evidence_count": 1,
+      "max_area_up_km2": 24534.45873456,
+      "crossing_fids": [
+        308880
+      ]
+    },
+    {
+      "upstream_index": 7,
+      "upstream": "Arroio Boa Vista",
+      "downstream_index": 5,
+      "downstream": "Arroio Sampaio/Estrela",
+      "evidence_count": 1,
+      "max_area_up_km2": 578.85188991,
+      "crossing_fids": [
+        1414866
+      ]
+    },
+    {
+      "upstream_index": 8,
+      "upstream": "Arroio Pinheiro Alto",
+      "downstream_index": 1,
+      "downstream": "Arroio São Tomé/Bagual",
+      "evidence_count": 1,
+      "max_area_up_km2": 2013.40169888,
+      "crossing_fids": [
+        4956056
+      ]
+    },
+    {
+      "upstream_index": 9,
+      "upstream": "Rio Camisas",
+      "downstream_index": 8,
+      "downstream": "Arroio Pinheiro Alto",
+      "evidence_count": 2,
+      "max_area_up_km2": 837.02157544,
+      "crossing_fids": [
+        1474300,
+        4534210
+      ]
+    },
+    {
+      "upstream_index": 10,
+      "upstream": "Alto Rio das Antas",
+      "downstream_index": 9,
+      "downstream": "Rio Camisas",
+      "evidence_count": 2,
+      "max_area_up_km2": 497.54463691,
+      "crossing_fids": [
+        1014359,
+        3989429
+      ]
+    },
+    {
+      "upstream_index": 11,
+      "upstream": "Alto Rio Turvo",
+      "downstream_index": 31,
+      "downstream": "Baixo Rio Turvo",
+      "evidence_count": 3,
+      "max_area_up_km2": 2482.92443786,
+      "crossing_fids": [
+        946135,
+        2935852,
+        3691010
+      ]
+    },
+    {
+      "upstream_index": 12,
+      "upstream": "Lajeado Grande",
+      "downstream_index": 0,
+      "downstream": "Rio Quebra-dentes/Arroio Mulada",
+      "evidence_count": 1,
+      "max_area_up_km2": 946.34232455,
+      "crossing_fids": [
+        684920
+      ]
+    },
+    {
+      "upstream_index": 13,
+      "upstream": "Rio Burati/Arroio Retiro",
+      "downstream_index": 3,
+      "downstream": "Arroio Marrecão",
+      "evidence_count": 1,
+      "max_area_up_km2": 12918.65592517,
+      "crossing_fids": [
+        2560104
+      ]
+    },
+    {
+      "upstream_index": 14,
+      "upstream": "Rio Tega",
+      "downstream_index": 22,
+      "downstream": "Arroio do Inferno",
+      "evidence_count": 38,
+      "max_area_up_km2": 7717.96191121,
+      "crossing_fids": [
+        2581,
+        151964,
+        556506,
+        1027667,
+        1178245,
+        1392604,
+        1467424,
+        1474266
+      ]
+    },
+    {
+      "upstream_index": 15,
+      "upstream": "Alto Rio Carreiro",
+      "downstream_index": 29,
+      "downstream": "Médio Rio Carreiro",
+      "evidence_count": 2,
+      "max_area_up_km2": 677.99659376,
+      "crossing_fids": [
+        3039282,
+        5009312
+      ]
+    },
+    {
+      "upstream_index": 16,
+      "upstream": "Alto Rio Guaporé",
+      "downstream_index": 26,
+      "downstream": "Médio Rio Guaporé",
+      "evidence_count": 1,
+      "max_area_up_km2": 1537.54816618,
+      "crossing_fids": [
+        4438470
+      ]
+    },
+    {
+      "upstream_index": 17,
+      "upstream": "Rio Forqueta",
+      "downstream_index": 21,
+      "downstream": "Arroio Seca",
+      "evidence_count": 2,
+      "max_area_up_km2": 2845.59935275,
+      "crossing_fids": [
+        3377174,
+        3999116
+      ]
+    },
+    {
+      "upstream_index": 18,
+      "upstream": "Rio Taquari-Mirim",
+      "downstream_index": 6,
+      "downstream": "Baixo Taquari",
+      "evidence_count": 3,
+      "max_area_up_km2": 24548.0152066,
+      "crossing_fids": [
+        381318,
+        1869279,
+        4946093
+      ]
+    },
+    {
+      "upstream_index": 19,
+      "upstream": "Rio Tainhas",
+      "downstream_index": 1,
+      "downstream": "Arroio São Tomé/Bagual",
+      "evidence_count": 1,
+      "max_area_up_km2": 1453.65615243,
+      "crossing_fids": [
+        3975229
+      ]
+    },
+    {
+      "upstream_index": 20,
+      "upstream": "Rio Fão",
+      "downstream_index": 17,
+      "downstream": "Rio Forqueta",
+      "evidence_count": 5,
+      "max_area_up_km2": 1273.88247343,
+      "crossing_fids": [
+        1518261,
+        3201113,
+        3898757,
+        4652944,
+        5061817
+      ]
+    },
+    {
+      "upstream_index": 21,
+      "upstream": "Arroio Seca",
+      "downstream_index": 5,
+      "downstream": "Arroio Sampaio/Estrela",
+      "evidence_count": 1,
+      "max_area_up_km2": 22542.05953516,
+      "crossing_fids": [
+        5449736
+      ]
+    },
+    {
+      "upstream_index": 22,
+      "upstream": "Arroio do Inferno",
+      "downstream_index": 13,
+      "downstream": "Rio Burati/Arroio Retiro",
+      "evidence_count": 1,
+      "max_area_up_km2": 8263.9625864,
+      "crossing_fids": [
+        1763599
+      ]
+    },
+    {
+      "upstream_index": 23,
+      "upstream": "Rio São Marcos",
+      "downstream_index": 22,
+      "downstream": "Arroio do Inferno",
+      "evidence_count": 14,
+      "max_area_up_km2": 7365.35528912,
+      "crossing_fids": [
+        146618,
+        172079,
+        643182,
+        820850,
+        854560,
+        2186150,
+        2713756,
+        2924794
+      ]
+    },
+    {
+      "upstream_index": 24,
+      "upstream": "Arroio Biazus",
+      "downstream_index": 22,
+      "downstream": "Arroio do Inferno",
+      "evidence_count": 12,
+      "max_area_up_km2": 8249.71585116,
+      "crossing_fids": [
+        595310,
+        950452,
+        978221,
+        2145855,
+        2833309,
+        2931935,
+        3337409,
+        3623851
+      ]
+    },
+    {
+      "upstream_index": 25,
+      "upstream": "Alto Rio Forqueta",
+      "downstream_index": 17,
+      "downstream": "Rio Forqueta",
+      "evidence_count": 1,
+      "max_area_up_km2": 793.21286241,
+      "crossing_fids": [
+        2584118
+      ]
+    },
+    {
+      "upstream_index": 26,
+      "upstream": "Médio Rio Guaporé",
+      "downstream_index": 28,
+      "downstream": "Baixo Rio Guaporé",
+      "evidence_count": 2,
+      "max_area_up_km2": 2095.71006728,
+      "crossing_fids": [
+        731571,
+        5304654
+      ]
+    },
+    {
+      "upstream_index": 27,
+      "upstream": "Baixo Rio Carreiro",
+      "downstream_index": 3,
+      "downstream": "Arroio Marrecão",
+      "evidence_count": 1,
+      "max_area_up_km2": 2564.1905369,
+      "crossing_fids": [
+        4665424
+      ]
+    },
+    {
+      "upstream_index": 28,
+      "upstream": "Baixo Rio Guaporé",
+      "downstream_index": 3,
+      "downstream": "Arroio Marrecão",
+      "evidence_count": 1,
+      "max_area_up_km2": 2486.13187525,
+      "crossing_fids": [
+        3148109
+      ]
+    },
+    {
+      "upstream_index": 29,
+      "upstream": "Médio Rio Carreiro",
+      "downstream_index": 27,
+      "downstream": "Baixo Rio Carreiro",
+      "evidence_count": 2,
+      "max_area_up_km2": 1875.11444241,
+      "crossing_fids": [
+        1286032,
+        3188617
+      ]
+    },
+    {
+      "upstream_index": 30,
+      "upstream": "Rio da Prata",
+      "downstream_index": 13,
+      "downstream": "Rio Burati/Arroio Retiro",
+      "evidence_count": 1,
+      "max_area_up_km2": 3775.9878373,
+      "crossing_fids": [
+        3746331
+      ]
+    },
+    {
+      "upstream_index": 31,
+      "upstream": "Baixo Rio Turvo",
+      "downstream_index": 30,
+      "downstream": "Rio da Prata",
+      "evidence_count": 5,
+      "max_area_up_km2": 3045.97062098,
+      "crossing_fids": [
+        1018448,
+        2777533,
+        4121461,
+        4760178,
+        5240681
+      ]
+    }
+  ]
+}

@@ -62,8 +62,8 @@ a{color:var(--green);text-decoration:none}
 .section-head{display:flex;align-items:end;justify-content:space-between;gap:15px;margin:0 2px 9px}
 .section-head h2{margin:0;font:700 1.35rem/1.1 "Source Serif 4",Georgia,serif}
 .section-head p{margin:0;color:var(--muted);font-size:12px;max-width:68ch;text-align:right}
-.two{grid-template-columns:minmax(0,1.55fr) minmax(280px,.7fr)}
-#map{height:min(68vh,640px);min-height:440px;border-radius:14px;border:1px solid var(--line);overflow:hidden}
+.two{grid-template-columns:minmax(0,1.9fr) minmax(340px,.72fr)}
+#map{height:clamp(500px,64vh,680px);min-height:500px;border-radius:14px;border:1px solid var(--line);overflow:hidden;background:#e9efeb}
 .map-tools{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px}
 .chip{border:1px solid var(--line);background:white;border-radius:999px;padding:6px 10px;font-size:12px;color:#4f6359}
 .chip strong{color:var(--ink)}
@@ -127,6 +127,74 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
 .model-node-label{background:rgba(255,250,239,.95);border:1px solid #ddbd83;border-radius:8px;padding:3px 6px;font:700 10px Inter,sans-serif;color:#61420f;box-shadow:0 1px 5px rgba(0,0,0,.10)}
 .node-legend{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:9px}
 .node-legend span{font-size:11px;color:var(--muted)}
+/* Rede hidrológica: menos ruído, hierarquia clara e detalhe apenas do item selecionado. */
+.map-section-head{align-items:flex-end}
+.map-section-head>div{min-width:0}
+.map-eyebrow{margin:0 0 5px;font-size:10px}
+.map-card{padding:12px}
+.map-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.map-toolbar .node-legend{margin:0;gap:6px;align-items:center}
+.map-toolbar .node-legend span{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #dbe5df;border-radius:999px;background:#f8fbf9;color:#52665c;font-size:10px;font-weight:650}
+.legend-symbol{display:inline-block;flex:0 0 auto}
+.legend-symbol.telemetry{width:9px;height:9px;border-radius:50%;background:#176149;box-shadow:0 0 0 2px #d9ece3}
+.legend-symbol.telemetry::after{content:"";display:block}
+.legend-symbol.model{width:9px;height:9px;background:#98661d;transform:rotate(45deg);border-radius:1px}
+.legend-symbol.ug{width:14px;height:0;border-top:2px solid #204f3c}
+.legend-symbol.rain{width:18px;height:7px;border-radius:3px;background:linear-gradient(90deg,#dceee5,#68ad88,#0f523b)}
+.map-actions{display:flex;gap:6px;flex:0 0 auto}
+.map-action{border:1px solid #c9d9d0;background:#fff;color:#355247;border-radius:9px;padding:6px 9px;font:700 10px Inter,sans-serif;cursor:pointer}
+.map-action:hover{background:#edf5f0;border-color:#91b7a3}
+.map-readout{display:flex;align-items:baseline;gap:8px;margin-top:8px;padding:8px 10px;border:1px solid #d8e3dc;background:#f7faf8;border-radius:10px}
+.map-readout strong{font-size:11px;white-space:nowrap}
+.map-readout span{color:var(--muted);font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.node-panel{display:flex;flex-direction:column;min-height:0;padding:14px}
+.panel-kicker{display:block;color:var(--green);font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;margin:0 0 6px}
+.node-detail{border:1px solid #c8d9cf;background:#f8fbf9;border-radius:14px;padding:13px;margin:0 0 13px;box-shadow:none}
+.node-detail-title{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px}
+.node-detail-title h3{margin:0;font:750 1.08rem/1.15 "Source Serif 4",Georgia,serif}
+.node-detail-title .node-code{font:600 9px ui-monospace,monospace;color:var(--muted);padding:4px 6px;border-radius:7px;background:#edf3ef}
+.node-detail-sub{margin:3px 0 0;color:var(--muted);font-size:10px}
+.node-kpis{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.node-kpi{background:white;border:1px solid #dbe6df;border-radius:10px;padding:9px}
+.node-kpi b{display:block;font-size:17px;line-height:1.05}
+.node-kpi span{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.node-kpi small{display:block;margin-top:4px;color:var(--muted);font-size:8.5px;line-height:1.25}
+.node-kpi.is-empty b{font-size:13px;color:#66776f}
+.node-source-line{margin:9px 0 0;padding-top:8px;border-top:1px solid #dde7e1;color:var(--muted);font-size:9.5px;line-height:1.35}
+.node-list-head{display:flex;align-items:center;justify-content:space-between;gap:9px;margin:0 0 8px}
+.node-list-head h3{margin:0}
+.node-list-head small{display:block;margin-top:2px;color:var(--muted);font-size:9px}
+.node-health-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 0 9px}
+.node-health-summary span{display:block;padding:7px 8px;border:1px solid #d9e3dd;border-radius:9px;background:#f8fbf9;color:var(--muted);font-size:8.5px;line-height:1.2}
+.node-health-summary b{display:block;margin-bottom:2px;color:var(--ink);font-size:13px;font-variant-numeric:tabular-nums}
+.node-health-summary .fresh{border-color:#c5decf;background:#eef8f2}
+.node-health-summary .delayed{border-color:#ead8a8;background:#fff9ea}
+.node-health-summary .missing{border-color:#e3d7d5;background:#faf6f5}
+.node-search{width:150px;min-width:0;border:1px solid #cfdcd5;background:#fff;border-radius:9px;padding:7px 9px;color:var(--ink);font:500 10px Inter,sans-serif;outline:none}
+.node-search:focus{border-color:#73a58d;box-shadow:0 0 0 3px rgba(23,97,73,.08)}
+.node-list{display:grid;gap:6px;max-height:470px;overflow:auto;padding-right:3px}
+.node-row{border:1px solid #dce5df;background:#fff;border-radius:11px;padding:8px 9px;cursor:pointer;transition:border-color .12s ease,background .12s ease}
+.node-row:hover{border-color:#98b9a8;background:#fbfdfb;transform:none}
+.node-row.active{border-color:var(--green);background:#f3f8f5;box-shadow:inset 3px 0 0 var(--green)}
+.node-row .name{font-weight:750;font-size:11px}
+.node-row .code{font-size:8.5px}
+.node-row .vals{gap:5px;margin-top:5px}
+.node-row .vals span{font-size:9.5px;background:#f2f6f3;border-radius:7px;padding:3px 5px}
+.node-row .vals .age-current{color:#176149;background:#eaf5ee}
+.node-row .vals .age-attention{color:#7b5a13;background:#fff5dd}
+.node-row .vals .age-stale{color:#8f3d35;background:#fdecea}
+.node-row .vals .age-unknown{color:#64736c;background:#eef2ef}
+.hydro-node-wrap,.model-node-wrap{display:grid;place-items:center;width:22px;height:22px;transform:none}
+.hydro-node-dot{width:13px;height:13px;border-radius:50%;background:#176149;border:2px solid #fff;box-shadow:0 1px 7px rgba(0,0,0,.28)}
+.hydro-node-dot.age-current{background:#16875d}
+.hydro-node-dot.age-attention{background:#c99218}
+.hydro-node-dot.age-delayed{background:#d97706}
+.hydro-node-dot.age-stale{background:#b9443d}
+.hydro-node-dot.age-unknown{background:#829188}
+.hydro-node-dot.target{width:18px;height:18px;background:#0b4936;box-shadow:0 0 0 3px rgba(255,255,255,.85),0 2px 9px rgba(0,0,0,.3)}
+.model-node-diamond{width:13px;height:13px;background:#98661d;border:2px solid #fff;box-shadow:0 1px 7px rgba(0,0,0,.28);transform:rotate(45deg)}
+.leaflet-control-layers{border:1px solid #cfdcd5!important;border-radius:10px!important;box-shadow:0 4px 14px rgba(22,48,37,.13)!important}
+.leaflet-control-layers-expanded{font:10px Inter,sans-serif;color:#334d42}
 .model-chart{width:100%;height:330px;display:block;background:#fbfdfb;border:1px solid var(--line);border-radius:14px}
 .model-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px}
 .badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 9px;font-size:11px;font-weight:800}
@@ -141,7 +209,7 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
 @media(max-width:700px){.model-kpis{grid-template-columns:1fr 1fr}.model-chart{height:290px}}
 
 @media(max-width:920px){.hero{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}.section-head{align-items:start;flex-direction:column}.section-head p{text-align:left}.nav{display:none}}
-@media(max-width:560px){.wrap{padding:10px 10px 34px}.topbar{top:6px}.metrics{grid-template-columns:1fr}.hero{padding-top:24px}#map{min-height:420px}.rain-summary{grid-template-columns:1fr}}
+@media(max-width:560px){.wrap{padding:10px 10px 34px}.topbar{top:6px}.metrics{grid-template-columns:1fr}.hero{padding-top:24px}#map{height:460px;min-height:460px}.rain-summary{grid-template-columns:1fr}.map-toolbar{align-items:flex-start;flex-direction:column}.map-actions{width:100%}.map-action{flex:1}.map-readout{display:block}.map-readout strong,.map-readout span{display:block;white-space:normal}.node-list-head{align-items:stretch;flex-direction:column}.node-search{width:100%}}
 </style>
 </head>
 <body>
@@ -186,11 +254,12 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
         <span class="badge warn" id="modelBadge">carregando</span>
       </div>
       <div class="model-kpis">
-        <div class="model-kpi"><span>Q atual pela curva-chave</span><b id="modelQobs">—</b></div>
-        <div class="model-kpi"><span>Q pico HEC-HMS</span><b id="modelQpeak">—</b></div>
+        <div class="model-kpi"><span>Q observado · curva-chave</span><b id="modelQobs">—</b></div>
+        <div class="model-kpi"><span>Q máximo HEC-HMS</span><b id="modelQpeak">—</b></div>
         <div class="model-kpi"><span>Nível observado</span><b id="modelNobs">—</b></div>
-        <div class="model-kpi"><span>ΔN HEC-HMS</span><b id="modelRise">—</b></div>
+        <div class="model-kpi"><span>ΔN máximo futuro</span><b id="modelRise">—</b></div>
       </div>
+      <div class="kpi-line" id="modelValidationAudit"></div>
       <svg id="modelChart" class="model-chart" viewBox="0 0 1000 330" preserveAspectRatio="none" aria-label="Hidrograma do modelo chuva-vazão"></svg>
       <div class="chart-legend">
         <span><i style="background:#176149"></i>Q Muçum · HEC-HMS</span>
@@ -198,7 +267,7 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
       </div>
       <div class="callout" style="margin-top:10px">
         <h3>Leitura do resultado</h3>
-        <p id="modelWarning">—</p>
+        <div id="modelWarning">—</div>
       </div>
       <div class="kpi-line" id="modelRainAudit"></div>
       <div class="table-wrap" style="margin-top:10px">
@@ -208,22 +277,37 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
   </section>
 
   <section class="section" id="mapa">
-    <div class="section-head"><h2>Nós hidrológicos · níveis e vazões</h2><p>Clique nos nós. O painel mostra nível, vazão quando existe conversão validada, idade da leitura, área de drenagem e origem do dado.</p></div>
+    <div class="section-head map-section-head">
+      <div><div class="eyebrow map-eyebrow">rede observacional + modelo</div><h2>Rede hidrológica da G040</h2></div>
+      <p>Todos os pontos permanecem disponíveis. O mapa abre limpo: telemetria + HEC-HMS + UGs; a chuva IFS fica disponível nas camadas sem cobrir a rede por padrão. A cor da telemetria indica a idade da leitura.</p>
+    </div>
     <div class="grid two" id="basinMapSection">
-      <article class="card">
-        <div class="node-legend"><span>● telemetria</span><span>◆ nó do modelo chuva–vazão</span><span>□ chuva IFS</span><span>contorno = UGs</span></div>
-        <div id="map"></div>
-        <div class="inspector" id="pointInspector"><h3 id="inspectorTitle">Mapa hidrológico</h3><p id="inspectorText">Clique em um nó para abrir nível, vazão e metadados.</p></div>
-      </article>
-      <article class="card">
-        <div class="node-detail" id="nodeDetail">
-          <h3>Selecione um nó</h3>
-          <p style="margin:0;color:var(--muted);font-size:12px">Muçum, Santa Tereza, Linha José Júlio, Carreiro, Prata e demais controles aparecem no mapa.</p>
+      <article class="card map-card">
+        <div class="map-toolbar">
+          <div class="node-legend" aria-label="Legenda do mapa">
+            <span><i class="legend-symbol telemetry"></i>telemetria</span>
+            <span><i class="legend-symbol model"></i>HEC-HMS</span>
+            <span><i class="legend-symbol rain"></i>chuva IFS</span>
+            <span><i class="legend-symbol ug"></i>UGs</span>
+          </div>
+          <div class="map-actions"><button class="map-action" id="fitBasin" type="button">Ver G040</button><button class="map-action" id="focusMucum" type="button">Muçum</button></div>
         </div>
-        <h3 class="panel-title">Nós principais</h3>
+        <div id="map"></div>
+        <div class="map-readout" id="pointInspector"><strong id="inspectorTitle">Mapa hidrológico</strong><span id="inspectorText">Selecione um ponto para consultar a leitura; nenhuma etiqueta fica permanentemente sobre o mapa.</span></div>
+      </article>
+      <article class="card node-panel">
+        <span class="panel-kicker">Nó selecionado</span>
+        <div class="node-detail" id="nodeDetail">
+          <div class="node-detail-title"><div><h3>Selecione um nó</h3><p class="node-detail-sub">Clique no mapa ou use a busca abaixo.</p></div></div>
+        </div>
+        <div class="node-list-head">
+          <div><h3 class="panel-title">Telemetria</h3><small id="nodeListCount">carregando nós…</small></div>
+          <input class="node-search" id="nodeSearch" type="search" placeholder="Buscar nome ou código" aria-label="Buscar nó hidrológico"/>
+        </div>
+        <div class="node-health-summary" id="nodeHealthSummary" aria-live="polite"></div>
         <div class="node-list" id="hydroNodeList"></div>
-        <details style="margin-top:14px">
-          <summary style="cursor:pointer;font-weight:700;font-size:12px">Inventário por UG</summary>
+        <details style="margin-top:12px">
+          <summary style="cursor:pointer;font-weight:700;font-size:11px">Inventário por UG</summary>
           <div class="side-list" id="ugInventory" style="margin-top:8px;max-height:260px"></div>
         </details>
       </article>
@@ -291,7 +375,12 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
 </div>
 
 <script>
-const DATA=__DATA__;
+let DATA=__DATA__;
+(async function boot(){
+try{
+  const latest=await fetch("plataforma_hec_twin_mucum_latest.json?ts="+Date.now(),{cache:"no-store"});
+  if(latest.ok)DATA=await latest.json();
+}catch(e){}
 const $=id=>document.getElementById(id);
 function fmt(v,d=0){if(v===null||v===undefined||Number.isNaN(Number(v)))return"—";return Number(v).toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d})}
 function brt(ts){if(!ts)return"—";try{return new Date(ts).toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}catch(e){return ts}}
@@ -300,7 +389,7 @@ const sr=DATA.spatial_rain||{}, sum=DATA.summary||{}, basin=DATA.basin||{}, skil
 const muc=nodes.find(n=>n.code==="86510000")||{};
 $("mArea").textContent=fmt(basin.area_km2,0);
 $("mNodes").textContent=fmt(nodes.length,0);
-$("mMucLevel").textContent=muc.level_cm!=null?fmt(muc.level_cm/100,2)+" m":"—";
+$("mMucLevel").textContent=plausibleNodeLevel(muc)?fmt(muc.level_cm/100,2)+" m":"—";
 $("mMucQ").textContent=muc.discharge_m3s!=null?fmt(muc.discharge_m3s,0):"—";
 $("rMinMax").textContent=fmt(sr.cell_total_min_mm,1)+"–"+fmt(sr.cell_total_max_mm,1)+" mm";
 $("rMedian").textContent=fmt(sr.cell_total_median_mm,1)+" mm";
@@ -309,27 +398,68 @@ $("rWindow").textContent=(sr.window&&sr.window.start_utc?brt(sr.window.start_utc
 $("statusRain").textContent=sr.available?(fmt(sr.intersecting_cells,0)+" células · "+pct(sr.coverage_ratio)+" da bacia"):"indisponível";
 $("spatialGate").textContent=sr.available?"pronta":"indisponível";
 $("updatedAt").textContent=brt(DATA.generated_at_utc);
-$("obsLevel").textContent=muc.level_cm!=null?fmt(muc.level_cm/100,2)+" m":(sum.observed_stage_cm!=null?fmt(sum.observed_stage_cm/100,2)+" m":"—");
+$("obsLevel").textContent=plausibleNodeLevel(muc)?fmt(muc.level_cm/100,2)+" m":(sum.observed_stage_cm!=null&&Number(sum.observed_stage_cm)>=0&&Number(sum.observed_stage_cm)<=5000?fmt(sum.observed_stage_cm/100,2)+" m":"—");
 $("obsWhen").textContent=muc.level_at_local?("leitura "+muc.level_at_local+" BRT"):(sum.observed_at_utc?("observado em "+brt(sum.observed_at_utc)):"telemetria indisponível");
 $("obsQ").textContent=muc.discharge_m3s!=null?fmt(muc.discharge_m3s,0):"—";
 
 function maxFinite(arr){const xs=(arr||[]).map(Number).filter(Number.isFinite);return xs.length?Math.max(...xs):null}
 $("modelGenerated").textContent=rr.generated_at_utc?("rodada "+brt(rr.generated_at_utc)):"sem rodada";
-const hecSpatial=rr.status==="hec_hms_4_13_spatial_ifs_ready";
-$("modelBadge").textContent=hecSpatial?"HEC-HMS 4.13 · IFS espacial":(rr.available?"resultado experimental":"sem resultado");
+const dualBoundary=rr.status==="hec_hms_4_13_dual_boundary_validated";
+const hecSpatial=rr.status==="hec_hms_4_13_spatial_ifs_warmup_ready"||dualBoundary;
+const hecBlocked=/blocked/i.test(String(rr.status||""));
+const blockers=rr.blocking_reasons_pt||((rr.validation||{}).blocking_reasons_pt)||[];
+if($("modelSubtitle"))$("modelSubtitle").textContent=dualBoundary
+ ? "HEC-HMS 4.13 com Linha José Júlio e Passo Carreiro como fronteiras observadas; ECMWF/IFS entra no futuro e nas áreas residuais."
+ : "HEC-HMS 4.13 com o campo ECMWF/IFS espacializado sobre a bacia contribuinte até Muçum.";
+$("modelBadge").textContent=dualBoundary?"HEC-HMS · LJJ + Carreiro observados":(hecSpatial?"HEC-HMS 4.13 · IFS espacial":(hecBlocked?"RODADA BLOQUEADA":(rr.available?"resultado experimental":"sem execução válida")));
 $("modelBadge").className="badge "+(hecSpatial?"ok":"warn");
-$("statusHydro").textContent=hecSpatial?"HEC-HMS 4.13 executado · IFS espacial":(rr.available?"resultado experimental disponível":"sem resultado");
+$("statusHydro").textContent=dualBoundary?"HEC-HMS validado · fronteiras observadas":(hecSpatial?"HEC-HMS 4.13 executado · IFS espacial":(hecBlocked?"HEC-HMS executado · saída bloqueada na validação":(rr.available?"resultado experimental disponível":"sem execução válida")));
 $("hydroDot").className="dot "+(hecSpatial?"ok":"wait");
-$("mainNotice").innerHTML=hecSpatial
- ? "<strong>Rodada espacial concluída:</strong> o hidrograma abaixo foi executado no HEC-HMS 4.13 com o campo IFS espacial. O produto por proxies ficou apenas na auditoria."
- : "<strong>Atenção:</strong> a execução HEC-HMS espacial não está disponível neste ciclo; o que houver abaixo é experimental.";
+$("mainNotice").innerHTML=dualBoundary
+ ? "<strong>Rodada preferencial validada:</strong> Linha José Júlio e Passo Carreiro entram como fronteiras observadas no HEC-HMS; a chuva prevista atua no futuro e nas áreas residuais. Todas as guardas iterativas passaram."
+ : hecSpatial
+ ? "<strong>Rodada espacial validada:</strong> o hidrograma abaixo foi executado no HEC-HMS 4.13 com o campo IFS espacial e passou pelas guardas do estado atual."
+ : hecBlocked
+   ? "<strong>Rodada executada, mas não publicável:</strong> o HEC-HMS rodou; a previsão foi bloqueada porque o estado aquecido não reproduziu o observado atual dentro das guardas. O gráfico abaixo mostra somente o candidato rejeitado para diagnóstico."
+   : "<strong>Atenção:</strong> não há execução HEC-HMS espacial válida neste ciclo.";
 $("modelQobs").textContent=rr.current_observed_q_rating_m3s!=null?fmt(rr.current_observed_q_rating_m3s,0)+" m³/s":"—";
-$("modelQpeak").textContent=maxFinite(rr.q_mucum_m3s)!=null?fmt(maxFinite(rr.q_mucum_m3s),0)+" m³/s":"—";
+$("modelQpeak").textContent=hecBlocked?"bloqueado":(maxFinite(rr.q_mucum_m3s)!=null?fmt(maxFinite(rr.q_mucum_m3s),0)+" m³/s":"—");
 $("modelNobs").textContent=rr.current_observed_stage_cm!=null?fmt(rr.current_observed_stage_cm/100,2)+" m":"—";
-$("modelRise").textContent=(rr.primary&&rr.primary.rise_cm!=null)?fmt(rr.primary.rise_cm,0)+" cm":"—";
-$("modelWarning").textContent=rr.warning_pt||"Resultado experimental.";
+$("modelRise").textContent=hecBlocked?"bloqueado":((rr.primary&&rr.primary.rise_cm!=null)?fmt(rr.primary.rise_cm,0)+" cm":"—");
+const vv=rr.validation||{}, fit6=vv.recent_hydrograph_6h||{}, fit12=vv.recent_hydrograph_12h||{};
+const modelT0=rr.model_stage_t0_cm!=null?Number(rr.model_stage_t0_cm):Number(vv.raw_warmed_stage_at_current_cm);
+const stageErr=rr.stage_error_at_t0_cm!=null?Number(rr.stage_error_at_t0_cm):Number(vv.stage_error_at_t0_cm);
+const qErr=rr.q_error_pct!=null?Number(rr.q_error_pct):Number(vv.q_error_pct);
+const obsTrend=Number(vv.observed_trend_last_1h_cm), modelTrend=Number(vv.model_trend_next_1h_cm);
+const validationAudit=$("modelValidationAudit");
+if(validationAudit){
+ const parts=[
+   Number.isFinite(modelT0)?("HEC em t0 <b>"+fmt(modelT0/100,2)+" m</b>"):null,
+   Number.isFinite(stageErr)?("erro t0 <b>"+(stageErr>=0?"+":"")+fmt(stageErr,1)+" cm</b>"):null,
+   Number.isFinite(qErr)?("erro Q <b>"+(qErr>=0?"+":"")+fmt(qErr,1)+"%</b>"):null,
+   Number.isFinite(obsTrend)&&Number.isFinite(modelTrend)?("tendência obs/HEC <b>"+fmt(obsTrend,1)+" / "+fmt(modelTrend,1)+" cm/h</b>"):null,
+   fit6.nse!=null?("NSE 6 h <b>"+fmt(fit6.nse,3)+"</b>"):null,
+   fit12.nse!=null?("NSE 12 h <b>"+fmt(fit12.nse,3)+"</b>"):null
+ ].filter(Boolean);
+ validationAudit.innerHTML=parts.map(x=>"<span>"+x+"</span>").join("");
+}
+const diagWarnings=rr.diagnostic_warnings_pt||vv.diagnostic_warnings_pt||[];
+$("modelWarning").innerHTML=hecBlocked
+ ? "<p style='margin:0 0 7px'><strong>Não é ausência de cálculo.</strong> É uma rodada rejeitada pela validação do estado inicial ou do ajuste recente; por isso pico e ΔN não são publicados como previsão.</p>"+
+   (blockers.length?"<ul style='margin:0;padding-left:18px'>"+blockers.slice(0,6).map(x=>"<li>"+x+"</li>").join("")+"</ul>":"")
+ : hecSpatial
+   ? "<p style='margin:0'><strong>Estado de lançamento validado.</strong> O gráfico parte do estado produzido pelo próprio HEC, sem deslocamento visual. "+
+     (Number.isFinite(stageErr)?"Erro de nível em t0: "+(stageErr>=0?"+":"")+fmt(stageErr,1)+" cm. ":"")+
+     (Number.isFinite(qErr)?"Erro de Q: "+(qErr>=0?"+":"")+fmt(qErr,1)+"%. ":"")+
+     ((rr.primary&&rr.primary.rise_cm===0)?"O maior nível do horizonte ocorre no próprio t0; não há novo máximo acima do estado HEC inicial nesta rodada.":"")+"</p>"+
+     (diagWarnings.length?"<details style='margin-top:8px'><summary>Diagnóstico do evento completo</summary><ul style='margin:6px 0 0;padding-left:18px'>"+diagWarnings.map(x=>"<li>"+x+"</li>").join("")+"</ul></details>":"")
+   : "<p style='margin:0'>"+(rr.warning_pt||"Resultado experimental.")+"</p>";
+if(dualBoundary){
+ if($("legendAntas"))$("legendAntas").innerHTML="<i style='background:#225d8d'></i>Linha José Júlio · fronteira observada";
+ if($("legendIbi"))$("legendIbi").innerHTML="<i style='background:#98661d'></i>Passo Carreiro · fronteira observada";
+}
 if($("legendAntas") && !(rr.q_antas_m3s||[]).length && !(((rr.nodes_model||{})["Zona_86472000_LIVE"]||{}).q_m3s||[]).length)$("legendAntas").style.display="none";
-if($("legendIbi") && !((((rr.nodes_model||{})["Zona_02851072_LIVE"]||{}).q_m3s)||[]).length)$("legendIbi").style.display="none";
+if($("legendIbi") && !(rr.q_carreiro_m3s||[]).length && !((((rr.nodes_model||{})["Zona_02851072_LIVE"]||{}).q_m3s)||[]).length)$("legendIbi").style.display="none";
 const audit=$("modelRainAudit");
 if(audit){
  const rz=rr.rain_zones||{};
@@ -365,8 +495,28 @@ function drawHydrograph(){
  const q1=(rr.q_mucum_m3s||[]).map(Number), tt=rr.time_utc||[];
  const mn=rr.nodes_model||{};
  const q2=((rr.q_antas_m3s||[]).length?(rr.q_antas_m3s||[]):((mn["Zona_86472000_LIVE"]||{}).q_m3s||[])).map(Number);
- const q3=((mn["Zona_02851072_LIVE"]||{}).q_m3s||[]).map(Number);
- if(!tt.length||!q1.length){svg.innerHTML="<text x='40' y='55' fill='#607168' font-size='18'>Sem série do modelo disponível.</text>";return}
+ const q3=((rr.q_carreiro_m3s||[]).length?(rr.q_carreiro_m3s||[]):((mn["Zona_02851072_LIVE"]||{}).q_m3s||[])).map(Number);
+ if((!tt.length||!q1.length)&&hecBlocked){
+   const dc=rr.diagnostic_candidate||{}, nt=dc.time_utc||[], nn=(dc.n_mucum_rating_cm||[]).map(Number);
+   const obs=Number(rr.current_observed_stage_cm), warmed=Number((rr.validation||{}).raw_warmed_stage_at_current_cm);
+   if(nt.length&&nn.length){
+     const W=1000,H=330,L=72,R=24,T=38,B=48;
+     const vals=[...nn,obs].filter(Number.isFinite), ymin=Math.min(...vals), ymax=Math.max(...vals);
+     const span=(ymax-ymin)||100,lo=Math.max(0,ymin-span*.08),hi=ymax+span*.10;
+     const x=i=>L+(W-L-R)*(i/(Math.max(1,nt.length-1))),y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
+     const path=nn.map((v,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(v).toFixed(1)).join(" ");
+     let s="<rect x='"+L+"' y='"+T+"' width='"+(W-L-R)+"' height='"+(H-T-B)+"' fill='#fffaf0' opacity='.55'/>";
+     for(let k=0;k<=4;k++){const yy=T+(H-T-B)*k/4,val=hi-(hi-lo)*k/4;s+="<line x1='"+L+"' y1='"+yy+"' x2='"+(W-R)+"' y2='"+yy+"' stroke='#e5ddd0'/><text x='10' y='"+(yy+4)+"' fill='#6d746f' font-size='12'>"+fmt(val/100,2)+" m</text>"}
+     if(Number.isFinite(obs)){const yo=y(obs);s+="<line x1='"+L+"' y1='"+yo+"' x2='"+(W-R)+"' y2='"+yo+"' stroke='#176149' stroke-width='2' stroke-dasharray='7 5'/><text x='"+(W-R-4)+"' y='"+(yo-7)+"' text-anchor='end' fill='#176149' font-size='12' font-weight='700'>observado t0 "+fmt(obs/100,2)+" m</text>"}
+     s+="<path d='"+path+"' fill='none' stroke='#b7791f' stroke-width='3' stroke-dasharray='9 6' vector-effect='non-scaling-stroke'/>";
+     if(Number.isFinite(warmed)){s+="<circle cx='"+x(0)+"' cy='"+y(warmed)+"' r='5' fill='#b7791f'/><text x='"+(x(0)+10)+"' y='"+(y(warmed)-8)+"' fill='#8a5a16' font-size='12'>HEC aquecido "+fmt(warmed/100,2)+" m</text>"}
+     const ticks=[0,Math.floor((nt.length-1)/3),Math.floor(2*(nt.length-1)/3),nt.length-1];ticks.forEach(i=>{const xx=x(i);s+="<text x='"+xx+"' y='"+(H-15)+"' text-anchor='middle' fill='#607168' font-size='11'>"+brt(nt[i]).replace(", "," ")+"</text>"});
+     s+="<text x='"+L+"' y='20' fill='#8a5a16' font-size='13' font-weight='800'>CANDIDATO REJEITADO · diagnóstico do estado, não previsão publicada</text>";
+     svg.innerHTML=s;return;
+   }
+   svg.innerHTML="<text x='40' y='55' fill='#8a5a16' font-size='17' font-weight='700'>Rodada HEC executada, porém bloqueada na validação.</text><text x='40' y='84' fill='#607168' font-size='14'>Sem série diagnóstica compacta neste feed; consulte os motivos abaixo.</text>";return;
+ }
+ if(!tt.length||!q1.length){svg.innerHTML="<text x='40' y='55' fill='#607168' font-size='18'>Sem execução válida do modelo neste ciclo.</text>";return}
  const W=1000,H=330,L=72,R=24,T=24,B=48;
  const vals=[...q1,...q2,...q3].filter(Number.isFinite), ymin=Math.min(...vals), ymax=Math.max(...vals);
  const span=(ymax-ymin)||1, lo=Math.max(0,ymin-span*.08), hi=ymax+span*.10;
@@ -380,6 +530,11 @@ function drawHydrograph(){
  if(q2.length)s+="<path d='"+path(q2)+"' fill='none' stroke='#225d8d' stroke-width='3' vector-effect='non-scaling-stroke'/>";
  if(q3.length)s+="<path d='"+path(q3)+"' fill='none' stroke='#98661d' stroke-width='3' vector-effect='non-scaling-stroke'/>";
  s+="<path d='"+path(q1)+"' fill='none' stroke='#176149' stroke-width='4' vector-effect='non-scaling-stroke'/>";
+ const qObs=Number(rr.current_observed_q_rating_m3s);
+ if(Number.isFinite(qObs)){
+   const yo=y(qObs);
+   s+="<circle cx='"+x(0)+"' cy='"+yo+"' r='6' fill='#fff' stroke='#111f19' stroke-width='2'/><text x='"+(x(0)+12)+"' y='"+(yo-9)+"' fill='#263b32' font-size='12' font-weight='700'>Q observado "+fmt(qObs,0)+"</text>";
+ }
  s+="<text x='"+L+"' y='16' fill='#607168' font-size='12'>vazão simulada (m³/s)</text>";
  svg.innerHTML=s;
 }
@@ -401,34 +556,64 @@ renderUgInventory();
 
 let activeNodeCode=null;
 function showInspector(title,text){$("inspectorTitle").textContent=title;$("inspectorText").textContent=text}
-function nodeLevel(n){return n.level_cm==null?"—":fmt(n.level_cm/100,2)+" m"}
+function plausibleNodeLevel(n){
+ const cm=Number(n&&n.level_cm);
+ return Number.isFinite(cm)&&cm>=0&&cm<=5000&&n.measurement_classification!=="cota_or_incompatible_scale";
+}
+function nodeLevel(n){return plausibleNodeLevel(n)?fmt(Number(n.level_cm)/100,2)+" m":"—"}
 function nodeQ(n){return n.discharge_m3s==null?"—":fmt(n.discharge_m3s,0)+" m³/s"}
+function nodeAgeClass(n){
+ if(n.age_min==null)return"age-unknown";
+ const a=Number(n.age_min); if(a<=30)return"age-current"; if(a<=60)return"age-attention"; if(a<=180)return"age-delayed"; return"age-stale";
+}
+function renderNodeHealthSummary(){
+ const host=$("nodeHealthSummary"); if(!host)return;
+ const fresh=nodes.filter(n=>n.age_min!=null&&Number(n.age_min)<=60).length;
+ const delayed=nodes.filter(n=>n.age_min!=null&&Number(n.age_min)>60).length;
+ const missing=nodes.filter(n=>!plausibleNodeLevel(n)).length;
+ host.innerHTML="<span class='fresh'><b>"+fresh+"</b>leitura ≤ 1 h</span><span class='delayed'><b>"+delayed+"</b>leitura > 1 h</span><span class='missing'><b>"+missing+"</b>sem nível compatível</span>";
+}
 function renderNodeDetail(n){
  if(!n)return;
  activeNodeCode=n.code;
+ const levelOk=plausibleNodeLevel(n), qOk=n.discharge_m3s!=null;
+ const levelNote=n.level_cm==null?"sem nível observado":(!levelOk?"valor bruto fora da escala de nível; ocultado":(n.level_at_local?"leitura "+n.level_at_local+" BRT":"nível observado"));
+ const qNote=qOk?(n.discharge_note_pt||"conversão disponível"):(n.discharge_note_pt||"sem conversão nível→vazão validada");
  $("nodeDetail").innerHTML=
-   "<h3>"+(n.name||n.code)+"</h3>"+
+   "<div class='node-detail-title'><div><h3>"+(n.name||n.code)+"</h3><p class='node-detail-sub'>"+(n.ug||"G040")+" · "+(n.role||"monitor")+"</p></div><span class='node-code'>"+(n.code||"")+"</span></div>"+
    "<div class='node-kpis'>"+
-     "<div class='node-kpi'><span>Nível</span><b>"+nodeLevel(n)+"</b></div>"+
-     "<div class='node-kpi'><span>Vazão</span><b>"+nodeQ(n)+"</b></div>"+
-     "<div class='node-kpi'><span>Idade</span><b>"+(n.age_min!=null?fmt(n.age_min,0)+" min":"—")+"</b></div>"+
-     "<div class='node-kpi'><span>Área drenagem</span><b>"+(n.drainage_area_km2!=null?fmt(n.drainage_area_km2,0)+" km²":"—")+"</b></div>"+
+     "<div class='node-kpi "+(levelOk?"":"is-empty")+"'><span>Nível</span><b>"+nodeLevel(n)+"</b><small>"+levelNote+"</small></div>"+
+     "<div class='node-kpi "+(qOk?"":"is-empty")+"'><span>Vazão</span><b>"+(qOk?nodeQ(n):"sem Q validada")+"</b><small>"+qNote+"</small></div>"+
+     "<div class='node-kpi'><span>Idade</span><b>"+(n.age_min!=null?fmt(n.age_min,0)+" min":"—")+"</b><small>"+(n.age_min!=null?"desde a leitura mais recente":"horário individual indisponível")+"</small></div>"+
+     "<div class='node-kpi'><span>Área drenagem</span><b>"+(n.drainage_area_km2!=null?fmt(n.drainage_area_km2,0)+" km²":"—")+"</b><small>"+(n.drainage_area_km2!=null?"área contribuinte informada":"não publicada")+"</small></div>"+
    "</div>"+
-   "<p style='margin:9px 0 0;color:var(--muted);font-size:11px'><b>"+(n.code||"")+"</b>"+
-   (n.ug?" · "+n.ug:"")+" · "+(n.role||"monitor")+
-   "<br>"+(n.level_at_local?"leitura "+n.level_at_local+" BRT · ":"")+(n.source||"")+
-   (n.discharge_note_pt?"<br>"+n.discharge_note_pt:"")+"</p>";
+   "<p class='node-source-line'><strong>Origem:</strong> "+(n.source||"não informada")+(n.level_at_local?" · "+n.level_at_local+" BRT":"")+"</p>";
  renderNodeList();
- showInspector(n.name||n.code,"Nível "+nodeLevel(n)+" · vazão "+nodeQ(n)+(n.age_min!=null?" · idade "+fmt(n.age_min,0)+" min":""));
+ showInspector(n.name||n.code,(levelOk?"Nível "+nodeLevel(n):"nível sem escala compatível")+(qOk?" · vazão "+nodeQ(n):" · sem Q validada")+(n.age_min!=null?" · "+fmt(n.age_min,0)+" min":""));
 }
 function renderNodeList(){
  const el=$("hydroNodeList"); if(!el)return; el.innerHTML="";
- nodes.forEach(n=>{const d=document.createElement("div");d.className="node-row"+(n.code===activeNodeCode?" active":"");
+ const q=(($("nodeSearch")&&$("nodeSearch").value)||"").trim().toLocaleLowerCase("pt-BR");
+ const visible=nodes.filter(n=>!q||[(n.name||""),(n.code||""),(n.ug||"")].join(" ").toLocaleLowerCase("pt-BR").includes(q))
+   .sort((a,b)=>{
+     const pa=a.code==="86510000"?-1000:(a.code==="86472600"?-900:0);
+     const pb=b.code==="86510000"?-1000:(b.code==="86472600"?-900:0);
+     if(pa!==pb)return pa-pb;
+     const aa=a.age_min==null?1e9:Number(a.age_min), ab=b.age_min==null?1e9:Number(b.age_min);
+     if(aa!==ab)return aa-ab;
+     return String(a.name||a.code).localeCompare(String(b.name||b.code),"pt-BR");
+   });
+ if($("nodeListCount"))$("nodeListCount").textContent=visible.length+" de "+nodes.length+" nós · ordenados por prioridade e atualização";
+ renderNodeHealthSummary();
+ visible.forEach(n=>{const d=document.createElement("div");d.className="node-row"+(n.code===activeNodeCode?" active":"");
+ const levelOk=plausibleNodeLevel(n), qOk=n.discharge_m3s!=null;
  d.innerHTML="<div class='head'><span class='name'>"+(n.name||n.code)+"</span><span class='code'>"+n.code+"</span></div>"+
- "<div class='vals'><span>N "+nodeLevel(n)+"</span><span>Q "+nodeQ(n)+"</span>"+(n.age_min!=null?"<span>"+fmt(n.age_min,0)+" min</span>":"")+"</div>";
+ "<div class='vals'>"+(levelOk?"<span>N "+nodeLevel(n)+"</span>":"<span>N sem escala válida</span>")+(qOk?"<span>Q "+nodeQ(n)+"</span>":"")+(n.age_min!=null?"<span class='"+nodeAgeClass(n)+"'>"+fmt(n.age_min,0)+" min</span>":"<span class='age-unknown'>sem hora</span>")+"</div>";
  d.onclick=()=>{renderNodeDetail(n); if(window.nodeMarkers&&window.nodeMarkers[n.code]){map.setView([n.lat,n.lon],11,{animate:true});window.nodeMarkers[n.code].openPopup();}};
  el.appendChild(d);});
+ if(!visible.length)el.innerHTML="<div class='row'><div class='meta'>Nenhum nó corresponde à busca.</div></div>";
 }
+if($("nodeSearch"))$("nodeSearch").addEventListener("input",renderNodeList);
 renderNodeList();
 if(muc.code)renderNodeDetail(muc);
 function renderSkill(){
@@ -445,50 +630,37 @@ const local=((DATA.where_results_go||{}).local)||{};
 [["Forward legado",local.forward_html],["Replay",local.live_eval_html],["Hindcast",local.hindcast_html],["Feed JSON",local.platform_json],["Mapa UGs",local.mapa_subbacias]].forEach(([t,u])=>{if(!u)return;const a=document.createElement("a");a.href=u;a.textContent=t;$("artifactLinks").appendChild(a)});
 
 const bb=((((DATA.spatial||{}).basin_framing)||{}).g040_bbox_latlon)||[[-29.95,-52.64],[-28.18,-49.93]];
-const map=L.map("map",{scrollWheelZoom:true}).fitBounds(bb,{padding:[20,20]});
+const map=L.map("map",{scrollWheelZoom:true,zoomControl:true}).fitBounds(bb,{padding:[18,18]});
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,referrerPolicy:"strict-origin-when-cross-origin",attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
-const rainLayer=L.layerGroup().addTo(map), ugLayer=L.layerGroup().addTo(map), nodeLayer=L.layerGroup().addTo(map), modelNodeLayer=L.layerGroup().addTo(map), networkLayer=L.layerGroup(), fozLayer=L.layerGroup(); window.nodeMarkers={}; window.modelNodeMarkers={};
+const rainLayer=L.layerGroup(), ugLayer=L.layerGroup().addTo(map), nodeLayer=L.layerGroup().addTo(map), modelNodeLayer=L.layerGroup().addTo(map), networkLayer=L.layerGroup(), fozLayer=L.layerGroup(); window.nodeMarkers={}; window.modelNodeMarkers={}; let basinBounds=null;
 
 function rainColor(mm,max){const x=max?Math.max(0,Math.min(1,Number(mm||0)/max)):0; if(x<.2)return"#dceee5";if(x<.4)return"#a9d5be";if(x<.6)return"#68ad88";if(x<.8)return"#2d805e";return"#0f523b"}
 async function loadSpatialRain(){
  if(!sr.geojson)return;try{const res=await fetch(sr.geojson);if(!res.ok)return;const gj=await res.json(),max=Number(sr.cell_total_max_mm||1);
- L.geoJSON(gj,{style:f=>({color:"#fff",weight:.7,fillColor:rainColor((f.properties||{}).total_120h_mm,max),fillOpacity:.64}),onEachFeature:(f,l)=>{const p=f.properties||{};l.on("click",()=>showInspector(p.cell_id||"Célula IFS","Chuva "+fmt(p.total_120h_mm,1)+" mm/120h · interseção "+fmt(p.overlap_km2,0)+" km² · volume "+fmt(p.rain_volume_hm3,2)+" hm³"));l.bindTooltip(fmt(p.total_120h_mm,1)+" mm")}}).addTo(rainLayer)}catch(e){}
+ L.geoJSON(gj,{style:f=>({color:"#fff",weight:.55,fillColor:rainColor((f.properties||{}).total_120h_mm,max),fillOpacity:.42}),onEachFeature:(f,l)=>{const p=f.properties||{};l.on("click",()=>showInspector(p.cell_id||"Célula IFS","Chuva "+fmt(p.total_120h_mm,1)+" mm/120h · interseção "+fmt(p.overlap_km2,0)+" km² · volume "+fmt(p.rain_volume_hm3,2)+" hm³"));l.bindTooltip(fmt(p.total_120h_mm,1)+" mm",{sticky:true})}}).addTo(rainLayer)}catch(e){}
 }
 async function loadUgs(){
- const path=((DATA.spatial||{}).ug_geojson)||"ugs_g040.geojson";try{const res=await fetch(path);if(!res.ok)return;const gj=await res.json();L.geoJSON(gj,{style:{color:"#204f3c",weight:1.25,fillOpacity:0},onEachFeature:(f,l)=>{const p=f.properties||{},n=p.sub_bacia||p.nome||"UG";l.on("click",()=>showInspector(n,"Unidade de gestão da bacia G040 · área aproximada "+fmt(p.area_km2_approx,0)+" km²"));l.bindTooltip(n)}}).addTo(ugLayer)}catch(e){}
+ const path=((DATA.spatial||{}).ug_geojson)||"ugs_g040.geojson";try{const res=await fetch(path);if(!res.ok)return;const gj=await res.json();const layer=L.geoJSON(gj,{style:{color:"#204f3c",weight:1.35,fillOpacity:0},onEachFeature:(f,l)=>{const p=f.properties||{},n=p.sub_bacia||p.nome||"UG";l.on("click",()=>showInspector(n,"Unidade de gestão da bacia G040 · área aproximada "+fmt(p.area_km2_approx,0)+" km²"));l.bindTooltip(n,{sticky:true})}}).addTo(ugLayer); basinBounds=layer.getBounds(); if(basinBounds&&basinBounds.isValid())map.fitBounds(basinBounds,{padding:[18,18]})}catch(e){}
 }
 function loadHydroNodes(){
  nodes.forEach(n=>{
    const target=n.code==="86510000";
-   const label=(n.name||n.code)+(n.level_cm!=null?" · "+nodeLevel(n):"");
-   const icon=L.divIcon({className:"hydro-node-icon",html:"<div class='hydro-node-wrap'><span class='hydro-node-dot "+(target?"target":"")+"'></span><span class='hydro-node-label'>"+label+(n.discharge_m3s!=null?"<br><em>Q "+nodeQ(n)+"</em>":"")+"</span></div>",iconSize:[180,28],iconAnchor:[8,8]});
+   const ageClass=nodeAgeClass(n);
+   const icon=L.divIcon({className:"hydro-node-icon",html:"<div class='hydro-node-wrap'><span class='hydro-node-dot "+ageClass+" "+(target?"target":"")+"'></span></div>",iconSize:[22,22],iconAnchor:[11,11]});
    const m=L.marker([n.lat,n.lon],{icon,zIndexOffset:target?1200:900}).on("click",()=>renderNodeDetail(n));
-   m.bindPopup("<strong>"+(n.name||n.code)+"</strong><br>Nível: "+nodeLevel(n)+"<br>Vazão: "+nodeQ(n)+"<br>"+(n.code||"")+(n.age_min!=null?" · "+fmt(n.age_min,0)+" min":""));
+   const tip=(n.name||n.code)+" · "+(plausibleNodeLevel(n)?nodeLevel(n):"nível sem escala válida")+(n.age_min!=null?" · "+fmt(n.age_min,0)+" min":"");
+   m.bindTooltip(tip,{direction:"top",offset:[0,-8],opacity:.96,sticky:true});
+   m.bindPopup("<strong>"+(n.name||n.code)+"</strong><br>Nível: "+(plausibleNodeLevel(n)?nodeLevel(n):"escala incompatível")+"<br>Vazão: "+(n.discharge_m3s!=null?nodeQ(n):"sem Q validada")+"<br>"+(n.code||"")+(n.age_min!=null?" · "+fmt(n.age_min,0)+" min":""));
    m.addTo(nodeLayer); window.nodeMarkers[n.code]=m;
  });
 }
 
 function loadModelNodes(){
- const defs={
-   "Saida_LIVE":{name:"Saída HEC · Muçum",lat:-29.1672,lon:-51.8686,outlet:true},
-   "Zona_86472000_LIVE":{name:"HEC · Linha José Júlio",lat:-29.0978,lon:-51.6997,outlet:false},
-   "Zona_02851072_LIVE":{name:"HEC · Ibiraiaras",lat:-28.3811,lon:-51.6331,outlet:false}
- };
- const mn=rr.nodes_model||{};
- Object.entries(mn).forEach(([key,v])=>{
-   const d=defs[key]; if(!d)return;
-   const icon=L.divIcon({className:"model-node-icon",html:"<div class='model-node-wrap'><span class='model-node-dot "+(d.outlet?"outlet":"")+"'></span><span class='model-node-label'>"+d.name+"<br><em>Q0 "+fmt(v.q0_m3s,0)+" · pico "+fmt(v.peak_q_m3s,0)+" m³/s</em></span></div>",iconSize:[210,32],iconAnchor:[8,8]});
-   const m=L.marker([d.lat,d.lon],{icon,zIndexOffset:d.outlet?1350:1100});
-   m.bindPopup("<strong>"+d.name+"</strong><br>Q inicial: "+fmt(v.q0_m3s,0)+" m³/s<br>Q pico: "+fmt(v.peak_q_m3s,0)+" m³/s<br>Pico: "+brt(v.peak_time_utc)+"<br><em>Saída do HEC-HMS 4.13</em>");
-   m.on("click",()=>showInspector(d.name,"HEC-HMS 4.13 · Q inicial "+fmt(v.q0_m3s,0)+" m³/s · Q pico "+fmt(v.peak_q_m3s,0)+" m³/s · pico "+brt(v.peak_time_utc)));
-   m.addTo(modelNodeLayer); window.modelNodeMarkers[key]=m;
- });
-}
-function loadModelNodes(){
  corridorModelNodes.forEach(n=>{
-   const icon=L.divIcon({className:"model-node-icon",html:"<div class='model-node-wrap'><span class='model-node-diamond'></span><span class='model-node-label'>"+(n.name||n.code)+"<br>Q "+fmt(n.q0_m3s,0)+" → pico "+fmt(n.peak_q_m3s,0)+" m³/s</span></div>",iconSize:[210,34],iconAnchor:[8,8]});
+   const icon=L.divIcon({className:"model-node-icon",html:"<div class='model-node-wrap'><span class='model-node-diamond'></span></div>",iconSize:[22,22],iconAnchor:[11,11]});
    const m=L.marker([n.lat,n.lon],{icon,zIndexOffset:1300});
-   m.on("click",()=>showInspector(n.name||n.code,"MODELO · Q inicial "+fmt(n.q0_m3s,0)+" m³/s · pico "+fmt(n.peak_q_m3s,0)+" m³/s · "+brt(n.peak_time_utc)+" · final "+fmt(n.end_q_m3s,0)+" m³/s"));
+   m.on("click",()=>showInspector(n.name||n.code,"HEC-HMS · Q inicial "+fmt(n.q0_m3s,0)+" m³/s · pico "+fmt(n.peak_q_m3s,0)+" m³/s · "+brt(n.peak_time_utc)));
+   m.bindTooltip((n.name||n.code)+" · HEC-HMS · Q0 "+fmt(n.q0_m3s,0)+" → pico "+fmt(n.peak_q_m3s,0)+" m³/s",{direction:"top",offset:[0,-8],opacity:.96,sticky:true});
    m.bindPopup("<strong>"+(n.name||n.code)+"</strong><br><b>Saída do modelo chuva–vazão</b><br>Q inicial: "+fmt(n.q0_m3s,0)+" m³/s<br>Q pico: "+fmt(n.peak_q_m3s,0)+" m³/s<br>Pico: "+brt(n.peak_time_utc)+"<br>Q final: "+fmt(n.end_q_m3s,0)+" m³/s");
    m.addTo(modelNodeLayer); window.modelNodeMarkers[n.code]=m;
  });
@@ -496,9 +668,11 @@ function loadModelNodes(){
 function loadNetwork(){const net=((DATA.spatial||{}).basin_network)||{};(net.features||[]).forEach(f=>{const p=f.properties||{},c=(f.geometry||{}).coordinates||[];if(c.length<2)return;L.circleMarker([c[1],c[0]],{radius:2,color:"#ffffff88",weight:.4,fillColor:p.kind==="rain"?"#3b7ca6":"#7b8b82",fillOpacity:.55}).on("click",()=>showInspector(p.name||p.code,(p.kind==="rain"?"chuva":"flu")+" · "+(p.ug||"")+" · "+(p.code||""))).addTo(networkLayer)})}
 async function loadFozes(){const path=(DATA.spatial||{}).fozes_geojson;if(!path)return;try{const res=await fetch(path);if(!res.ok)return;const gj=await res.json();L.geoJSON(gj,{pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:3.5,color:"#fff",weight:1,fillColor:"#a77a2d",fillOpacity:.8})}).addTo(fozLayer)}catch(e){}}
 loadSpatialRain();loadUgs();loadHydroNodes();loadModelNodes();loadNetwork();loadFozes();
-L.control.layers(null,{"Nós do modelo chuva–vazão":modelNodeLayer,"Telemetria":nodeLayer,"Chuva IFS espacial":rainLayer,"UGs G040":ugLayer,"Rede G040 completa":networkLayer,"Fozes BHO6":fozLayer},{collapsed:false}).addTo(map);
-const leg=L.control({position:"bottomright"});leg.onAdd=()=>{const d=L.DomUtil.create("div","legend");d.innerHTML="<div><i style='background:#176149;border-radius:50%'></i>telemetria</div><div><i style='background:#98661d'></i>nó HEC-HMS</div><div><i style='background:#dceee5'></i>menor chuva</div><div><i style='background:#68ad88'></i>chuva intermediária</div><div><i style='background:#0f523b'></i>maior chuva</div><div style='margin-top:4px'>clique no nó → nível / vazão / idade</div>";return d};leg.addTo(map);
+L.control.layers(null,{"Nós HEC-HMS":modelNodeLayer,"Telemetria observada":nodeLayer,"Chuva IFS espacial":rainLayer,"UGs G040":ugLayer,"Rede G040 completa":networkLayer,"Fozes BHO6":fozLayer},{collapsed:true,position:"topright"}).addTo(map);
+if($("fitBasin"))$("fitBasin").addEventListener("click",()=>{if(basinBounds&&basinBounds.isValid())map.fitBounds(basinBounds,{padding:[18,18]});else map.fitBounds(bb,{padding:[18,18]})});
+if($("focusMucum"))$("focusMucum").addEventListener("click",()=>{if(muc.lat!=null&&muc.lon!=null){map.setView([muc.lat,muc.lon],11,{animate:true});if(window.nodeMarkers[muc.code])window.nodeMarkers[muc.code].openPopup();renderNodeDetail(muc)}});
 setTimeout(()=>map.invalidateSize(),180);
+})();
 </script>
 </body>
 </html>

@@ -1,0 +1,144 @@
+name: HEC G040 E1 hindcast smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "config/g040_e1_smoke_request.json"
+      - "scripts/run_hec_hms_g040_e1_hindcast.py"
+      - "scripts/test_g040_e1_contract.py"
+      - ".github/workflows/hec-g040-e1-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hec-g040-e1-smoke
+  cancel-in-progress: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache HEC-HMS 4.13
+        id: cache-hec
+        uses: actions/cache@v4
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+
+      - name: Download HEC-HMS 4.13
+        if: steps.cache-hec.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .hec
+          curl -L --fail --retry 3 --retry-delay 4 \
+            -o /tmp/HEC-HMS-4.13-linux64.tar.gz \
+            https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
+          tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
+
+      - name: Verify forcing gates
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          b=Path("assets/data/hec_hms_g040_full_basin")
+          rain=json.load(open(b/"whole_basin_observed_rain_latest.json",encoding="utf-8"))
+          support=json.load(open(b/"whole_basin_rain_support_latest.json",encoding="utf-8"))
+          print("SUPPORT",support.get("status"))
+          print("RAIN",rain.get("status"),rain.get("boundary_scenario"))
+          assert support.get("status")=="RAIN_SUPPORT_READY_DYNAMIC_SCENARIO"
+          assert rain.get("status") in {"OBSERVED_RAIN_READY","OBSERVED_RAIN_PARTIAL"}
+          assert len(rain.get("components") or [])==11
+          assert (rain.get("component_area_gate") or {}).get("pass") is True
+          PY
+
+      - name: Validate E1 generation contract
+        run: python -B scripts/test_g040_e1_contract.py
+
+      - name: Run source-backed smoke candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          test -n "$HEC_SH"
+          rm -rf assets/data/hec_hms_g040_full_basin/g040_e1_hindcast/SMOKE_E1
+          set +e
+          python -B scripts/run_hec_hms_g040_e1_hindcast.py "$HEC_SH" \
+            --candidate-id SMOKE_E1 \
+            --cn 43.22047 \
+            --lag-min 55.11625 \
+            --k-g1 3.5 \
+            --k-g2 1.5 \
+            --k-g3 5.0 \
+            --k-g4 6.0 \
+            --x 0.2 \
+            > /tmp/g040_e1_smoke.stdout 2>&1
+          RC=$?
+          set -e
+          cat /tmp/g040_e1_smoke.stdout
+          echo "$RC" > /tmp/g040_e1_smoke_rc.txt
+          test -f assets/data/hec_hms_g040_full_basin/g040_e1_hindcast/SMOKE_E1/result.json
+
+      - name: Publish smoke diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="assets/data/hec_hms_g040_full_basin/g040_e1_hindcast/SMOKE_E1"
+          mkdir -p /tmp/g040-smoke
+          cp "$BASE/result.json" /tmp/g040-smoke/
+          cp "$BASE/run.log" /tmp/g040-smoke/
+          for F in g040_e1_hindcast.gage e1.basin e1.met e1.control g040_e1_hindcast.run g040_e1_hindcast.hms run.script; do
+            test ! -f "$BASE/project/$F" || cp "$BASE/project/$F" "/tmp/g040-smoke/$F"
+          done
+          if [ -f "$BASE/project/hec_output_values.csv" ]; then
+            cp "$BASE/project/hec_output_values.csv" /tmp/g040-smoke/
+          fi
+          cp /tmp/g040_e1_smoke.stdout /tmp/g040-smoke/stdout.txt
+          cp /tmp/g040_e1_smoke_rc.txt /tmp/g040-smoke/exit_code.txt
+
+          git config user.name "previne-g040-hec-bot"
+          git config user.email "previne-g040-hec-bot@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p "$BASE"
+            cp /tmp/g040-smoke/result.json "$BASE/"
+            cp /tmp/g040-smoke/run.log "$BASE/"
+            mkdir -p "$BASE/project"
+            for F in g040_e1_hindcast.gage e1.basin e1.met e1.control g040_e1_hindcast.run g040_e1_hindcast.hms run.script; do
+              test ! -f "/tmp/g040-smoke/$F" || cp "/tmp/g040-smoke/$F" "$BASE/project/$F"
+            done
+            test ! -f /tmp/g040-smoke/hec_output_values.csv || cp /tmp/g040-smoke/hec_output_values.csv "$BASE/"
+            cp /tmp/g040-smoke/stdout.txt "$BASE/"
+            cp /tmp/g040-smoke/exit_code.txt "$BASE/"
+            git add -- "$BASE"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "bot: G040 E1 HEC smoke diagnostics"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt * 2))
+          done
+          exit 1
+
+      - name: Smoke compute gate
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          p="assets/data/hec_hms_g040_full_basin/g040_e1_hindcast/SMOKE_E1/result.json"
+          j=json.load(open(p,encoding="utf-8"))
+          print("COMPUTE_OK",j.get("compute_ok"),"RETURNCODE",j.get("returncode"))
+          print("PREFLIGHT",j.get("preflight_contract"))
+          if not j.get("compute_ok"):
+              raise SystemExit("G040 E1 HEC smoke did not compute; diagnostics were published")
+          PY

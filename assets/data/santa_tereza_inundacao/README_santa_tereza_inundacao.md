@@ -1,6 +1,6 @@
 # Santa Tereza - camadas de inundacao
 
-Atualizado em: 2026-09-01.
+Atualizado em: 2026-10-01.
 
 ## Produção atual (site)
 
@@ -11,17 +11,26 @@ gerador atual segue o `FLOWDIR` D8 até o rio principal. A calibração vertical
 permanece separada: **1,60 m na régua = HAND 0**.
 
 O gerador `codigo_python/02_mdt_hand_mancha/gerar_hand_lidar_santa_tereza.py`
-também produz uma grade de altitude absoluta a ~10 m a partir do **mesmo**
-`FILL_CLIP_MOSAICO_LIDAR_RS.tif`. A página só aceita essa grade quando o
+também produz uma grade de altitude absoluta a ~10 m a partir do **LiDAR bruto**
+`CLIP_MOSAICO_LIDAR_RS.tif`. O `FILL_CLIP_MOSAICO_LIDAR_RS.tif` é usado apenas
+no roteamento. A página só aceita essa grade quando o
 metadado declara `same_source_as_hand: true`, e posiciona a imagem usando os
 bounds do próprio MDT.
 
-**Estado transitório em 21/09/2026:** o payload HAND já embutido na página foi
-gerado antes da troca para roteamento D8 e está marcado no diagnóstico como
-`legacy_published_proxy_pending_d8_regeneration`. A camada MDT antiga foi
-removida imediatamente; a promoção do novo MDT/HAND depende de executar o
-gerador corrigido onde os três rasters locais (FILL, FLOWACC e FLOWDIR) estão
-disponíveis.
+**Estado atual:** o produto publicado usa o LiDAR bruto como terreno, com
+FILL/FLOWDIR/FLOWACC restritos ao roteamento. A referência vertical é única:
+**régua 1,60 m = HAND 0**, e os contornos publicados de Santa Tereza cobrem
+**HAND 0–25 m**. O MDT web de apoio também vem da mesma fonte LiDAR
+(`altitude_terreno_lidar_10m.json`).
+
+A cadeia autoritativa é:
+
+`LiDAR bruto 1 m → roteamento D8 → HAND hidráulico ~5 m → contornos LiDAR → mapas/impacto/rotas/replay`.
+
+O deploy executa `scripts/validate_santa_tereza_lidar_contract.py` e falha se
+as páginas voltarem a usar ANADEM, mosaico drone+ANADEM, MDT refinado legado,
+HAND acima de 25 m para Santa Tereza, ou se a página ao vivo e a histórica
+divergirem no payload HAND.
 
 ### MDT refinado antigo — legado, não usar na página ao vivo
 
@@ -32,7 +41,7 @@ compatíveis com o HAND 5 m atual:
 - `mdt_refinamento_santa_tereza.json`;
 - `mdt/altitude_terreno_10m_refinado.json`;
 - `mdt/mdt_santa_tereza_10m_refinado_visual.png`;
-- `codigo_python/02_mdt_hand_mancha/refinar_mdt_santa_tereza.py`.
+- `codigo_python/02_mdt_hand_mancha/refinar_mdt_santa_tereza.py` (bloqueado por padrão; somente auditoria histórica explícita com `--legacy-audit-only`).
 
 Eles permanecem apenas para rastreabilidade histórica. Não devem ser usados
 para consulta de altitude, sobreposição visual ou cálculo junto com o HAND

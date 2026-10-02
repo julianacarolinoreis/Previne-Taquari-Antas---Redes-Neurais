@@ -8,7 +8,17 @@
   const threshold=Number(root.dataset.threshold||0);
   const br=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
   const pct=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
-  const state={weather:null,basin:null,probability:null,live:null,mode:'rain',loadedAt:null,loading:false};
+  const mobileFirst=window.matchMedia&&window.matchMedia('(max-width: 640px)').matches;
+  const state={weather:null,basin:null,probability:null,live:null,mode:mobileFirst?'river':'rain',loadedAt:null,loading:false};
+  if(mobileFirst){
+    root.classList.add('pv-mode-river');
+    root.querySelectorAll('[data-pv-mode]').forEach(b=>{
+      const active=b.dataset.pvMode==='river';
+      b.classList.toggle('active',active);
+      b.setAttribute('aria-selected',active?'true':'false');
+      b.setAttribute('aria-pressed',active?'true':'false');
+    });
+  }
   const el=(sel)=>qs(sel);
   const safeNum=v=>v==null||!Number.isFinite(Number(v))?null:Number(v);
   const parseFeedDate=v=>{
@@ -103,14 +113,15 @@
   }
   function setFeedState(){
     const node=el('#pv-feed-state'),chips=el('#pv-feed-chips');
+    const ageText=h=>!Number.isFinite(h)?'sem horário':h<1?'há menos de 1 h':h>=48?`há ${br.format(h/24)} dias`:`há ${br.format(h)} h`;
     const feeds=[
-      {key:'weather',label:'previsão',value:state.weather,limit:30},
-      {key:'probability',label:'score',value:state.probability,limit:36},
+      {key:'weather',label:'previsão meteorológica',value:state.weather,limit:30},
+      {key:'probability',label:'score experimental',value:state.probability,limit:36},
       {key:'live',label:'robô ao vivo',value:state.live,limit:.5}
     ].map(f=>{const age=f.value?ageHours(f.value.generated):Infinity;const status=!f.value||!Number.isFinite(age)?'unknown':age<=f.limit?'fresh':'stale';return {...f,age,status};});
     const overall=feeds.some(f=>f.status==='unknown')?'unknown':feeds.some(f=>f.status==='stale')?'stale':'fresh';
-    if(node){node.className=`pv-feed-state ${overall}`;node.textContent=overall==='fresh'?'Feeds atualizados':overall==='stale'?'Há feed atrasado':'Há feed sem horário';node.title=feeds.map(f=>`${f.label}: ${f.status==='fresh'?(f.age<1?'há menos de 1 h':`há ${br.format(f.age)} h`):f.status==='stale'?`atrasado (${br.format(f.age)} h)`:'indisponível'}`).join(' · ');}
-    if(chips)chips.innerHTML=feeds.map(f=>{const text=f.status==='fresh'?(f.age<1?'há menos de 1 h':`há ${br.format(f.age)} h`):f.status==='stale'?`atrasado · ${br.format(f.age)} h`:'indisponível';return `<span class="pv-feed-chip ${f.status}"><b>${f.label}</b><span>${text}</span></span>`;}).join('');
+    if(node){node.className=`pv-feed-state ${overall}`;node.textContent=overall==='fresh'?'Fontes atualizadas':overall==='stale'?'Há fonte desatualizada':'Há fonte indisponível';node.title=feeds.map(f=>`${f.label}: ${f.status==='fresh'?ageText(f.age):f.status==='stale'?`desatualizada · ${ageText(f.age)}`:'indisponível'}`).join(' · ');}
+    if(chips)chips.innerHTML=feeds.map(f=>{const text=f.status==='fresh'?ageText(f.age):f.status==='stale'?`desatualizada · ${ageText(f.age)}`:'indisponível';return `<span class="pv-feed-chip ${f.status}"><b>${f.label}</b><span>${text}</span></span>`;}).join('');
   }
   function rainFor(h){return state.mode==='rain'?(h.basin??h.rain):(null)}
   function renderKpis(){
@@ -131,15 +142,30 @@
     }
     const h168=hs.find(h=>h.hours===168)||hs[hs.length-1];
     const latestProb=(state.probability?.rows||[]).find(x=>x.hours===168);
-    const probFresh=state.probability&&ageHours(state.probability.generated)<=36;
-    const probLabel=latestProb&&probFresh?`${pct.format(latestProb.prob)}%*`:'UNKNOWN/STALE';
-    const probNote=latestProb&&probFresh?`score experimental · ${state.probability?.calibrated?'calibração de pesquisa':'não calibrado'} · não é chance real`:'feed antigo ou sem valor atual';
+    const probAge=state.probability?ageHours(state.probability.generated):Infinity;
+    const probFresh=Number.isFinite(probAge)&&probAge<=36;
+    const probValue=latestProb?Number(latestProb.prob):NaN;
+    const probUsable=probFresh&&Number.isFinite(probValue);
+    let probLabel,probNote;
+    if(probUsable){
+      probLabel=`${pct.format(probValue)}%*`;
+      probNote=`score experimental · ${state.probability?.calibrated?'calibração de pesquisa':'não calibrado'} · não é chance real`;
+    }else if(state.probability&&!probFresh){
+      probLabel='DADO DESATUALIZADO';
+      probNote=`fonte desatualizada · ${Number.isFinite(probAge)?(probAge>=48?br.format(probAge/24)+' dias':br.format(probAge)+' h'):'idade desconhecida'} · score antigo ocultado`;
+    }else if(state.probability&&probFresh&&!Number.isFinite(probValue)){
+      probLabel='SEM SCORE +168 H';
+      probNote='rodada atual sem valor válido para este horizonte';
+    }else{
+      probLabel='SEM SCORE ATUAL';
+      probNote='feed experimental indisponível no momento';
+    }
     setHtml('#pv-kpis',[
       ['Rio agora',cm(obs.level??now?.now),obs.stale?'leitura atrasada':'observado · fonte mais recente'],
       ['Chuva prevista · +24 h',mm(h24?.basin??h24?.rain),station==='mucum'?'ECMWF IFS no ponto':'ECMWF IFS no recorte'],
       ['Chuva prevista · +72 h',mm(h72?.basin??h72?.rain),station==='mucum'?'ponto de Muçum':'média espacial do recorte'],
       ['Score experimental · +168 h',probLabel,probNote]
-    ].map((x,i)=>`<article class="pv-kpi"><span class="pv-kpi-label">${x[0]}</span><strong class="pv-kpi-value ${i===3?(probFresh?'warn':'unknown'):i===0?'good':''}">${x[1]}</strong><span class="pv-kpi-note">${x[2]}</span></article>`).join(''));
+    ].map((x,i)=>`<article class="pv-kpi"><span class="pv-kpi-label">${x[0]}</span><strong class="pv-kpi-value ${i===3?(probUsable?'warn':'unknown'):i===0?'good':''}">${x[1]}</strong><span class="pv-kpi-note ${i===3&&!probUsable?'quality-note':''}">${x[2]}</span></article>`).join(''));
   }
   function renderBars(){
     const w=state.weather, hs=w?.horizons||[], node=el('#pv-bars');

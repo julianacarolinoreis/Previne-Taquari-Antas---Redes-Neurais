@@ -1,0 +1,173 @@
+name: G040 whole-basin observed-branch architecture
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/build_g040_whole_basin_branch_model.py"
+      - "scripts/build_g040_whole_basin_bho6_topology.py"
+      - "scripts/build_g040_incremental_area_budget.py"
+      - "scripts/build_g040_live_hydro_controls.py"
+      - "scripts/build_g040_incremental_geometries.py"
+      - "scripts/build_g040_bho6_rain_support.py"
+      - "scripts/g040_rain_grid.py"
+      - "scripts/build_g040_observed_rain_forcing.py"
+      - "scripts/build_g040_ifs_interval_forcing.py"
+      - "scripts/build_g040_merged_rain_forcing.py"
+      - "scripts/test_g040_rain_forcing_contract.py"
+      - "scripts/build_g040_boundary_scenarios.py"
+      - "scripts/analyze_g040_observed_travel_times.py"
+      - "scripts/discover_snirh_bho_polygon_services.py"
+      - ".github/workflows/g040-whole-basin-branch.yml"
+      - "assets/data/hec_hms_g040_full_basin/full_basin_station_matrix.csv"
+      - "assets/data/hec_hms_g040_full_basin/original_145_report_inventory_latest.json"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: g040-whole-basin-observed-branch
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dependencies
+        run: pip install --disable-pip-version-check requests shapely pyproj numpy
+
+      - name: Verify rainfall forcing contract
+        run: python -B scripts/test_g040_rain_forcing_contract.py
+
+      - name: Build whole-basin branch architecture
+        run: python -B scripts/build_g040_whole_basin_branch_model.py
+
+      - name: Recover BHO6 topology
+        run: python -B scripts/build_g040_whole_basin_bho6_topology.py
+
+      - name: Close incremental area mass balance
+        run: python -B scripts/build_g040_incremental_area_budget.py
+
+      - name: Note polygon crosswalk status
+        run: |
+          echo "BHO2017 polygon crosswalk is diagnostic-only: codes do not match BHO6/2022."
+          echo "Executable forcing uses BHO6 area-weighted support points; no guessed polygon replacement."
+
+      - name: Build BHO6 rainfall support mesh
+        run: python -B scripts/build_g040_bho6_rain_support.py
+
+      - name: Refresh live hydrometric controls
+        run: python -B scripts/build_g040_live_hydro_controls.py
+
+      - name: Build dynamic boundary scenarios
+        run: python -B scripts/build_g040_boundary_scenarios.py
+
+      - name: Build observed rainfall forcing by incremental area
+        env:
+          OBS_FAST_MODE: "1"
+          G040_OBS_RAIN_HOURS: "120"
+        run: python -B scripts/build_g040_observed_rain_forcing.py
+
+      - name: Build ECMWF IFS forcing by incremental area
+        run: python -B scripts/build_g040_ifs_interval_forcing.py
+
+      - name: Merge observed and ECMWF rainfall forcing
+        run: python -B scripts/build_g040_merged_rain_forcing.py
+
+      - name: Diagnose observed propagation lags
+        run: python -B scripts/analyze_g040_observed_travel_times.py
+
+      - name: Audit architecture
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          p="assets/data/hec_hms_g040_full_basin/whole_basin_branch_model_latest.json"
+          j=json.load(open(p,encoding="utf-8"))
+          print("STATUS:",j["status"])
+          print("BRANCHES:",len(j["major_branch_controls"]))
+          print("MAINSTEM CHECKPOINTS:",len(j["mainstem_checkpoints"]))
+          print("FINAL HEC TARGET:",j["scope"]["final_hec_target_subbasins"],"subbasins /",j["scope"]["final_hec_target_reaches"],"reaches")
+          print("NEXT GATES:",json.dumps(j["next_build_gates"],ensure_ascii=False))
+          PY
+
+      - name: Publish architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-g040-branch-bot"
+          git config user.email "previne-g040-branch-bot@users.noreply.github.com"
+          BASE="assets/data/hec_hms_g040_full_basin"
+          cp "$BASE/whole_basin_branch_model_latest.json" /tmp/
+          cp "$BASE/whole_basin_branch_controls.csv" /tmp/
+          cp "$BASE/whole_basin_bho6_topology_latest.json" /tmp/
+          cp "$BASE/whole_basin_bho6_network.geojson" /tmp/
+          cp "$BASE/whole_basin_incremental_area_budget_latest.json" /tmp/
+          cp "$BASE/whole_basin_incremental_area_budget.csv" /tmp/
+          cp "$BASE/snirh_bho_polygon_service_discovery_latest.json" /tmp/
+          cp "$BASE/whole_basin_incremental_geometry_latest.json" /tmp/
+          cp "$BASE/whole_basin_incremental_catchments.geojson" /tmp/
+          cp "$BASE/whole_basin_rain_support_latest.json" /tmp/
+          cp "$BASE/whole_basin_rain_support_points.csv" /tmp/
+          cp "$BASE/whole_basin_observed_rain_latest.json" /tmp/
+          cp "$BASE/whole_basin_observed_rain_hourly.csv" /tmp/
+          cp "$BASE/whole_basin_observed_rain_components_hourly.csv" /tmp/
+          cp "$BASE/whole_basin_observed_rain_fullgrid_hourly.csv" /tmp/
+          cp "$BASE/whole_basin_ifs_forecast_latest.json" /tmp/
+          cp "$BASE/whole_basin_ifs_forecast_hourly.csv" /tmp/
+          cp "$BASE/whole_basin_ifs_forecast_components_hourly.csv" /tmp/
+          cp "$BASE/whole_basin_ifs_fullgrid_hourly.csv" /tmp/
+          cp "$BASE/whole_basin_rain_forcing_latest.json" /tmp/
+          cp "$BASE/whole_basin_rain_forcing_hourly.csv" /tmp/
+          cp "$BASE/whole_basin_rain_forcing_components_hourly.csv" /tmp/
+          cp "$BASE/whole_basin_rain_forcing_fullgrid_hourly.csv" /tmp/
+          cp "$BASE/whole_basin_live_hydro_controls_latest.json" /tmp/
+          cp "$BASE/whole_basin_boundary_scenarios_latest.json" /tmp/
+          cp "$BASE/whole_basin_observed_travel_time_diagnostics_latest.json" /tmp/
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp /tmp/whole_basin_branch_model_latest.json "$BASE/"
+            cp /tmp/whole_basin_branch_controls.csv "$BASE/"
+            cp /tmp/whole_basin_bho6_topology_latest.json "$BASE/"
+            cp /tmp/whole_basin_bho6_network.geojson "$BASE/"
+            cp /tmp/whole_basin_incremental_area_budget_latest.json "$BASE/"
+            cp /tmp/whole_basin_incremental_area_budget.csv "$BASE/"
+            cp /tmp/snirh_bho_polygon_service_discovery_latest.json "$BASE/"
+            cp /tmp/whole_basin_incremental_geometry_latest.json "$BASE/"
+            cp /tmp/whole_basin_incremental_catchments.geojson "$BASE/"
+            cp /tmp/whole_basin_rain_support_latest.json "$BASE/"
+            cp /tmp/whole_basin_rain_support_points.csv "$BASE/"
+            cp /tmp/whole_basin_observed_rain_latest.json "$BASE/"
+            cp /tmp/whole_basin_observed_rain_hourly.csv "$BASE/"
+            cp /tmp/whole_basin_observed_rain_components_hourly.csv "$BASE/"
+            cp /tmp/whole_basin_observed_rain_fullgrid_hourly.csv "$BASE/"
+            cp /tmp/whole_basin_ifs_forecast_latest.json "$BASE/"
+            cp /tmp/whole_basin_ifs_forecast_hourly.csv "$BASE/"
+            cp /tmp/whole_basin_ifs_forecast_components_hourly.csv "$BASE/"
+            cp /tmp/whole_basin_ifs_fullgrid_hourly.csv "$BASE/"
+            cp /tmp/whole_basin_rain_forcing_latest.json "$BASE/"
+            cp /tmp/whole_basin_rain_forcing_hourly.csv "$BASE/"
+            cp /tmp/whole_basin_rain_forcing_components_hourly.csv "$BASE/"
+            cp /tmp/whole_basin_rain_forcing_fullgrid_hourly.csv "$BASE/"
+            cp /tmp/whole_basin_live_hydro_controls_latest.json "$BASE/"
+            cp /tmp/whole_basin_boundary_scenarios_latest.json "$BASE/"
+            cp /tmp/whole_basin_observed_travel_time_diagnostics_latest.json "$BASE/"
+            git add -- "$BASE/whole_basin_branch_model_latest.json" "$BASE/whole_basin_branch_controls.csv" "$BASE/whole_basin_bho6_topology_latest.json" "$BASE/whole_basin_bho6_network.geojson" "$BASE/whole_basin_incremental_area_budget_latest.json" "$BASE/whole_basin_incremental_area_budget.csv" "$BASE/whole_basin_rain_support_latest.json" "$BASE/whole_basin_rain_support_points.csv" "$BASE/whole_basin_observed_rain_latest.json" "$BASE/whole_basin_observed_rain_hourly.csv" "$BASE/whole_basin_observed_rain_components_hourly.csv" "$BASE/whole_basin_observed_rain_fullgrid_hourly.csv" "$BASE/whole_basin_ifs_forecast_latest.json" "$BASE/whole_basin_ifs_forecast_hourly.csv" "$BASE/whole_basin_ifs_forecast_components_hourly.csv" "$BASE/whole_basin_ifs_fullgrid_hourly.csv" "$BASE/whole_basin_rain_forcing_latest.json" "$BASE/whole_basin_rain_forcing_hourly.csv" "$BASE/whole_basin_rain_forcing_components_hourly.csv" "$BASE/whole_basin_rain_forcing_fullgrid_hourly.csv" "$BASE/whole_basin_live_hydro_controls_latest.json" "$BASE/whole_basin_boundary_scenarios_latest.json" "$BASE/whole_basin_observed_travel_time_diagnostics_latest.json"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "bot: update G040 whole-basin observed-branch architecture [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt * 2))
+          done
+          exit 1

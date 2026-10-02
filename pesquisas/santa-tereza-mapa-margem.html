@@ -39,7 +39,7 @@ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,opacity:.9}).addTo(map);
 const CORES={alagada:'#1e5fbf',critica:'#b3382c',apertada:'#e8730c',atencao:'#e3b100',confortavel:'#1b7a5a',alto:'#7a8a84',sem_dado:'#9aa3a0'};
 const ROT={alagada:'atingida no cenário HAND',critica:'margem negativa no modelo',apertada:'margem <15 min no modelo',atencao:'margem <1 h no modelo',confortavel:'margem >1 h no modelo',alto:'ponto alto',sem_dado:'sem dado espacial'};
-let prelimGeo=null,prelimLayer=null;
+let prelimGeo=null;
 function pRing(lon,lat,r){let z=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const xi=r[i][0],yi=r[i][1],xj=r[j][0],yj=r[j][1];if(((yi>lat)!=(yj>lat))&&(lon<(xj-xi)*(lat-yi)/(yj-yi+1e-15)+xi))z=!z;}return z;}
 function pGeom(lon,lat,g){if(!g)return false;if(g.type==='Polygon'){if(!pRing(lon,lat,g.coordinates[0]))return false;for(let k=1;k<g.coordinates.length;k++)if(pRing(lon,lat,g.coordinates[k]))return false;return true;}if(g.type==='MultiPolygon')return g.coordinates.some(p=>{if(!pRing(lon,lat,p[0]))return false;for(let k=1;k<p.length;k++)if(pRing(lon,lat,p[k]))return false;return true;});return false;}
 function naPrelim(lat,lon){return !!(prelimGeo&&prelimGeo.features&&prelimGeo.features.some(f=>pGeom(lon,lat,f.geometry)));}
@@ -79,5 +79,4 @@ function redraw(){
 }
 sld.oninput=redraw; sld.onchange=redraw; sldTaxa.oninput=redraw; sldTaxa.onchange=redraw;
 redraw();
-fetch('../assets/data/santa_tereza_inundacao/mancha_preliminar_santa_tereza.geojson').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(g=>{prelimGeo=g;prelimLayer=L.geoJSON(g,{style:{color:'#7d3cff',weight:1.2,dashArray:'6 5',fillColor:'#7d3cff',fillOpacity:.04},interactive:false});L.control.layers(null,{'Mancha preliminar legada · opcional':prelimLayer},{collapsed:true}).addTo(map);}).catch(()=>{});
 </script></body></html>

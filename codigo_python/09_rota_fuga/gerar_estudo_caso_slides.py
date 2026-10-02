@@ -37,6 +37,7 @@ RF = RAIZ / "assets" / "data" / "rota_fuga" / "rota_fuga_ruas_mucum_cenario.json
 CONTORNOS = RAIZ / "assets" / "data" / "mucum_inundacao" / "contornos_mancha.json"
 PREVISAO = RAIZ / "mucum_previsao_inundacao.html"
 SAIDA_HTML = RAIZ / "mucum_estudo_caso_slides.html"
+SAIDA_PESQUISAS = RAIZ / "pesquisas" / "mucum-estudo-caso-slides.html"
 OUT = RAIZ / "outputs"
 COPY = Path(r"D:\PREVINE\repo_site_stz4h_pro_20260812\outputs")
 ZERO_REGUA = 5.0
@@ -300,18 +301,107 @@ _TEMPLATE = r"""<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
  .leaflet-tooltip.casa-tip{background:#fff;border:0;border-radius:8px;font:700 12px inherit;box-shadow:0 2px 8px rgba(0,0,0,.25);padding:3px 7px}
  .ord{font:800 15px/1 Georgia,serif;min-width:22px;text-align:center;color:#5b6b62}
  .casa:not(.seguro) .ord{color:#c0392b}
+</style>
+<style id="ui-v2">
+:root{--ink:#102019;--muted:#617168;--line:#dfe8e3;--panel:rgba(255,255,255,.975);--green:#0f6b4a;--green2:#13835d;--orange:#e8730c;--shadow:0 18px 55px rgba(8,24,17,.28)}
+*{box-sizing:border-box}
+body{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+.card{top:16px;right:16px;width:430px;max-width:calc(100vw - 32px);max-height:calc(100vh - 32px);border:1px solid rgba(255,255,255,.55);border-radius:20px;background:var(--panel);box-shadow:var(--shadow);backdrop-filter:blur(10px);overflow:auto;scrollbar-width:thin}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:18px 18px 5px}
+.card-head h1{padding:0;margin:6px 0 0;font:750 22px/1.15 Georgia,"Times New Roman",serif;letter-spacing:-.015em;color:var(--ink)}
+.card-head .kicker{padding:0;display:flex;align-items:center;gap:7px;font-size:10.5px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#77857e;box-shadow:0 0 0 4px rgba(119,133,126,.12)}
+.mode-badge{flex:none;margin-top:1px;padding:5px 8px;border:1px solid var(--line);border-radius:999px;background:#f7faf8;color:#59675f;font-size:10px;font-weight:800;white-space:nowrap}
+.body{padding:8px 18px 16px}
+.clock{margin:0 0 10px;padding:8px 10px;border-radius:10px;background:#f5f8f6;color:#516057;font-size:12px;font-weight:650}
+.rna{position:relative;overflow:hidden;margin:0 0 10px;padding:12px 13px;border:1px solid #f0c89f;border-radius:14px;background:linear-gradient(135deg,#fff8f1,#fff3e6)}
+.rna:after{content:"";position:absolute;right:-22px;top:-30px;width:100px;height:100px;border-radius:50%;background:rgba(232,115,12,.07)}
+.rna-label{position:relative;z-index:1;margin-bottom:5px;color:#8b5b27;font-size:10.5px;font-weight:800;letter-spacing:.055em;text-transform:uppercase}
+.rna .big{position:relative;z-index:1;display:flex;align-items:baseline;gap:7px;font-size:34px;line-height:1.05}
+.rna .big small{font-size:12px;letter-spacing:.02em}
+.rna .sub{position:relative;z-index:1;margin-top:5px;color:#76562d;font-size:11.5px}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:0 0 12px}
+.metric{padding:8px 9px;border:1px solid var(--line);border-radius:11px;background:#fff}
+.metric span{display:block;color:#75837b;font-size:9.5px;font-weight:800;letter-spacing:.045em;text-transform:uppercase}
+.metric strong{display:block;margin-top:2px;color:#16261f;font-size:14px;font-variant-numeric:tabular-nums}
+.scale-head,.fila-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.scale-head{margin:2px 0 5px;color:#6c7a72;font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.pills{gap:6px;margin:0 0 13px}
+.pill{padding:4px 8px;border:1px solid #e7ece9;background:#f5f7f6;font-size:10px}
+.fila{border-top:1px solid var(--line);padding-top:11px}
+.fila h2{margin:0;color:#314038;font-size:11px}
+.fila-note{margin:3px 0 8px;color:#77857d;font-size:10.5px;line-height:1.35}
+.count{padding:3px 7px;border-radius:999px;background:#eef4f1;color:#385148;font-size:9.5px;font-weight:800;white-space:nowrap}
+.casa{position:relative;gap:10px;align-items:center;min-height:61px;margin-bottom:7px;padding:9px 10px;border-color:#e2e9e5;border-radius:12px;background:#fff;box-shadow:0 1px 0 rgba(20,45,33,.03);transition:transform .15s ease,box-shadow .15s ease}
+.casa:hover{transform:translateY(-1px);box-shadow:0 5px 15px rgba(20,45,33,.08)}
+.casa.seguro{opacity:1;background:#fbfdfc}
+.ord{display:grid;place-items:center;width:29px;height:29px;min-width:29px;border-radius:50%;background:#edf3f0;color:#62736a;font:800 11px/1 ui-sans-serif,sans-serif}
+.casa:not(.seguro) .ord{background:#fff;color:#9d3029;box-shadow:inset 0 0 0 1px rgba(157,48,41,.18)}
+.tag{display:inline-flex;align-items:center;padding:3px 6px;border-radius:999px;font-size:8.8px}
+.nm{margin-top:3px;font-size:12.5px}
+.bl{font-size:10.5px;line-height:1.35}
+.timeline-wrap{position:sticky;bottom:0;margin:11px -4px -2px;padding:10px 4px 2px;background:linear-gradient(to bottom,rgba(255,255,255,.3),#fff 28%);border-top:1px solid var(--line)}
+.timeline-row{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:center}
+.play{width:auto;min-width:92px;margin:0;padding:9px 12px;border-radius:10px;background:linear-gradient(135deg,var(--green),var(--green2));font-size:11.5px;box-shadow:0 4px 12px rgba(15,107,74,.18)}
+.play:hover{filter:brightness(.97)}
+#timeline{width:100%;accent-color:var(--green);cursor:pointer}
+.step{min-width:42px;color:#6a7970;font-size:10.5px;font-weight:800;text-align:right;font-variant-numeric:tabular-nums}
+.research-note{margin-top:7px;color:#7b8981;font-size:9.5px;line-height:1.35}
+.leg{bottom:16px;left:16px;min-width:210px;padding:10px 12px;border:1px solid rgba(255,255,255,.65);border-radius:13px;background:rgba(255,255,255,.94);box-shadow:0 8px 25px rgba(7,24,16,.18);backdrop-filter:blur(8px);font-size:10.5px;line-height:1.55}
+.leg b{display:block;margin-bottom:4px;color:#21352b;font-size:11px}
+.leg i{width:18px;height:4px;border-radius:999px;margin-right:7px;vertical-align:2px}
+.dot{width:20px;height:20px;border-width:2px;box-shadow:0 0 0 2px rgba(9,38,25,.32),0 2px 8px rgba(0,0,0,.22)}
+.leaflet-tooltip.casa-tip{border:1px solid rgba(22,47,35,.1);border-radius:9px;padding:4px 7px;color:#173025;font-size:10.5px;box-shadow:0 4px 14px rgba(0,0,0,.16)}
+body.gravando .timeline-wrap,body.gravando .research-note{display:none!important}
+@media(max-width:900px){
+ .card{top:auto;right:8px;bottom:8px;left:8px;width:auto;max-width:none;max-height:52vh;border-radius:18px}
+ .card-head{padding:13px 14px 4px}.card-head h1{font-size:18px}.body{padding:7px 14px 13px}
+ .metrics{grid-template-columns:repeat(3,1fr)}.metric strong{font-size:12px}
+ .leg{top:10px;bottom:auto;left:10px;min-width:0;max-width:205px}
+ .leaflet-tooltip.casa-tip{display:none}
+}
+@media(max-width:520px){
+ .mode-badge{display:none}.card{max-height:57vh}.card-head h1{font-size:17px}
+ .metrics{gap:4px}.metric{padding:7px}.metric span{font-size:8px}.metric strong{font-size:11px}
+ .pills{gap:4px}.pill{font-size:9px;padding:3px 6px}.leg{font-size:9px;max-width:180px}
+}
 </style></head><body>
 <div id="map"></div>
-<div class="card">
-  <div class="kicker">Estudo de caso · Muçum</div>
-  <h1>A RNA fecha ruas — a rota desvia ou some</h1>
+<div class="card" aria-label="Painel do estudo de caso de Muçum">
+  <div class="card-head">
+    <div>
+      <div class="kicker"><span class="live-dot" aria-hidden="true"></span>Estudo de caso · replay histórico</div>
+      <h1>Da previsão à rota: quando a saída precisa mudar</h1>
+    </div>
+    <span class="mode-badge">Muçum · mai/2024</span>
+  </div>
   <div class="body">
     <div class="clock" id="clock">—</div>
-    <div class="rna"><div class="big" id="rna">— <small>RNA +12h</small></div>
-      <div class="sub" id="rnasub">nível previsto na régua · quem essa mancha alcança evacua</div></div>
+    <div class="rna">
+      <div class="rna-label">Nível previsto na régua</div>
+      <div class="big" id="rna">— <small>RNA +12h</small></div>
+      <div class="sub" id="rnasub">comparação entre observado, previsão e cenário HAND</div>
+    </div>
+    <div class="metrics" aria-label="Resumo do cenário">
+      <div class="metric"><span>Observado</span><strong id="obsNow">—</strong></div>
+      <div class="metric"><span>Variação +12h</span><strong id="delta12">—</strong></div>
+      <div class="metric"><span>HAND +12h</span><strong id="handNow">—</strong></div>
+    </div>
+    <div class="scale-head"><span>Cotas da régua</span><span>faixa alcançada pela previsão</span></div>
     <div class="pills" id="pills"></div>
-    <div class="fila"><h2>Fila · quem a RNA alcança sai · a rota muda com a mancha</h2><div id="fila"></div></div>
-    <button class="play" id="play">▶ Play</button>
+    <div class="fila">
+      <div class="fila-head"><h2>Prioridade simulada e condição da rota</h2><span class="count" id="filaCount">—</span></div>
+      <p class="fila-note">A ordem muda conforme a mancha prevista alcança os pontos e altera a conectividade até os abrigos.</p>
+      <div id="fila"></div>
+    </div>
+    <div class="timeline-wrap">
+      <div class="timeline-row">
+        <button class="play" id="play" type="button">▶ Reproduzir</button>
+        <input id="timeline" type="range" min="0" value="0" step="1" aria-label="Percorrer o replay histórico">
+        <span class="step" id="step">—</span>
+      </div>
+    </div>
+    <div class="research-note">Replay de pesquisa para leitura do comportamento do modelo e das rotas. Não representa alerta ou ordem operacional.</div>
   </div>
 </div>
 <div class="leg" id="leg"></div>
@@ -359,16 +449,16 @@ D.casas.forEach(c=>{
   const ic=L.divIcon({className:'',html:'<div class="dot" style="background:#1b7a5a"></div>',iconSize:[22,22],iconAnchor:[11,11]});
   dots[c.id]=L.marker([c.lat,c.lon],{icon:ic,zIndexOffset:900}).addTo(map).bindTooltip(c.nome,{permanent:true,direction:'right',offset:[12,0],className:'casa-tip'});
 });
-map.fitBounds(b,{paddingTopLeft:[16,16],paddingBottomRight:[390,70]});
+map.fitBounds(b,{paddingTopLeft:[16,16],paddingBottomRight:[470,90]});
 setTimeout(()=>map.invalidateSize(),200);
 document.getElementById('pills').innerHTML=ALARMES.map(a=>`<span class="pill" data-id="${a.id}">${a.l}</span>`).join('');
-document.getElementById('leg').innerHTML='<b>Ruas e rotas</b><br>'+
-  '<i style="background:#1b7a5a"></i>ainda fora da RNA<br>'+
-  '<i style="background:#e3b100"></i>a RNA diz: vai alagar — sair<br>'+
-  '<i style="background:#e8730c"></i>urgente (pouca margem)<br>'+
-  '<i style="background:#1e5fbf"></i>já na água agora<br>'+
-  '<i style="background:#0f8b46"></i>rota seca até o abrigo<br>'+
-  '<i style="background:#c0392b"></i>só pela água / cortada';
+document.getElementById('leg').innerHTML='<b>Leitura do mapa</b>'+
+  '<div><i style="background:#1b7a5a"></i>fora da mancha prevista</div>'+
+  '<div><i style="background:#e3b100"></i>prevista para alagar</div>'+
+  '<div><i style="background:#e8730c"></i>pouca margem de saída</div>'+
+  '<div><i style="background:#1e5fbf"></i>já alcançada no observado</div>'+
+  '<div><i style="background:#0f8b46"></i>rota seca até abrigo</div>'+
+  '<div><i style="background:#c0392b"></i>rota pela água / interrompida</div>';
 function rotaEm(arr,h){if(!arr||!arr.length) return null; let b=arr[0]; for(const r of arr) if(r.hand<=h+0.05) b=r; return b;}
 function pegaRota(c,hRna){
   const seca=rotaEm(c.rotas_seca,hRna), fuga=rotaEm(c.rotas_fuga,hRna);
@@ -394,7 +484,13 @@ function render(i){
   const f=faixa(s.rna_cm);
   document.getElementById('clock').textContent='Cheia mai/2024 · '+fmtT(s.t)+' · o que a RNA via daqui a 12h';
   document.getElementById('rna').innerHTML=fmtM(s.rna_cm)+' <small>RNA +12h</small>';
-  document.getElementById('rnasub').textContent='agora na régua '+fmtM(s.obs_cm)+' · HAND previsto '+(hRna).toFixed(1)+' m';
+  document.getElementById('rnasub').textContent='observado '+fmtM(s.obs_cm)+' · horizonte '+D.meta.horizonte+' · HAND previsto '+(hRna).toFixed(1).replace('.',',')+' m';
+  document.getElementById('obsNow').textContent=fmtM(s.obs_cm);
+  const delta=s.rna_cm-s.obs_cm;
+  document.getElementById('delta12').textContent=(delta>=0?'+':'')+fmtM(delta);
+  document.getElementById('handNow').textContent=(hRna).toFixed(1).replace('.',',')+' m';
+  const timeline=document.getElementById('timeline');
+  if(timeline){ timeline.value=String(i); document.getElementById('step').textContent=(i+1)+' / '+D.serie.length; }
   document.querySelectorAll('#pills .pill').forEach(p=>{
     const a=ALARMES.find(x=>x.id===p.dataset.id);
     const on=p.dataset.id==='normal'?f==='normal':ALARMES.findIndex(x=>x.id===p.dataset.id)<=ALARMES.findIndex(x=>x.id===f);
@@ -423,6 +519,8 @@ function render(i){
       <div class="bl">alaga em HAND ${c.cota_hand_m} m</div>
       <div class="bl">${txtRota(c,naFila?k:'seguro',rr)}</div></div></div>`;
   }).join('');
+  const fc=document.getElementById('filaCount');
+  if(fc) fc.textContent=nFila===0?'sem prioridade':(nFila===1?'1 prioridade':nFila+' prioridades');
   D.casas.forEach(c=>{
     const k=clsCasa(c,hNow,hRna);
     const rr=pegaRota(c,hRna);
@@ -440,9 +538,28 @@ function render(i){
 window.slideN=()=>D.serie.length;
 window.slideGo=i=>{render(i);};
 window.slideMeta=()=>D.serie[idx];
-function tick(){ if(!playing) return; idx=(idx+1)%D.serie.length; render(idx); timer=setTimeout(tick,280); }
-document.getElementById('play').onclick=()=>{playing=!playing; document.getElementById('play').textContent=playing?'⏸ Pause':'▶ Play'; if(playing) tick(); else clearTimeout(timer);};
+function syncPlay(){
+  const b=document.getElementById('play');
+  if(b) b.textContent=playing?'⏸ Pausar':'▶ Reproduzir';
+}
+function tick(){
+  if(!playing) return;
+  if(idx>=D.serie.length-1){playing=false;syncPlay();return;}
+  render(idx+1);
+  timer=setTimeout(tick,900);
+}
+document.getElementById('play').onclick=()=>{
+  if(!playing && idx>=D.serie.length-1) render(0);
+  playing=!playing; syncPlay();
+  if(playing) timer=setTimeout(tick,350); else clearTimeout(timer);
+};
+const timeline=document.getElementById('timeline');
+if(timeline){
+  timeline.max=String(Math.max(0,D.serie.length-1));
+  timeline.addEventListener('input',e=>{playing=false;clearTimeout(timer);syncPlay();render(Number(e.target.value)||0);});
+}
 render(0);
+syncPlay();
 </script></body></html>
 """
 
@@ -590,8 +707,12 @@ def main():
         "casas": casas,
         "serie": serie,
     }
-    SAIDA_HTML.write_text(build_html(doc), encoding="utf-8")
+    html = build_html(doc)
+    SAIDA_HTML.write_text(html, encoding="utf-8")
+    SAIDA_PESQUISAS.parent.mkdir(parents=True, exist_ok=True)
+    SAIDA_PESQUISAS.write_text(html, encoding="utf-8")
     print("->", SAIDA_HTML)
+    print("->", SAIDA_PESQUISAS)
     fila_path = RAIZ / "assets" / "data" / "rota_fuga" / "fila_evacuacao_mucum.json"
     fila_path.parent.mkdir(parents=True, exist_ok=True)
     fila_path.write_text(json.dumps({

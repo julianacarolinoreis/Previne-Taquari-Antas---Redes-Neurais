@@ -1,0 +1,176 @@
+{
+  "schema_version": "g040_ensemble_member_inventory_v1",
+  "generated_at_utc": "2026-10-02T03:19:32.493313Z",
+  "research_only": true,
+  "members": [
+    {
+      "member_id": "RNA_STZ_2H_EVENTWISE",
+      "family": "RNA",
+      "location": "Santa Tereza",
+      "target_variable": "stage",
+      "target_unit": "cm",
+      "horizon_h": 2,
+      "status": "research_replay_not_operational",
+      "auditable_event_replay": true,
+      "independent_test_events": [
+        {
+          "evento": "12",
+          "inicio": "2025-06-18 10:00",
+          "fim": "2025-07-04 15:00",
+          "mae_cm": 4.46,
+          "peak_timing_error_h": 0.0
+        }
+      ],
+      "eligible_for_skill_weight": true,
+      "limitations": [
+        "stage member only; not discharge",
+        "cannot be averaged with discharge HEC/MGB output without a validated common-variable mapping",
+        "eventwise replay package is research-only"
+      ]
+    },
+    {
+      "member_id": "RNA_STZ_8H_RESEARCH",
+      "family": "RNA",
+      "location": "Santa Tereza",
+      "target_variable": "stage",
+      "target_unit": "cm",
+      "horizon_h": 8,
+      "status": "treino_rna_v1_concluido_nao_operacional",
+      "test_metrics": {
+        "n": 362,
+        "rmse_cm": 82.59532864788878,
+        "mae_cm": 46.58992178033507,
+        "nse": 0.8754083255886249,
+        "persistencia_rmse_cm": 102.3505657000296,
+        "persistencia_mae_cm": 57.43646408839779,
+        "skill_rmse_vs_pers": 0.1930154163489407
+      },
+      "eligible_for_skill_weight": true,
+      "limitations": [
+        "research MLP, not the operational MATLAB model",
+        "must be replayed on the same fixed benchmark events before cross-model weighting",
+        "stage-only output"
+      ]
+    },
+    {
+      "member_id": "RNA_MUCUM_8H_RESEARCH",
+      "family": "RNA",
+      "location": "Muçum",
+      "target_variable": "stage",
+      "target_unit": "cm",
+      "horizon_h": 8,
+      "status": "treino_rna_v1_concluido_nao_operacional",
+      "test_metrics": {
+        "n": 408,
+        "rmse_cm": 57.663080507914515,
+        "mae_cm": 33.48441059573637,
+        "nse": 0.9613438637313494,
+        "persistencia_rmse_cm": 124.20217941948128,
+        "persistencia_mae_cm": 68.23529411764706,
+        "skill_rmse_vs_pers": 0.5357321362843173
+      },
+      "eligible_for_skill_weight": true,
+      "limitations": [
+        "research MLP, not the operational MATLAB model",
+        "must be replayed on the same fixed benchmark events before cross-model weighting",
+        "stage-only output"
+      ]
+    },
+    {
+      "member_id": "HEC_HMS_G040_BRANCH",
+      "family": "HEC-HMS",
+      "location": "G040 mainstem branch model",
+      "target_variable": "discharge",
+      "target_unit": "m3/s",
+      "horizon_h": null,
+      "status": "compute_ok",
+      "eligible_for_skill_weight": true,
+      "limitations": [
+        "event-model branch representation until continuous SMA is calibrated"
+      ]
+    },
+    {
+      "member_id": "MGB_G040",
+      "family": "MGB",
+      "location": "G040",
+      "target_variable": "discharge",
+      "target_unit": "m3/s",
+      "horizon_h": null,
+      "status": "MGB_PREPROCESSING_CAN_START_MET_FORCING_INCOMPLETE",
+      "eligible_for_skill_weight": false,
+      "limitations": [
+        "model has not yet completed source-backed preprocessing/calibration"
+      ]
+    }
+  ],
+  "compatibility": {
+    "stage_ready_member_ids": [
+      "RNA_STZ_2H_EVENTWISE",
+      "RNA_STZ_8H_RESEARCH",
+      "RNA_MUCUM_8H_RESEARCH"
+    ],
+    "discharge_ready_member_ids": [
+      "HEC_HMS_G040_BRANCH"
+    ],
+    "compatible_groups": [
+      {
+        "target_variable": "discharge",
+        "target_unit": "m3/s",
+        "location": "G040 mainstem branch model",
+        "horizon_h": null,
+        "member_ids": [
+          "HEC_HMS_G040_BRANCH"
+        ],
+        "member_count": 1,
+        "ensemble_ready": false
+      },
+      {
+        "target_variable": "stage",
+        "target_unit": "cm",
+        "location": "Muçum",
+        "horizon_h": 8.0,
+        "member_ids": [
+          "RNA_MUCUM_8H_RESEARCH"
+        ],
+        "member_count": 1,
+        "ensemble_ready": false
+      },
+      {
+        "target_variable": "stage",
+        "target_unit": "cm",
+        "location": "Santa Tereza",
+        "horizon_h": 2.0,
+        "member_ids": [
+          "RNA_STZ_2H_EVENTWISE"
+        ],
+        "member_count": 1,
+        "ensemble_ready": false
+      },
+      {
+        "target_variable": "stage",
+        "target_unit": "cm",
+        "location": "Santa Tereza",
+        "horizon_h": 8.0,
+        "member_ids": [
+          "RNA_STZ_8H_RESEARCH"
+        ],
+        "member_count": 1,
+        "ensemble_ready": false
+      }
+    ],
+    "ready_stage_groups": [],
+    "ready_discharge_groups": [],
+    "cross_variable_averaging_allowed": false,
+    "rule": "weights may be estimated only among members predicting the same target variable/unit at the same location/horizon, or after an independently validated transformation",
+    "rating_curve_rule": "never invent stage-discharge conversion"
+  },
+  "weighting_gate": {
+    "fixed_benchmark_required": true,
+    "simple_mean_default": false,
+    "same_events_checkpoints_metrics_required": true,
+    "minimum_ready_members_per_target": 2,
+    "stage_ensemble_ready": false,
+    "discharge_ensemble_ready": false
+  },
+  "promotion_allowed": false
+}

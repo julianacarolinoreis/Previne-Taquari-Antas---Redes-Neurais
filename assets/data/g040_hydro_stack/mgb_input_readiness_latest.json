@@ -1,0 +1,153 @@
+{
+  "schema_version": "g040_mgb_input_readiness_v1",
+  "generated_at_utc": "2026-10-02T03:19:32.409481Z",
+  "research_only": true,
+  "status": "MGB_PREPROCESSING_CAN_START_MET_FORCING_INCOMPLETE",
+  "gates": {
+    "dem_candidate_available": true,
+    "hydrologically_consistent_dem_selected": false,
+    "soil_candidate_available": true,
+    "land_cover_candidate_available": true,
+    "current_precipitation_available": true,
+    "historical_discharge_events_available": true,
+    "historical_met_source_selected": true,
+    "temperature_forcing_ready": false,
+    "relative_humidity_forcing_ready": false,
+    "wind_forcing_ready": false,
+    "solar_or_sunshine_forcing_ready": false,
+    "pressure_or_supported_equivalent_ready": false,
+    "pet_or_energy_balance_strategy_selected": false,
+    "mini_basins_generated": false,
+    "hru_fractions_generated": false
+  },
+  "blockers": [
+    "hydrologically_consistent_dem_selected",
+    "temperature_forcing_ready",
+    "relative_humidity_forcing_ready",
+    "wind_forcing_ready",
+    "solar_or_sunshine_forcing_ready",
+    "pressure_or_supported_equivalent_ready",
+    "pet_or_energy_balance_strategy_selected",
+    "mini_basins_generated",
+    "hru_fractions_generated"
+  ],
+  "source_notes": {
+    "dem": "project legacy terrain/Tc evidence exists, but a hydrologically consistent DEM for MGB must be explicitly selected/generated",
+    "soil": "IBGE 2023 1:250k is a primary candidate; Embrapa 2011 is an independent but coarse reference",
+    "land_cover": "MapBiomas exists; the alternate ~166-unit workbook must not be treated as the MGB or HEC145 discretization",
+    "precipitation": "current G040 observed field can support contemporary replay once stable; historical forcing still needs event-period source audit",
+    "historical_meteorology": {
+      "preferred_source": "ERA5-Land hourly",
+      "purpose": [
+        "continuous warm-up",
+        "SMA historical PET",
+        "MGB meteorological preprocessing",
+        "independent soil-moisture state diagnostic"
+      ],
+      "variables": [
+        "potential evaporation",
+        "2m temperature",
+        "2m dewpoint temperature",
+        "surface pressure",
+        "10m u-component of wind",
+        "10m v-component of wind",
+        "surface solar radiation downwards",
+        "volumetric soil water layers 1-4"
+      ],
+      "operational_role": false,
+      "note": "Use official CDS retrieval with timestamp/version provenance; do not extrapolate stale reanalysis into forecast time."
+    },
+    "near_real_time_station_candidates": {
+      "source": "INMET station network documented in project Drive; data availability must be checked per station/hour",
+      "station_candidates": [
+        {
+          "code": "A840",
+          "name": "Bento Gonçalves"
+        },
+        {
+          "code": "A897",
+          "name": "Cambará do Sul"
+        },
+        {
+          "code": "A879",
+          "name": "Canela"
+        },
+        {
+          "code": "B818",
+          "name": "Caxias do Sul Aeroporto"
+        },
+        {
+          "code": "B817",
+          "name": "Caxias do Sul Criúva"
+        },
+        {
+          "code": "A883",
+          "name": "Ibirubá"
+        },
+        {
+          "code": "A844",
+          "name": "Lagoa Vermelha"
+        },
+        {
+          "code": "B814",
+          "name": "Montenegro"
+        },
+        {
+          "code": "A839",
+          "name": "Passo Fundo"
+        },
+        {
+          "code": "A813",
+          "name": "Rio Pardo"
+        },
+        {
+          "code": "B820",
+          "name": "São Francisco de Paula"
+        },
+        {
+          "code": "A829",
+          "name": "São José dos Ausentes"
+        },
+        {
+          "code": "A894",
+          "name": "Serafina Corrêa"
+        },
+        {
+          "code": "A837",
+          "name": "Soledade"
+        },
+        {
+          "code": "A880",
+          "name": "Vacaria"
+        }
+      ],
+      "variables_documented": [
+        "hourly total precipitation",
+        "station pressure",
+        "sea-level pressure",
+        "global radiation",
+        "dry-bulb air temperature",
+        "dew-point temperature",
+        "hourly max/min air temperature",
+        "relative humidity"
+      ],
+      "coverage_document_window": {
+        "start": "2010-01-01",
+        "end": "2025-11-25"
+      },
+      "readiness": "CANDIDATE_ONLY_NOT_AUDITED_FOR_CURRENT_COMPLETENESS"
+    },
+    "discharge": "six historical/live benchmark events exist, but station-specific QC remains mandatory"
+  },
+  "preprocessing_plan": [
+    "select/condition DEM and derive drainage/mini-basins independently",
+    "spatialize soil and land-cover to MGB HRUs",
+    "close continuous meteorological forcing variables/units/timezone",
+    "generate initial parameter file with source provenance",
+    "run continuous warmup",
+    "calibrate on fixed calibration events and checkpoints",
+    "freeze before independent validation/holdout"
+  ],
+  "discretization_rule": "derive MGB mini-basins/HRUs independently; never copy the 32 management polygons or 145 HEC inventory by assumption",
+  "promotion_allowed": false
+}

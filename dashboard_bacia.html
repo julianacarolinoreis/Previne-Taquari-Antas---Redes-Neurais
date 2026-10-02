@@ -7,7 +7,7 @@
   <link rel="icon" href="data:,">
   <title>PREVINE · Dashboard da bacia Taquari–Antas</title>
   <link rel="stylesheet" href="assets/css/site_chrome.css">
-  <link rel="stylesheet" href="assets/css/bacia_dashboard.css">
+  <link rel="stylesheet" href="assets/css/bacia_dashboard.css?v=20261001-models5">
   <link rel="stylesheet" href="assets/css/gestor_chrome.css">
 </head>
 <body>
@@ -17,7 +17,7 @@
       <div class="brand-copy">
         <p class="eyebrow">PREVINE · pesquisa de transbordamento</p>
         <h1>Dashboard da bacia <span>Taquari–Antas</span></h1>
-        <p class="lede">Nível observado, chuva prevista, modelos e evidências históricas em uma só leitura.</p>
+        <p class="lede">Telemetria observada, RNAs de curto prazo, chuva ECMWF e evidências históricas em uma leitura integrada.</p>
       </div>
       <div class="research-badge"><strong>PESQUISA</strong><span>sem alerta automático</span></div>
     </header>
@@ -66,6 +66,40 @@
       </div>
       <button type="button" class="refresh-button" id="refresh-feeds">Atualizar dados</button>
       <p class="control-status" id="control-status" aria-live="polite">Carregando feeds publicados…</p>
+    </section>
+
+    <section class="panel now-panel" id="agora" aria-labelledby="now-title">
+      <div class="panel-heading now-heading">
+        <div><p class="section-kicker">Agora na bacia</p><h2 id="now-title">Telemetria e RNAs de curto prazo</h2></div>
+        <span class="panel-note">Observado e previsto ficam separados. As RNAs mostram nível futuro em centímetros; não são probabilidade de inundação.</span>
+      </div>
+      <div class="now-overview">
+        <div class="basin-map-card">
+          <div class="now-subhead"><div><span class="now-eyebrow">Rede hidrometeorológica</span><h3>G040 inteira · Taquari–Antas</h3></div><span class="now-map-note" id="basin-network-note">catálogo, observados, previstos e RNA separados</span></div>
+          <div id="basin-network-summary" class="basin-network-summary" aria-live="polite"><span class="network-summary-empty">Carregando saúde da rede…</span></div>
+          <div class="basin-network-toolbar" aria-label="Filtros da rede G040">
+            <div class="network-toolbar-row"><span class="network-toolbar-label">Visualização</span><button type="button" class="network-chip is-active" data-network-mode="health" aria-pressed="true">Saúde da rede</button><button type="button" class="network-chip" data-network-mode="catalog" aria-pressed="false">Catálogo</button></div>
+            <div class="network-toolbar-row"><span class="network-toolbar-label">Observação</span><button type="button" class="network-chip is-active" data-network-filter="all" aria-pressed="true">Todas</button><button type="button" class="network-chip" data-network-filter="le1h" aria-pressed="false">≤ 1 h</button><button type="button" class="network-chip" data-network-filter="1to3" aria-pressed="false">1–3 h</button><button type="button" class="network-chip" data-network-filter="over3" aria-pressed="false">&gt; 3 h</button><button type="button" class="network-chip" data-network-filter="no-time" aria-pressed="false">Sem hora</button><button type="button" class="network-chip" data-network-filter="no-current" aria-pressed="false">Sem observado atual</button><button type="button" class="network-chip" data-network-filter="none" aria-pressed="false">Sem observado</button></div>
+            <div class="network-select-row">
+              <label>Fonte<select id="basin-source-filter"><option value="all">Todas</option><option value="ANA/HidroWeb">ANA/HidroWeb</option><option value="SGB/SACE">SGB/SACE</option><option value="CEMADEN">CEMADEN</option><option value="INMET">INMET</option></select></label>
+              <label>Sub-bacia G040<select id="basin-upg-filter"><option value="all">Todas as sub-bacias</option></select></label>
+              <label>Dado<select id="basin-variable-filter"><option value="all">Todos</option><option value="level">Nível</option><option value="flow">Vazão</option><option value="rain">Chuva observada</option><option value="rna">RNA de nível</option></select></label>
+              <label>Modelo previsto<select id="basin-model-filter"><option value="all">Todos</option><option value="ecmwf_ifs025">ECMWF IFS</option><option value="gfs_seamless">GFS</option><option value="icon_seamless">ICON</option><option value="gem_seamless">GEM</option><option value="meteofrance_seamless">Météo-France</option></select></label>
+            </div>
+            <div class="network-search-row">
+              <label class="network-search-label">Localizar estação<input id="basin-station-search" type="search" list="basin-station-options" placeholder="Nome ou código, ex.: 86472000" autocomplete="off"><datalist id="basin-station-options"></datalist></label>
+              <button type="button" class="network-clear-button" id="basin-clear-filters">Limpar filtros</button>
+              <span class="network-search-status" id="basin-search-status" aria-live="polite"></span>
+            </div>
+          </div>
+          <div id="basin-map" class="basin-map" aria-live="polite"><div class="loading-block">Carregando limite da G040 e snapshot das estações…</div></div>
+          <div id="basin-station-detail" class="basin-station-detail" aria-live="polite"><div class="loading-block">Clique em uma estação para abrir nível, chuva, previsão e RNA.</div></div>
+          <div id="basin-gap-diagnostics" class="basin-gap-diagnostics" aria-live="polite"><div class="loading-block">Calculando lacunas da rede por variável e idade…</div></div>
+          <div id="basin-upg-health" class="basin-upg-health" aria-live="polite"><div class="loading-block">Calculando cobertura observacional por sub-bacia…</div></div>
+          <p class="basin-map-foot">A cor do ponto representa a idade da evidência observada, não o risco hidrológico. Previsão meteorológica, observação e RNA permanecem em campos independentes. Ausência de dado nunca é convertida em zero.</p>
+        </div>
+        <div id="now-stations" class="now-stations" aria-live="polite"><div class="loading-block">Carregando telemetria e previsões curtas…</div></div>
+      </div>
     </section>
 
     <section class="answer-card" aria-labelledby="answer-title" aria-live="polite">
@@ -144,7 +178,7 @@
       <div id="station-comparison" class="station-comparison" aria-live="polite"><div class="loading-block">Carregando Santa Tereza e Muçum…</div></div>
     </section>
 
-    <section class="panel zones-panel" aria-labelledby="zones-title">
+    <section class="panel zones-panel" id="chuva" aria-labelledby="zones-title">
       <div class="panel-heading">
         <div><p class="section-kicker">Onde a chuva está?</p><h2 id="zones-title">Pontos a montante, alvo e cobertura hidrológica</h2></div>
         <span class="panel-note">A média e o máximo abaixo resumem células ligadas aos pontos monitorados a montante. Não são a média de toda a bacia; a máscara hidrológica e o tempo de propagação ainda precisam de validação.</span>
@@ -152,22 +186,31 @@
       <div id="zone-cards" class="zone-grid" aria-live="polite"></div>
     </section>
 
-    <section class="panel model-panel" aria-labelledby="models-title">
+    <section class="panel model-panel" id="modelos" aria-labelledby="models-title">
       <div class="panel-heading">
         <div><p class="section-kicker">Comparação das fontes</p><h2 id="models-title">O que cada modelo mostra?</h2></div>
         <span class="panel-note" id="model-panel-note">Valores do horizonte selecionado</span>
       </div>
       <div id="model-cards" class="model-grid" aria-live="polite"><div class="loading-block">Carregando modelos…</div></div>
-      <div class="scale-note">Leitura separada por unidade: barras de chuva em mm; nível do rio e cota em cm; probabilidade experimental aparece apenas no cartão próprio, com estado de atualização.</div>
+      <div class="scale-note" aria-label="Legenda das unidades do painel">
+        <span class="scale-item"><i class="bar-key rain-key" aria-hidden="true"></i><b>Chuva</b> mm acumulados</span>
+        <span class="scale-item"><i class="bar-key level-key" aria-hidden="true"></i><b>Nível × cota</b> cm</span>
+        <span class="scale-item"><i class="bar-key risk-key" aria-hidden="true"></i><b>Probabilidade</b> % experimental, somente quando atual</span>
+        <span class="scale-item"><i class="bar-key soil-key" aria-hidden="true"></i><b>Solo</b> m³/m³ modelado</span>
+        <span class="scale-note-text">Cada variável mantém sua própria escala; valores ausentes ou atrasados não são convertidos em zero.</span>
+      </div>
     </section>
 
-    <section class="panel timeline-panel" aria-labelledby="timeline-title">
+    <section class="panel timeline-panel" id="historico" aria-labelledby="timeline-title">
       <div class="panel-heading">
         <div><p class="section-kicker">Memória das cheias</p><h2 id="timeline-title">O que aconteceu antes dos eventos?</h2></div>
         <span class="panel-note" id="timeline-note">Eventos catalogados nos feeds</span>
       </div>
+      <div id="event-summary" class="event-summary" aria-live="polite"></div>
+      <div id="event-insight" class="event-insight" aria-live="polite"></div>
       <div id="event-timeline" class="event-timeline" aria-live="polite"><div class="loading-block">Carregando eventos…</div></div>
-      <p class="method-note">Os eventos são evidências de pesquisa. “Candidato” não significa evento confirmado por todos os órgãos; a situação de cada registro aparece no cartão.</p>
+      <div id="event-comparison" class="event-comparison" aria-live="polite"></div>
+      <p class="method-note">Os eventos são evidências de pesquisa. Chuva local, proxy, dinâmica do nível e desempenho do replay permanecem identificados separadamente; ausência de chuva auditada não é convertida em zero.</p>
     </section>
 
     <section class="lower-grid">
@@ -181,7 +224,7 @@
       </section>
     </section>
 
-    <section class="sources-card" aria-labelledby="sources-title">
+    <section class="sources-card" id="fontes" aria-labelledby="sources-title">
       <div><p class="section-kicker">Abrir os detalhes</p><h2 id="sources-title">Páginas e arquivos auditáveis</h2><p>Use as páginas individuais para o gráfico de nível e a previsão curta. Os JSONs abaixo são os artefatos utilizados por este dashboard.</p></div>
       <div class="source-links">
         <a href="plataforma_hec_twin.html">Plataforma HEC/REC · bacia G040 →</a>
@@ -202,7 +245,7 @@
     </footer>
   </main>
   <script src="assets/js/live_feed.js?v=20260916-nunca-atrasado"></script>
-  <script src="assets/js/bacia_dashboard.js?v=20260909-modelview2" defer></script>
+  <script src="assets/js/bacia_dashboard.js?v=20261001-models4" defer></script>
   <script src="assets/js/gestor_chrome.js" data-page="agora" data-place="bacia"></script>
   <script src="assets/js/site_chrome.js" data-page="bacia"></script>
 </body>

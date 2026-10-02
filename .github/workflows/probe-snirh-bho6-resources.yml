@@ -1,0 +1,52 @@
+name: Probe official SNIRH BHO6 resources
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/probe_snirh_bho6_metadata_resources.py"
+      - ".github/workflows/probe-snirh-bho6-resources.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: probe-snirh-bho6-resources
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Dependencies
+        run: pip install --disable-pip-version-check requests
+      - name: Probe official metadata resources
+        run: python -B scripts/probe_snirh_bho6_metadata_resources.py
+      - name: Publish resource probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-bho6-resource-bot"
+          git config user.email "previne-bho6-resource-bot@users.noreply.github.com"
+          P="assets/data/hec_hms_g040_full_basin/snirh_bho6_metadata_resource_probe_latest.json"
+          cp "$P" /tmp/
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp /tmp/snirh_bho6_metadata_resource_probe_latest.json "$P"
+            git add -- "$P"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "bot: update BHO6 metadata resource probe [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt*2))
+          done
+          exit 1

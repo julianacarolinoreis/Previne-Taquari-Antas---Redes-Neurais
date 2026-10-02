@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "artifact_id": "research-event-replay-latest",
-  "generated_at_utc": "2026-09-20T20:20:26Z",
+  "generated_at_utc": "2026-10-02T00:42:59Z",
   "research_only": true,
   "official_alert": false,
   "operational_gate": {
     "status": "blocked",
-    "reason": "Replay, spatial triage and response inventory are source-backed research artifacts; gauge/HAND conversion, field route checks and current shelter capacity are not closed.",
+    "reason": "Replay, spatial triage and response inventory are research artifacts. Santa Tereza usa a regra de campo régua 1,60 m = HAND 0; Muçum ainda tem reconciliação vertical pendente. Rotas de campo e capacidade atual de abrigo não estão fechadas.",
     "disallowed": [
       "official_alert",
       "evacuation_order",
@@ -21,7 +21,7 @@
     "nearest_neighbor": false,
     "spatial_join": "interseção geométrica com área positiva; filtro explícito id_grade=200M",
     "population_semantics": "soma de células inteiras é limite superior de triagem; proxy ponderado por área não é contagem individual nem população evacuável",
-    "gauge_hand_conversion": "pending_vertical_datum_and_gauge_to_HAND_reconciliation",
+    "gauge_hand_conversion": "santa_tereza: HAND=max(0,regua_m-1.60); mucum: pending_vertical_datum_and_gauge_to_HAND_reconciliation",
     "route_rule": "nenhuma rota é derivada do cruzamento espacial deste artefato",
     "model_rule": "séries publicadas permanecem separadas de uma emissão operacional; timestamp de liberação T− ainda não foi reconciliado"
   },
@@ -1391,7 +1391,7 @@
     "mucum": {
       "event_count_catalog": 32,
       "q62_used_event_count": 36,
-      "audited_model_count": 14
+      "audited_model_count": 20
     },
     "santa_tereza": {
       "event_count_catalog": 24,
@@ -2564,242 +2564,213 @@
     "santa_tereza": {
       "grid_source": "assets/data/vulnerabilidade/grade/4317251.geojson",
       "contour_source": "assets/data/santa_tereza_inundacao/contornos_mancha.json",
-      "stage_conversion_status": "pending_vertical_datum_and_gauge_to_HAND_reconciliation",
+      "stage_conversion_status": "field_rule_active_regua_1_60m_equals_HAND_0_research_proxy",
+      "gauge_to_hand_rule": "HAND = max(0, regua_m - 1.60)",
       "published_level_range_m": [
         0.0,
-        30.0
+        25.0
       ],
-      "higher_than_published_status": "contornos_disponiveis_ate_30m; resumo_populacional_publicado_apenas_em_15m; conversao_regua_HAND_pendente",
+      "higher_than_published_status": "acima_do_maior_contorno_LiDAR_publicado_fora_da_faixa_quantitativa",
       "scenarios": [
         {
           "level_m": 15.0,
-          "contour_area_ha": 1394.2,
+          "contour_area_ha": 665.9,
           "contour_feature_count_at_level": 1,
-          "cells_200m_touched": 43,
-          "population_upper_bound_whole_touched_cells": 656,
-          "population_area_weighted_proxy": 321.7,
+          "cells_200m_touched": 37,
+          "population_upper_bound_whole_touched_cells": 571,
+          "population_area_weighted_proxy": 131.5,
           "intersected_cells_200m": [
             {
               "id_grade": "200ME52252N80964",
               "pop": 2,
-              "overlap_pct_proxy": 100.0
+              "overlap_pct_proxy": 78.322
             },
             {
               "id_grade": "200ME52254N80962",
               "pop": 5,
-              "overlap_pct_proxy": 74.833
+              "overlap_pct_proxy": 8.926
             },
             {
               "id_grade": "200ME52258N80962",
               "pop": 4,
-              "overlap_pct_proxy": 43.324
+              "overlap_pct_proxy": 31.197
             },
             {
               "id_grade": "200ME52266N80986",
               "pop": 4,
-              "overlap_pct_proxy": 100.0
-            },
-            {
-              "id_grade": "200ME52266N80988",
-              "pop": 2,
-              "overlap_pct_proxy": 31.011
+              "overlap_pct_proxy": 0.013
             },
             {
               "id_grade": "200ME52268N80984",
               "pop": 2,
-              "overlap_pct_proxy": 98.558
+              "overlap_pct_proxy": 27.6
             },
             {
               "id_grade": "200ME52268N80988",
               "pop": 2,
-              "overlap_pct_proxy": 97.694
+              "overlap_pct_proxy": 50.602
             },
             {
               "id_grade": "200ME52270N80980",
               "pop": 5,
-              "overlap_pct_proxy": 100.0
+              "overlap_pct_proxy": 83.873
             },
             {
               "id_grade": "200ME52270N80982",
               "pop": 10,
-              "overlap_pct_proxy": 97.158
+              "overlap_pct_proxy": 52.903
             },
             {
               "id_grade": "200ME52272N80980",
               "pop": 18,
-              "overlap_pct_proxy": 85.675
+              "overlap_pct_proxy": 30.792
             },
             {
               "id_grade": "200ME52272N80982",
               "pop": 58,
-              "overlap_pct_proxy": 66.551
+              "overlap_pct_proxy": 17.763
             },
             {
               "id_grade": "200ME52272N80984",
               "pop": 14,
-              "overlap_pct_proxy": 97.891
+              "overlap_pct_proxy": 75.238
             },
             {
               "id_grade": "200ME52272N80986",
               "pop": 16,
-              "overlap_pct_proxy": 29.079
+              "overlap_pct_proxy": 11.913
             },
             {
               "id_grade": "200ME52272N80988",
               "pop": 2,
-              "overlap_pct_proxy": 94.98
+              "overlap_pct_proxy": 52.013
             },
             {
               "id_grade": "200ME52274N80976",
               "pop": 9,
-              "overlap_pct_proxy": 100.0
+              "overlap_pct_proxy": 94.092
             },
             {
               "id_grade": "200ME52274N80978",
               "pop": 50,
-              "overlap_pct_proxy": 88.114
+              "overlap_pct_proxy": 17.201
             },
             {
               "id_grade": "200ME52274N80980",
               "pop": 44,
-              "overlap_pct_proxy": 62.903
+              "overlap_pct_proxy": 24.114
             },
             {
               "id_grade": "200ME52274N80982",
               "pop": 11,
-              "overlap_pct_proxy": 64.69
+              "overlap_pct_proxy": 58.044
             },
             {
               "id_grade": "200ME52274N80984",
               "pop": 17,
-              "overlap_pct_proxy": 100.0
+              "overlap_pct_proxy": 85.96
             },
             {
               "id_grade": "200ME52274N80986",
               "pop": 6,
-              "overlap_pct_proxy": 96.348
+              "overlap_pct_proxy": 81.197
             },
             {
               "id_grade": "200ME52276N80972",
               "pop": 3,
-              "overlap_pct_proxy": 88.29
+              "overlap_pct_proxy": 93.964
             },
             {
               "id_grade": "200ME52276N80974",
               "pop": 10,
-              "overlap_pct_proxy": 84.218
+              "overlap_pct_proxy": 67.829
             },
             {
               "id_grade": "200ME52276N80976",
               "pop": 23,
-              "overlap_pct_proxy": 56.857
+              "overlap_pct_proxy": 32.185
             },
             {
               "id_grade": "200ME52276N80978",
               "pop": 57,
-              "overlap_pct_proxy": 10.78
+              "overlap_pct_proxy": 5.605
             },
             {
               "id_grade": "200ME52276N80980",
               "pop": 4,
-              "overlap_pct_proxy": 99.893
+              "overlap_pct_proxy": 64.416
             },
             {
               "id_grade": "200ME52276N80984",
               "pop": 7,
-              "overlap_pct_proxy": 75.683
+              "overlap_pct_proxy": 20.699
+            },
+            {
+              "id_grade": "200ME52278N80972",
+              "pop": 9,
+              "overlap_pct_proxy": 0.14
             },
             {
               "id_grade": "200ME52278N80978",
               "pop": 21,
-              "overlap_pct_proxy": 23.627
+              "overlap_pct_proxy": 6.793
             },
             {
               "id_grade": "200ME52278N80980",
               "pop": 8,
-              "overlap_pct_proxy": 66.804
-            },
-            {
-              "id_grade": "200ME52278N80982",
-              "pop": 20,
-              "overlap_pct_proxy": 2.741
-            },
-            {
-              "id_grade": "200ME52280N80978",
-              "pop": 19,
-              "overlap_pct_proxy": 20.643
+              "overlap_pct_proxy": 43.381
             },
             {
               "id_grade": "200ME52280N80980",
               "pop": 3,
-              "overlap_pct_proxy": 60.442
+              "overlap_pct_proxy": 29.044
             },
             {
               "id_grade": "200ME52282N80978",
               "pop": 87,
-              "overlap_pct_proxy": 18.224
+              "overlap_pct_proxy": 0.004
             },
             {
               "id_grade": "200ME52284N80978",
               "pop": 32,
-              "overlap_pct_proxy": 40.853
+              "overlap_pct_proxy": 2.998
             },
             {
               "id_grade": "200ME52286N80976",
               "pop": 2,
-              "overlap_pct_proxy": 7.456
+              "overlap_pct_proxy": 1.439
             },
             {
               "id_grade": "200ME52286N80978",
               "pop": 6,
-              "overlap_pct_proxy": 64.837
+              "overlap_pct_proxy": 28.342
             },
             {
               "id_grade": "200ME52288N80978",
               "pop": 13,
-              "overlap_pct_proxy": 6.055
-            },
-            {
-              "id_grade": "200ME52290N80976",
-              "pop": 15,
-              "overlap_pct_proxy": 46.609
+              "overlap_pct_proxy": 0.433
             },
             {
               "id_grade": "200ME52290N81078",
               "pop": 3,
-              "overlap_pct_proxy": 77.214
-            },
-            {
-              "id_grade": "200ME52292N80974",
-              "pop": 29,
-              "overlap_pct_proxy": 11.746
-            },
-            {
-              "id_grade": "200ME52292N80976",
-              "pop": 4,
-              "overlap_pct_proxy": 23.984
+              "overlap_pct_proxy": 19.826
             },
             {
               "id_grade": "200ME52292N81074",
               "pop": 3,
-              "overlap_pct_proxy": 63.191
-            },
-            {
-              "id_grade": "200ME52294N81066",
-              "pop": 5,
-              "overlap_pct_proxy": 6.881
+              "overlap_pct_proxy": 32.157
             },
             {
               "id_grade": "200ME52298N81062",
               "pop": 1,
-              "overlap_pct_proxy": 23.872
+              "overlap_pct_proxy": 5.041
             }
           ],
           "join_status": "reproduced_geometry_intersection",
           "invalid_200m_cells_seen": 0
         }
       ],
-      "note": "A faixa publicada é lida diretamente do arquivo de contornos; o cenário de replay permanece separado da conversão régua↔HAND."
+      "note": "Santa Tereza usa a regra de campo régua 1,60 m = HAND 0. O cenário de 15 m deste inventário é 15 m de HAND, não leitura de 15 m na régua; a geometria vem do contorno LiDAR atual."
     }
   },
   "response_inventory": {
@@ -2839,19 +2810,19 @@
       "path": "assets/data/mucum_q62/mucum_q62_recorte_eventos.csv",
       "role": "Muçum Q62 event recortes",
       "status": "available",
-      "sha256": "3ea9201a103b8637ae1d56dc4b9122b47465abba4486d11efba2f5c3068e7ff7"
+      "sha256": "cfb9fc3615f11594a91cc77acf049136bfc26c570d53cfe616c788e5dfda224c"
     },
     {
       "path": "assets/data/mucum_auditaveis_series.json",
       "role": "Muçum auditável model series",
       "status": "available",
-      "sha256": "e2b46ba29444cddffaf7eabd7ee8f66cf0e677bdce309cec1b3ce5b00960d82b"
+      "sha256": "65e3553d71a9c42c12c9a22cbb27960f405798dde407453d90d390327bf3e869"
     },
     {
       "path": "assets/data/mucum_q62/mucum_q62_replay_candidates.json",
       "role": "Muçum Q62 candidate event series; not promoted",
       "status": "available",
-      "sha256": "eb21c8fb8d337c93c74c47d31ac253681db4e98ef5bb7a1d75008426782f12e8"
+      "sha256": "25fa1eb31e038623b9972045ff839d29a841c6b4c44a05566f19b308ad44a03d"
     },
     {
       "path": "assets/data/mucum_eventos_analise.json",
@@ -2869,13 +2840,13 @@
       "path": "assets/data/research_basin_screening_latest.json",
       "role": "basin research feed",
       "status": "available_snapshot",
-      "sha256": "3470de2fb1b2b612b1c0d848b62729e19018115ff4c7c42c02062b9ad63ce72a"
+      "sha256": "a2eb9a86ce7f133e3bdbb1218cc4f1d417ea53aabae6428033f00ddcf0028116"
     },
     {
       "path": "assets/data/hec_hms_integrated_taquari_antas/network_calibration_status_latest.json",
       "role": "HEC-HMS network calibration status",
       "status": "available_snapshot",
-      "sha256": "05894055cdc87f5cf4269e12baf51acf102c92cbcb536af3ca57488139df2f6e"
+      "sha256": "90476a655a3f826af31b6ff1dd649d5d774a0fffaa6bcea5ab68f17c93b7b072"
     }
   ]
 }

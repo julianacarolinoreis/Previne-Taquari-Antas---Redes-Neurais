@@ -11,6 +11,7 @@ Research only. Not an official alert.
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 import build_plataforma_hec_twin_mucum as base
@@ -84,6 +85,7 @@ def build_hydro_nodes(feed: dict) -> dict:
     """
     stz_live = base.load_json(ROOT / "previsao_ao_vivo.json") or {}
     muc_live = base.load_json(ROOT / "previsao_ao_vivo_mucum.json") or {}
+    obs_multi = base.load_json(OUT / "mucum_observed_multistation_latest.json") or {}
     fwd = base.load_json(OUT / "hec_twin_mucum_forward_5d_latest.json") or {}
     q_rating = (((fwd.get("quanto_sobe") or {}).get("q_now_from_rating_m3s") or {}).get("q_m3s"))
 
@@ -171,6 +173,71 @@ def build_hydro_nodes(feed: dict) -> dict:
             })
             seen.add(code)
 
+    # Complete the map with every station that currently has observed Q in the
+    # full-basin multistation product. Existing level nodes are enriched with Q;
+    # additional stations are added as flow-only nodes so a raw elevation/cota
+    # can never be mislabelled as river stage.
+    by_code = {str(r.get("code")): r for r in rows}
+    ref_local = None
+    try:
+        ref_local = datetime.fromisoformat(str(((obs_multi.get("event_window") or {}).get("end_local"))))
+    except Exception:
+        ref_local = None
+    for st in ((obs_multi.get("flow") or {}).get("stations") or []):
+        code = str(st.get("code") or "").strip()
+        if not code:
+            continue
+        qrows = [x for x in (st.get("series") or []) if x.get("flow_m3s") is not None]
+        if not qrows:
+            continue
+        last = qrows[-1]
+        try:
+            q = float(last.get("flow_m3s"))
+        except Exception:
+            continue
+        age_min = None
+        try:
+            when = datetime.fromisoformat(str(last.get("time_local")))
+            if ref_local is not None:
+                age_min = max(0.0, (ref_local - when).total_seconds() / 60.0)
+        except Exception:
+            pass
+        existing = by_code.get(code)
+        if existing is not None:
+            existing["discharge_m3s"] = q
+            existing["discharge_kind"] = "observed_telemetry"
+            existing["discharge_note_pt"] = "Vazão observada na rede multirrede; não é vazão simulada."
+            if existing.get("age_min") is None and age_min is not None:
+                existing["age_min"] = round(age_min, 1)
+            continue
+        lat = st.get("lat")
+        lon = st.get("lon")
+        if lat is None or lon is None:
+            inv = inventory.get(code) or {}
+            lat, lon = inv.get("lat"), inv.get("lon")
+        if lat is None or lon is None:
+            continue
+        inv = inventory.get(code) or {}
+        row = {
+            "code": code,
+            "name": st.get("name") or inv.get("name") or code,
+            "lat": float(lat), "lon": float(lon),
+            "ug": st.get("upg") or inv.get("ug"),
+            "role": "posto de vazão observado",
+            "level_cm": None,
+            "measurement_classification": "flow_only_network",
+            "level_at_local": None,
+            "age_min": None if age_min is None else round(age_min, 1),
+            "qc_status": "OBSERVED_FLOW",
+            "source": st.get("network") or "ANA/SGB multirrede",
+            "drainage_area_km2": st.get("area_km2") or inv.get("area_km2"),
+            "discharge_m3s": q,
+            "discharge_kind": "observed_telemetry",
+            "discharge_note_pt": "Vazão observada na rede multirrede; nível omitido porque a escala bruta não é assumida como nível local.",
+        }
+        rows.append(row)
+        by_code[code] = row
+
     # Highest-value curated nodes first.
     priority = {
         "86510000": 0, "86472600": 1, "86472000": 2, "86507000": 3,
@@ -256,6 +323,208 @@ def build_corridor_model_nodes(feed: dict, forward_pkg: dict) -> dict:
     }
 
 
+
+BRT = timezone(timedelta(hours=-3))
+
+
+def _parse_utc(value):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).astimezone(timezone.utc)
+    except Exception:
+        return None
+
+
+def _dual_is_fresh_and_valid(dual: dict, baseline: dict) -> bool:
+    if not dual or not dual.get("publishable"):
+        return False
+    ov = dual.get("operational_validation") or {}
+    if ov.get("status") != "VALIDATED":
+        return False
+    dcur = dual.get("current") or {}
+    bcur = baseline.get("current_state") or {}
+    try:
+        dlocal = datetime.fromisoformat(str(dcur.get("observed_time_local"))).replace(tzinfo=BRT)
+        butc = _parse_utc(bcur.get("observed_at_utc"))
+    except Exception:
+        return False
+    if butc is None:
+        return False
+    if abs((dlocal.astimezone(timezone.utc) - butc).total_seconds()) > 45 * 60:
+        return False
+    try:
+        if abs(float(dcur.get("observed_stage_cm")) - float(bcur.get("stage_cm"))) > 20.0:
+            return False
+    except Exception:
+        return False
+    return True
+
+
+def _local_series_to_utc(times):
+    out = []
+    for value in times or []:
+        try:
+            dt = datetime.fromisoformat(str(value)).replace(tzinfo=BRT).astimezone(timezone.utc)
+            out.append(dt.isoformat().replace("+00:00", "Z"))
+        except Exception:
+            out.append(str(value))
+    return out
+
+
+def _dual_model_nodes(feed: dict, dual: dict, times_utc: list[str]) -> dict:
+    lookup = {str(n.get("code")): n for n in (feed.get("hydro_nodes") or [])}
+    specs = [
+        ("86472000", "Linha José Júlio · fronteira observada", dual.get("q_ljj_boundary_m3s") or [], "observed_upstream_boundary"),
+        ("86500000", "Passo Carreiro · fronteira observada", dual.get("q_carreiro_boundary_m3s") or [], "observed_tributary_boundary"),
+        ("86510000", "Muçum · saída HEC-HMS", dual.get("q_m3s") or [], "model_outlet"),
+    ]
+    rows = []
+    for code, name, vals, role in specs:
+        vals = [float(v) for v in vals if v is not None]
+        node = lookup.get(code) or {}
+        if not vals or node.get("lat") is None or node.get("lon") is None:
+            continue
+        pi = max(range(len(vals)), key=lambda i: vals[i])
+        rows.append({
+            "code": code,
+            "name": name,
+            "role": role,
+            "lat": node.get("lat"),
+            "lon": node.get("lon"),
+            "q0_m3s": round(vals[0], 3),
+            "peak_q_m3s": round(vals[pi], 3),
+            "peak_time_utc": times_utc[pi] if pi < len(times_utc) else None,
+            "end_q_m3s": round(vals[-1], 3),
+        })
+    return {
+        "available": bool(rows),
+        "nodes": rows,
+        "generated_at_utc": dual.get("generated_at_utc"),
+        "note_pt": "Fronteiras observadas Linha José Júlio + Passo Carreiro e saída HEC-HMS em Muçum.",
+    }
+
+
+def _dual_to_rainfall_runoff(feed: dict, dual: dict, baseline: dict) -> dict:
+    cur = dual.get("current") or {}
+    peak = dual.get("peak") or {}
+    ov = dual.get("operational_validation") or {}
+    values = ov.get("values") or {}
+    rain = baseline.get("rain") or {}
+    zones = rain.get("zones") or {}
+    summary = baseline.get("summary") or {}
+    times_utc = _local_series_to_utc(dual.get("times_local") or [])
+    q = [float(v) for v in (dual.get("q_m3s") or [])]
+    stages = [float(v) for v in (dual.get("stage_cm_raw") or [])]
+    obs_stage = cur.get("observed_stage_cm")
+    q_obs = summary.get("q_now_observed_rating_m3s")
+    q_model = cur.get("model_q_m3s")
+    qerr = None
+    try:
+        qerr = 100.0 * (float(q_model) - float(q_obs)) / float(q_obs) if float(q_obs) else None
+    except Exception:
+        pass
+    delta = []
+    try:
+        delta = [round(float(v) - float(obs_stage), 2) for v in stages]
+    except Exception:
+        delta = []
+    validation = {
+        "publishable": True,
+        "blocking_reasons_pt": [],
+        "diagnostic_warnings_pt": [],
+        "release_policy": "dual observed boundaries + iterative routing/warm-up validation",
+        "raw_warmed_stage_at_current_cm": cur.get("model_stage_cm"),
+        "stage_error_at_t0_cm": cur.get("stage_error_cm"),
+        "raw_warmed_q_at_current_m3s": q_model,
+        "observed_rating_q_at_current_m3s": q_obs,
+        "q_error_pct": qerr,
+        "observed_trend_last_1h_cm": cur.get("observed_slope_cm_h"),
+        "model_trend_next_1h_cm": cur.get("model_slope_cm_h"),
+        "state_assimilation_applied": False,
+        "visual_stage_anchor_applied": False,
+        "warmup_state_matches_observation": True,
+        "recent_hydrograph_6h": {
+            "rmse_cm": (dual.get("recent_fit_6h") or {}).get("raw_rmse_cm"),
+            "bias_cm": (dual.get("recent_fit_6h") or {}).get("raw_bias_cm"),
+        },
+        "dual_boundary_checks": ov.get("checks") or {},
+        "dual_boundary_values": values,
+    }
+    corridor_nodes = _dual_model_nodes(feed, dual, times_utc)
+    return {
+        "available": bool(times_utc and q),
+        "generated_at_utc": dual.get("generated_at_utc"),
+        "status": "hec_hms_4_13_dual_boundary_validated",
+        "label_pt": "HEC-HMS 4.13 · LJJ + Carreiro observados",
+        "warning_pt": (
+            "Rodada preferencial com vazões observadas em Linha José Júlio (86472000) e Passo Carreiro "
+            "(86500000) como fronteiras HEC-HMS, chuva IFS apenas no futuro e nas áreas residuais. "
+            "Somente uma candidata que passa todas as guardas iterativas é publicada."
+        ),
+        "forcing_spatial": True,
+        "engine": "HEC-HMS 4.13",
+        "mode": "dual_observed_discharge_boundaries_plus_residual_spatial_rainfall",
+        "time_utc": times_utc,
+        "q_mucum_m3s": q,
+        "q_antas_m3s": dual.get("q_ljj_boundary_m3s") or [],
+        "q_carreiro_m3s": dual.get("q_carreiro_boundary_m3s") or [],
+        "q_stz_diagnostic_m3s": [],
+        "n_mucum_rating_cm": stages,
+        "n_mucum_anchored_cm": stages,
+        "delta_n_from_now_cm": delta,
+        "stage_series_kind": "raw_rating_no_visual_anchor",
+        "current_observed_stage_cm": obs_stage,
+        "current_observed_q_rating_m3s": q_obs,
+        "model_stage_t0_cm": cur.get("model_stage_cm"),
+        "stage_error_at_t0_cm": cur.get("stage_error_cm"),
+        "q_error_pct": qerr,
+        "diagnostic_warnings_pt": [],
+        "primary": {
+            "event_id": "HEC-HMS-DUAL-BOUNDARY",
+            "rise_cm": peak.get("rise_from_observed_cm"),
+            "peak_time_utc": _local_series_to_utc([peak.get("time_local")])[0] if peak.get("time_local") else None,
+            "peak_anchored_cm": peak.get("stage_cm"),
+            "peak_q_m3s": peak.get("q_m3s"),
+        },
+        "horizon_hours": len(times_utc),
+        "forcing_rain_mm": rain.get("basin_equivalent_forecast_mm_for_audit"),
+        "spatial_cells": rain.get("spatial_cells"),
+        "rain_zones": {
+            sid: {
+                "name": z.get("name"),
+                "total_mm": z.get("total_mm"),
+                "n_cells_touching": z.get("n_cells_touching"),
+                "coverage_ratio": z.get("coverage_ratio"),
+            }
+            for sid, z in zones.items()
+        },
+        "initial_state": baseline.get("initial_state"),
+        "current_state": baseline.get("current_state"),
+        "validation": validation,
+        "warmup": baseline.get("warmup"),
+        "parameter_source": {
+            "dual_boundary_topology": dual.get("topology"),
+            "operational_validation": ov,
+        },
+        "nodes_model": {},
+        "corridor_nodes": corridor_nodes,
+        "plain_pt": (
+            f"HEC-HMS com duas fronteiras observadas. Muçum observado {obs_stage} cm; "
+            f"estado nativo HEC {cur.get('model_stage_cm')} cm; erro {cur.get('stage_error_cm')} cm. "
+            f"Máximo futuro {peak.get('stage_cm')} cm em {peak.get('time_local')} local."
+        ),
+        "q_note_pt": (
+            "Linha José Júlio e Passo Carreiro entram como vazões observadas até t0. Depois de t0, "
+            "cada fronteira segue o incremento do modelo espacial ancorado na última vazão observada; "
+            "postos aninhados entram apenas como QC/tendência e nunca são somados em duplicidade."
+        ),
+        "dual_boundary_validation": ov,
+        "artifact_json": "hec_hms_dual_boundary_mucum_latest.json",
+        "series_csv": "hec_hms_dual_boundary_mucum/primary_series.csv",
+    }
+
+
 def build_feed_v3() -> dict:
     feed = base.enrich_feed(base.build_feed())
     spatial_pkg = load_spatial()
@@ -267,11 +536,20 @@ def build_feed_v3() -> dict:
 
     # Prefer the real HEC-HMS 4.13 spatial run. Fall back to the Python twin
     # only when the HEC spatial artifact is unavailable.
-    spatial_hec = base.load_json(OUT / "hec_hms_spatial_forecast_mucum_latest.json") or {}
+    operational_hec = base.load_json(OUT / "hec_hms_operational_forecast_latest.json") or {}
+    generic_hec = base.load_json(OUT / "hec_hms_spatial_forecast_mucum_latest.json") or {}
+    # Prefer the operational baseline. The generic artifact is also touched by
+    # calibration/diagnostic utilities and must not silently replace the
+    # operational run shown to users.
+    spatial_hec = operational_hec or generic_hec
+    dual_hec = base.load_json(OUT / "hec_hms_dual_boundary_mucum_latest.json") or {}
+    dual_ready = _dual_is_fresh_and_valid(dual_hec, spatial_hec)
     spatial_available = bool(spatial_hec)
     spatial_ready = bool(spatial_hec.get("publishable")) and spatial_hec.get("status") == "hec_hms_4_13_spatial_ifs_warmup_ready"
     spatial_blocked = spatial_available and not spatial_ready
-    if spatial_ready:
+    if dual_ready:
+        feed["status"] = "hec_hms_dual_boundary_ready"
+    elif spatial_ready:
         feed["status"] = "hec_hms_spatial_ready"
     elif spatial_blocked:
         feed["status"] = "hec_hms_spatial_blocked"
@@ -280,7 +558,9 @@ def build_feed_v3() -> dict:
     forward_pkg = base.load_json(OUT / "hec_twin_mucum_forward_5d_latest.json") or {}
     corridor_nodes = build_corridor_model_nodes(feed, forward_pkg)
 
-    if spatial_ready:
+    if dual_ready:
+        feed["rainfall_runoff_result"] = _dual_to_rainfall_runoff(feed, dual_hec, spatial_hec)
+    elif spatial_ready:
         ss = spatial_hec.get("series") or {}
         sm = spatial_hec.get("summary") or {}
         rain = spatial_hec.get("rain") or {}
@@ -298,13 +578,18 @@ def build_feed_v3() -> dict:
             "q_mucum_m3s": ss.get("q_mucum_m3s") or [],
             "q_antas_m3s": [],
             "q_stz_diagnostic_m3s": [],
-            # Compatibility field names kept for the current UI, but the values
-            # are now the raw rating-curve stage from HEC-HMS with no visual anchor.
+            # Canonical stage field is the raw rating-curve conversion from HEC.
+            # Keep the old compatibility alias temporarily for existing clients.
+            "n_mucum_rating_cm": ss.get("n_mucum_rating_cm") or [],
             "n_mucum_anchored_cm": ss.get("n_mucum_rating_cm") or [],
             "delta_n_from_now_cm": ss.get("delta_n_from_model_t0_cm") or [],
             "stage_series_kind": "raw_rating_no_visual_anchor",
             "current_observed_stage_cm": sm.get("level_now_observed_cm"),
             "current_observed_q_rating_m3s": sm.get("q_now_observed_rating_m3s"),
+            "model_stage_t0_cm": (spatial_hec.get("validation") or {}).get("raw_warmed_stage_at_current_cm"),
+            "stage_error_at_t0_cm": (spatial_hec.get("validation") or {}).get("stage_error_at_t0_cm"),
+            "q_error_pct": (spatial_hec.get("validation") or {}).get("q_error_pct"),
+            "diagnostic_warnings_pt": (spatial_hec.get("validation") or {}).get("diagnostic_warnings_pt") or [],
             "primary": {
                 "event_id": "HEC-HMS-SPATIAL",
                 "rise_cm": sm.get("rise_from_model_t0_cm"),
@@ -333,24 +618,27 @@ def build_feed_v3() -> dict:
             "corridor_nodes": corridor_nodes,
             "plain_pt": (
                 f"HEC-HMS 4.13 executado com {rain.get('spatial_cells') or '?'} células IFS "
-                f"espacializadas, com 48 h de aquecimento observado. "
+                f"espacializadas e {(spatial_hec.get('warmup') or {}).get('hours') or '?'} h de aquecimento observado. "
                 f"Nível observado {sm.get('level_now_observed_cm')} cm no timestamp real; "
+                f"estado HEC em t0 {(spatial_hec.get('validation') or {}).get('raw_warmed_stage_at_current_cm')} cm; "
                 f"pico HEC sem deslocamento {sm.get('peak_level_rating_cm')} cm; "
-                f"ΔN desde o estado HEC em t0 {sm.get('rise_from_model_t0_cm')} cm."
+                f"ΔN futuro desde o estado HEC em t0 {sm.get('rise_from_model_t0_cm')} cm."
             ),
             "q_note_pt": (
-                "Q(t) é a saída do HEC-HMS 4.13 após 48 h de aquecimento com chuva observada. "
-                "O último nível de Muçum é comparado no timestamp real com o estado aquecido. "
-                "Nenhuma correção visual de nível é aplicada. A rodada só é promovida quando "
-                "o próprio aquecimento observado fecha com o t0 dentro das guardas."
+                f"Q(t) é a saída do HEC-HMS 4.13 após {(spatial_hec.get('warmup') or {}).get('hours') or '?'} h "
+                "de aquecimento com chuva observada multirrede. O último nível de Muçum é comparado "
+                "no timestamp real com o estado aquecido. Nenhuma correção visual de nível é aplicada; "
+                "a rodada só é promovida quando t0 e o hidrograma recente passam pelas guardas."
             ),
-            "artifact_json": "hec_hms_spatial_forecast_mucum_latest.json",
+            "artifact_json": "hec_hms_operational_forecast_latest.json",
             "series_csv": "hec_hms_spatial_forecast_mucum/primary_series.csv",
         }
     elif spatial_blocked:
         sm = spatial_hec.get("summary") or {}
         validation = spatial_hec.get("validation") or {}
         rain = spatial_hec.get("rain") or {}
+        blocked_series = spatial_hec.get("series") or {}
+        blocked_times = spatial_hec.get("times_utc") or []
         feed["rainfall_runoff_result"] = {
             "available": False,
             "generated_at_utc": spatial_hec.get("generated_at_utc"),
@@ -370,12 +658,23 @@ def build_feed_v3() -> dict:
             "forcing_rain_mm": rain.get("basin_equivalent_forecast_mm_for_audit"),
             "validation": validation,
             "blocking_reasons_pt": validation.get("blocking_reasons_pt") or sm.get("blocking_reasons_pt") or [],
+            "diagnostic_candidate": {
+                "available": bool(blocked_times and blocked_series.get("n_mucum_rating_cm")),
+                "time_utc": blocked_times,
+                "q_mucum_m3s": blocked_series.get("q_mucum_m3s") or [],
+                "n_mucum_rating_cm": blocked_series.get("n_mucum_rating_cm") or [],
+                "peak_q_m3s": sm.get("candidate_peak_q_m3s"),
+                "peak_time_utc": sm.get("candidate_peak_time_utc"),
+                "peak_level_cm": sm.get("candidate_peak_level_rating_cm"),
+                "rise_from_model_t0_cm": sm.get("candidate_rise_from_model_t0_cm"),
+                "label_pt": "candidato HEC rejeitado pelas guardas; diagnóstico apenas, não previsão",
+            },
             "plain_pt": (
                 "A rodada HEC foi executada, mas não foi publicada como previsão porque nenhum "
                 "candidato fechou o estado hidrológico observado dentro das guardas. Nenhuma "
                 "correção visual de nível é aplicada; a saída permanece diagnóstica."
             ),
-            "artifact_json": "hec_hms_spatial_forecast_mucum_latest.json",
+            "artifact_json": "hec_hms_operational_forecast_latest.json",
             "series_csv": "hec_hms_spatial_forecast_mucum/primary_series.csv",
         }
     else:
@@ -453,7 +752,7 @@ def build_feed_v3() -> dict:
             "plain_pt": (
                 f"HEC-HMS 4.13 executado com o campo IFS espacial. "
                 f"Nível observado atual {hsm.get('level_now_observed_cm')} cm, "
-                f"pico HEC {hsm.get('peak_level_anchored_cm')} cm e ΔN {hsm.get('rise_from_now_cm')} cm, "
+                f"pico HEC {hsm.get('peak_level_rating_cm')} cm e ΔN {hsm.get('rise_from_model_t0_cm')} cm, "
                 "após aquecimento de 48 h e validação de tendência."
             ),
             "primary": feed["rainfall_runoff_result"].get("primary"),
@@ -506,8 +805,8 @@ def build_feed_v3() -> dict:
     if spatial_ready:
         hsm = spatial_hec.get("summary") or {}
         summary.update({
-            "peak_n_cm": hsm.get("peak_level_anchored_cm"),
-            "peak_delta_n_cm": hsm.get("rise_from_now_cm"),
+            "peak_n_cm": hsm.get("peak_level_rating_cm"),
+            "peak_delta_n_cm": hsm.get("rise_from_model_t0_cm"),
             "peak_when_utc": hsm.get("peak_time_utc"),
             "hydrology_status": "hec_hms_4_13_spatial_ifs_warmup_ready",
             "observed_stage_cm": hsm.get("level_now_observed_cm"),

@@ -1,0 +1,28 @@
+{
+  "schema_version": "g040_e1_multievent_calibration_request_v1",
+  "research_only": true,
+  "requested_at_utc": "2026-10-02T03:00:00Z",
+  "fixed_calibration_events": [
+    "E22_SEP2023",
+    "E24_NOV2023"
+  ],
+  "independent_validation_events": [
+    "E27_MAY2024",
+    "E28_JUN2024"
+  ],
+  "pseudo_operational_holdout": [
+    "E2026_JUL"
+  ],
+  "qmc_candidates": 6,
+  "anchors": 2,
+  "max_rain_fetch_workers": 12,
+  "no_leakage": true,
+  "note": "Initial multi-event calibration search. Validation events are excluded from parameter selection.",
+  "numerical_stability": {
+    "compute_interval_min": 3,
+    "forcing_interval_min": 60,
+    "policy": "Preserve observed hourly flow/rainfall series at their native 60-minute support while HEC-HMS integrates internally at 3 minutes. Reject Muskingum candidates without a stable subreach representation within the HEC-HMS limit.",
+    "reason": "Satisfies dt <= 0.29 * SCS lag at the minimum lag search bound and prevents unstable Muskingum routing from being compensated by calibration parameters."
+  },
+  "rerun_reason": "Repeat the fixed E22_SEP2023 + E24_NOV2023 calibration search after numerical-stability correction; do not change the event split."
+}

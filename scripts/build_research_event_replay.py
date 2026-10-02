@@ -281,11 +281,12 @@ def spatial_inventory() -> dict[str, Any]:
         "santa_tereza": {
             "grid_source": rel(stz_grid),
             "contour_source": rel(stz_contour),
-            "stage_conversion_status": "pending_vertical_datum_and_gauge_to_HAND_reconciliation",
+            "stage_conversion_status": "field_rule_active_regua_1_60m_equals_HAND_0_research_proxy",
+            "gauge_to_hand_rule": "HAND = max(0, regua_m - 1.60)",
             "published_level_range_m": contour_level_range(stz_contour),
-            "higher_than_published_status": "contornos_disponiveis_ate_30m; resumo_populacional_publicado_apenas_em_15m; conversao_regua_HAND_pendente",
+            "higher_than_published_status": "acima_do_maior_contorno_LiDAR_publicado_fora_da_faixa_quantitativa",
             "scenarios": [contour_scenario(stz_grid, stz_contour, 15.0)],
-            "note": "A faixa publicada é lida diretamente do arquivo de contornos; o cenário de replay permanece separado da conversão régua↔HAND.",
+            "note": "Santa Tereza usa a regra de campo régua 1,60 m = HAND 0. O cenário de 15 m deste inventário é 15 m de HAND, não leitura de 15 m na régua; a geometria vem do contorno LiDAR atual.",
         },
     }
 
@@ -352,7 +353,7 @@ def build() -> dict[str, Any]:
         "official_alert": False,
         "operational_gate": {
             "status": "blocked",
-            "reason": "Replay, spatial triage and response inventory are source-backed research artifacts; gauge/HAND conversion, field route checks and current shelter capacity are not closed.",
+            "reason": "Replay, spatial triage and response inventory are research artifacts. Santa Tereza usa a regra de campo régua 1,60 m = HAND 0; Muçum ainda tem reconciliação vertical pendente. Rotas de campo e capacidade atual de abrigo não estão fechadas.",
             "disallowed": ["official_alert", "evacuation_order", "route_navigation", "public_dispatch", "resource_allocation"],
         },
         "purpose": "Reproduzir retrospectivamente o que os dados disponíveis teriam mostrado antes de um evento e registrar quais ligações ainda precisam ser validadas.",
@@ -361,7 +362,7 @@ def build() -> dict[str, Any]:
             "nearest_neighbor": False,
             "spatial_join": "interseção geométrica com área positiva; filtro explícito id_grade=200M",
             "population_semantics": "soma de células inteiras é limite superior de triagem; proxy ponderado por área não é contagem individual nem população evacuável",
-            "gauge_hand_conversion": "pending_vertical_datum_and_gauge_to_HAND_reconciliation",
+            "gauge_hand_conversion": "santa_tereza: HAND=max(0,regua_m-1.60); mucum: pending_vertical_datum_and_gauge_to_HAND_reconciliation",
             "route_rule": "nenhuma rota é derivada do cruzamento espacial deste artefato",
             "model_rule": "séries publicadas permanecem separadas de uma emissão operacional; timestamp de liberação T− ainda não foi reconciliado",
         },

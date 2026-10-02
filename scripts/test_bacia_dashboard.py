@@ -31,8 +31,9 @@ class BasinDashboardTests(unittest.TestCase):
         self.assertTrue(self.page.exists())
         self.assertTrue((ROOT / "assets/css/bacia_dashboard.css").exists())
         self.assertTrue((ROOT / "assets/js/bacia_dashboard.js").exists())
-        for token in ("data-bacia-dashboard", "assets/css/bacia_dashboard.css", "assets/js/bacia_dashboard.js?v=20260909-modelview2", "dashboard_bacia.html"):
+        for token in ("data-bacia-dashboard", "assets/css/bacia_dashboard.css", "assets/js/bacia_dashboard.js?v=", "dashboard_bacia.html"):
             self.assertIn(token, self.text)
+        self.assertRegex(self.text, r'assets/js/bacia_dashboard\.js\?v=\d{8}-[a-z0-9-]+')
 
     def test_controls_cover_basin_stations_and_horizons(self) -> None:
         for token in ('data-station="basin"', 'data-station="santa"', 'data-station="mucum"', 'data-horizon="24"', 'data-horizon="72"', 'data-horizon="168"'):
@@ -40,6 +41,23 @@ class BasinDashboardTests(unittest.TestCase):
         parser = _Ids()
         parser.feed(self.text)
         self.assertEqual(len(parser.ids), len(set(parser.ids)))
+
+    def test_g040_network_health_map_is_wired(self) -> None:
+        for token in (
+            'id="basin-network-summary"',
+            'data-network-mode="health"',
+            'data-network-filter="none"',
+            'id="basin-source-filter"',
+            'id="basin-variable-filter"',
+            'id="basin-model-filter"',
+            'id="basin-station-detail"',
+        ):
+            self.assertIn(token, self.text)
+        script = (ROOT / "assets/js/bacia_dashboard.js").read_text(encoding="utf-8")
+        self.assertIn("basin_station_status_latest.json", script)
+        self.assertIn("function networkObservation", script)
+        self.assertIn("cota_or_incompatible_scale", script)
+        self.assertIn("networkStatusLabel", script)
 
     def test_public_semantics_are_explicit(self) -> None:
         self.assertIn("não é a mesma coisa que probabilidade de inundação", self.text)

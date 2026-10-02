@@ -35,7 +35,7 @@ encontra mínimo de ~27,1 m, ainda abaixo da faixa do talvegue ANADEM ali
 o refinamento visual adicional é gerado separadamente por
 refinar_mdt_santa_tereza.py e não altera o HAND publicado.
 
-Uso: python codigo_python/02_mdt_hand_mancha/gerar_mancha_mosaico.py [mucum|santa_tereza]
+Uso: python codigo_python/02_mdt_hand_mancha/gerar_mancha_mosaico.py mucum\n\nSanta Tereza foi bloqueada neste pipeline legado: usa exclusivamente o LiDAR/HAND hidráulico.
 """
 import os
 import re
@@ -109,6 +109,11 @@ def talvegue_mosaico(dem, transform_f, crs_f, thal_a, transform_a, crs_a, pct=50
 
 
 def processa(cidade):
+    if cidade == "santa_tereza":
+        raise RuntimeError(
+            "BLOQUEADO: Santa Tereza usa exclusivamente o LiDAR/HAND hidráulico; "
+            "este gerador drone+ANADEM não pode publicar Santa Tereza."
+        )
     cfg = CIDADES[cidade]
     print(f"=== {cidade} ===")
     dem_a, transform_a, crs_a, _ = le(cfg["anadem"])
@@ -193,6 +198,10 @@ def injeta_mucum(payload_extra):
 
 
 def injeta_santa_tereza(payload_extra):
+    raise RuntimeError(
+        "BLOQUEADO: este injetor legado drone+ANADEM não pode alterar Santa Tereza. "
+        "Use gerar_hand_lidar_santa_tereza.py e depois atualizar_hand_previsao_santa_tereza.py."
+    )
     pagina = CIDADES["santa_tereza"]["pagina"]
     html = open(pagina, encoding="utf-8").read()
     m = re.search(r'<script id="hand-data" type="application/json">(.*?)</script>', html, re.DOTALL)
@@ -216,12 +225,17 @@ def injeta_santa_tereza(payload_extra):
 
 
 def main():
-    alvo = sys.argv[1] if len(sys.argv) > 1 else None
-    injetores = {"mucum": injeta_mucum, "santa_tereza": injeta_santa_tereza}
-    for cidade in ([alvo] if alvo else CIDADES.keys()):
-        payload_extra = processa(cidade)
-        injetores[cidade](payload_extra)
-        print()
+    alvo = sys.argv[1] if len(sys.argv) > 1 else "mucum"
+    if alvo == "santa_tereza":
+        raise SystemExit(
+            "BLOQUEADO: Santa Tereza usa exclusivamente o LiDAR/HAND hidráulico. "
+            "Use gerar_hand_lidar_santa_tereza.py."
+        )
+    if alvo not in CIDADES:
+        raise SystemExit(f"cidade inválida: {alvo}")
+    payload_extra = processa(alvo)
+    {"mucum": injeta_mucum}[alvo](payload_extra)
+    print()
 
 
 if __name__ == "__main__":

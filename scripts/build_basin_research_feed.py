@@ -377,11 +377,13 @@ def geometry_summary() -> dict[str, Any]:
         }
     mdt_root = ROOT / "assets" / "data"
     mdt_files = [
-        mdt_root / "santa_tereza_inundacao" / "mdt" / "altitude_terreno_10m.json",
-        mdt_root / "santa_tereza_inundacao" / "mdt" / "altitude_terreno_10m.png",
-        mdt_root / "santa_tereza_inundacao" / "mdt" / "mdt_santa_tereza_anadem_30m.tif",
-        mdt_root / "santa_tereza_inundacao" / "mdt" / "mdt_santa_tereza_drone_1m.tif",
-        mdt_root / "santa_tereza_inundacao" / "mdt" / "mdt_santa_tereza_drone_1m_ortho.tif",
+        # Santa Tereza: inventariar somente o produto atual derivado do LiDAR.
+        mdt_root / "santa_tereza_inundacao" / "hand_lidar_5m_diagnostic.json",
+        mdt_root / "santa_tereza_inundacao" / "contornos_mancha.json",
+        mdt_root / "santa_tereza_inundacao" / "mdt" / "altitude_terreno_lidar_10m.json",
+        mdt_root / "santa_tereza_inundacao" / "mdt" / "altitude_terreno_lidar_10m.png",
+        mdt_root / "santa_tereza_inundacao" / "mdt" / "mdt_santa_tereza_lidar_10m_visual.png",
+        # Muçum mantém seu inventário próprio.
         mdt_root / "mucum_inundacao" / "mdt" / "altitude_terreno_10m.json",
     ]
     assets = [{"path": rel(item), "sha256": sha256(item)} for item in mdt_files if item.exists()]

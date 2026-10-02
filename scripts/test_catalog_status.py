@@ -65,9 +65,9 @@ class CatalogStatusTests(unittest.TestCase):
     def test_spatial_and_response_are_not_operational(self) -> None:
         spatial = self.data["spatial"]["by_city"]
         self.assertEqual(spatial["mucum"]["published_level_range_m"], [0, 30])
-        self.assertEqual(spatial["santa_tereza"]["published_level_range_m"], [0.0, 30.0])
+        self.assertEqual(spatial["santa_tereza"]["published_level_range_m"], [0.0, 25.0])
         self.assertIn("pending", spatial["mucum"]["stage_conversion_status"])
-        self.assertIn("pending", spatial["santa_tereza"]["stage_conversion_status"])
+        self.assertTrue(spatial["santa_tereza"]["stage_conversion_status"].startswith("field_rule_active"))
         self.assertEqual(self.data["events"]["operational_gate"]["status"], "blocked")
         self.assertEqual(self.data["response"]["by_city"]["santa_tereza"]["operational_gate"], "blocked")
 
@@ -100,8 +100,8 @@ class CatalogStatusTests(unittest.TestCase):
             "archiveStatusDetails",
         ):
             self.assertIn(f'id="{element_id}"', html)
-        self.assertIn("geometrias de contorno disponíveis cobrem 0–30 m em Santa Tereza e Muçum", html)
-        self.assertIn("A conversão cota–MDT/HAND ainda está pendente", html)
+        self.assertIn("HAND 0–25 m em Santa Tereza e 0–30 m em Muçum", html)
+        self.assertIn("HAND = max(0, régua − 1,60 m)", html)
         self.assertNotIn("Cota oficial: 15 m em ST, 18 m em Muçum", html)
 
 

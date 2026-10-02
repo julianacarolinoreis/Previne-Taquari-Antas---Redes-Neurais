@@ -1,0 +1,156 @@
+name: HEC G040 E1 multi-event calibration
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "config/g040_e1_multievent_calibration_request.json"
+      - "config/g040_stage2_execution_v1.json"
+      - "scripts/build_g040_historical_calibration_forcing.py"
+      - "scripts/calibrate_hec_hms_g040_e1_multievent.py"
+      - "scripts/run_hec_hms_g040_e1_hindcast.py"
+      - "scripts/test_g040_multievent_calibration_contract.py"
+      - ".github/workflows/hec-g040-e1-multievent-calibration.yml"
+  pull_request:
+    paths:
+      - "config/g040_e1_multievent_calibration_request.json"
+      - "config/g040_stage2_execution_v1.json"
+      - "scripts/build_g040_historical_calibration_forcing.py"
+      - "scripts/calibrate_hec_hms_g040_e1_multievent.py"
+      - "scripts/run_hec_hms_g040_e1_hindcast.py"
+      - "scripts/test_g040_multievent_calibration_contract.py"
+      - ".github/workflows/hec-g040-e1-multievent-calibration.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hec-g040-e1-multievent-calibration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Python dependencies
+        run: pip install --disable-pip-version-check numpy shapely pyproj
+
+      - name: Contract tests
+        run: |
+          python -B scripts/test_g040_multievent_calibration_contract.py
+          python -B scripts/test_g040_e1_numerical_stability.py
+
+      - name: Cache HEC-HMS 4.13
+        if: github.event_name != 'pull_request'
+        id: cache-hec
+        uses: actions/cache@v4
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+
+      - name: Download HEC-HMS 4.13
+        if: github.event_name != 'pull_request' && steps.cache-hec.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .hec
+          curl -L --fail --retry 3 --retry-delay 4             -o /tmp/HEC-HMS-4.13-linux64.tar.gz             https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
+          tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
+
+      - name: Build fixed historical calibration forcing
+        if: github.event_name != 'pull_request'
+        run: |
+          python -B scripts/build_g040_historical_calibration_forcing.py             --events E22_SEP2023,E24_NOV2023             --max-workers 12
+
+      - name: Verify calibration forcing gates
+        if: github.event_name != 'pull_request'
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("assets/data/hec_hms_g040_full_basin/historical_calibration_forcing")
+          for event in ("E22_SEP2023","E24_NOV2023"):
+              rain=json.load(open(root/event/"rain.json",encoding="utf-8"))
+              hydro=json.load(open(root/event/"hydro.json",encoding="utf-8"))
+              print(event, rain["status"], rain["network"]["valid_rain_station_count"], rain["rain_diagnostics"])
+              assert rain["status"] in {"OBSERVED_RAIN_READY","OBSERVED_RAIN_PARTIAL"}
+              assert rain["network"]["valid_rain_station_count"] > 0
+              assert len(rain["components"]) == 11
+              controls={str(x["code"]):x for x in hydro["controls"]}
+              q=sum(1 for r in controls["86472000"]["recent_rows"] if r.get("flow_m3s") is not None)
+              assert q >= 24, (event,q)
+          PY
+
+      - name: Run initial multi-event calibration search
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          test -n "$HEC_SH"
+          set +e
+          python -B scripts/calibrate_hec_hms_g040_e1_multievent.py "$HEC_SH" --qmc 6             > /tmp/g040_multievent_calibration.stdout 2>&1
+          RC=$?
+          set -e
+          cat /tmp/g040_multievent_calibration.stdout
+          echo "$RC" > /tmp/g040_multievent_calibration_rc.txt
+          test -f assets/data/hec_hms_g040_full_basin/g040_e1_multievent_calibration_latest.json
+          test -f assets/data/hec_hms_g040_full_basin/g040_e1_multievent_calibration_candidates.csv
+
+      - name: Publish calibration evidence
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="assets/data/hec_hms_g040_full_basin"
+          FORCING="$BASE/historical_calibration_forcing"
+          mkdir -p /tmp/g040-calibration/E22_SEP2023 /tmp/g040-calibration/E24_NOV2023
+          cp "$FORCING/manifest_latest.json" /tmp/g040-calibration/
+          for E in E22_SEP2023 E24_NOV2023; do
+            cp "$FORCING/$E/rain.json" "/tmp/g040-calibration/$E/"
+            cp "$FORCING/$E/hydro.json" "/tmp/g040-calibration/$E/"
+            cp "$FORCING/$E/scenario.json" "/tmp/g040-calibration/$E/"
+          done
+          cp "$BASE/g040_e1_multievent_calibration_latest.json" /tmp/g040-calibration/
+          cp "$BASE/g040_e1_multievent_calibration_candidates.csv" /tmp/g040-calibration/
+          cp /tmp/g040_multievent_calibration.stdout /tmp/g040-calibration/calibration_stdout.txt
+          cp /tmp/g040_multievent_calibration_rc.txt /tmp/g040-calibration/calibration_exit_code.txt
+
+          git config user.name "previne-g040-calibration-bot"
+          git config user.email "previne-g040-calibration-bot@users.noreply.github.com"
+
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p "$FORCING/E22_SEP2023" "$FORCING/E24_NOV2023"
+            cp /tmp/g040-calibration/manifest_latest.json "$FORCING/"
+            for E in E22_SEP2023 E24_NOV2023; do
+              cp "/tmp/g040-calibration/$E/rain.json" "$FORCING/$E/"
+              cp "/tmp/g040-calibration/$E/hydro.json" "$FORCING/$E/"
+              cp "/tmp/g040-calibration/$E/scenario.json" "$FORCING/$E/"
+            done
+            cp /tmp/g040-calibration/g040_e1_multievent_calibration_latest.json "$BASE/"
+            cp /tmp/g040-calibration/g040_e1_multievent_calibration_candidates.csv "$BASE/"
+            cp /tmp/g040-calibration/calibration_stdout.txt "$BASE/"
+            cp /tmp/g040-calibration/calibration_exit_code.txt "$BASE/"
+
+            git add --               "$FORCING/manifest_latest.json"               "$FORCING/E22_SEP2023/rain.json"               "$FORCING/E22_SEP2023/hydro.json"               "$FORCING/E22_SEP2023/scenario.json"               "$FORCING/E24_NOV2023/rain.json"               "$FORCING/E24_NOV2023/hydro.json"               "$FORCING/E24_NOV2023/scenario.json"               "$BASE/g040_e1_multievent_calibration_latest.json"               "$BASE/g040_e1_multievent_calibration_candidates.csv"               "$BASE/calibration_stdout.txt"               "$BASE/calibration_exit_code.txt"
+
+            if git diff --cached --quiet; then
+              exit 0
+            fi
+            git commit -m "bot: update G040 E1 multi-event calibration [skip ci]"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+          exit 1

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import math
 import time
@@ -38,6 +39,7 @@ LIVE_FEEDS = (
     ROOT / "previsao_ao_vivo_mucum.json",
 )
 DEFAULT_OUTPUT = ROOT / "assets/data/basin_station_forecast_latest.json"
+DEFAULT_STATUS_OUTPUT = ROOT / "assets/data/basin_station_status_latest.json"
 
 BRT = timezone(timedelta(hours=-3))
 UTC = timezone.utc
@@ -112,6 +114,7 @@ BATCH_SIZE = 100
 BATCH_PAUSE_SECONDS = 15.0
 REFRESH_INTERVAL_MINUTES = 5
 LEVEL_OBSERVED_HOURS = 72
+MAX_PLAUSIBLE_RIVER_LEVEL_CM = 5000
 # Live RNA products are currently published only for the two response targets.
 # Other river stations may have observed level but no RNA product by design.
 RNA_LEVEL_STATIONS = {"86472600", "86510000"}
@@ -397,6 +400,19 @@ def load_observed_rain(
                 value = finite(raw_value) if raw_value not in (None, "") else None
                 records[code].append((timestamp, value if value is None or value >= 0 else None))
 
+    # A retained current-hour value must not become final just because the
+    # clock advances. A capture after interval end confirms only that the
+    # published hourly value was consulted after closure, not sensor coverage.
+    provenance_cells: dict[str, Any] = {}
+    try:
+        metadata = json.loads(Path(str(csv_path) + ".provenance.json").read_text(encoding="utf-8"))
+        if metadata.get("schema_version") == 1 and metadata.get("csv_sha256") == hashlib.sha256(csv_path.read_bytes()).hexdigest():
+            candidate = metadata.get("cells")
+            if isinstance(candidate, dict):
+                provenance_cells = candidate
+    except (OSError, ValueError, TypeError, AttributeError):
+        pass
+
     window_start = now - timedelta(hours=hours)
     window = sorted(timestamp for timestamp in all_times if timestamp >= window_start)
     if len(window) > hours + 1:
@@ -405,12 +421,26 @@ def load_observed_rain(
     result: dict[str, dict[str, Any]] = {}
     for code, rows in records.items():
         values = {timestamp: value for timestamp, value in rows}
+        captures = provenance_cells.get(OBSERVED_COLUMNS[code], {})
+        if not isinstance(captures, dict):
+            captures = {}
+        captured = {
+            timestamp: parse_iso(captures.get(timestamp.astimezone(BRT).strftime("%Y%m%d%H%M")), default_timezone=UTC)
+            for timestamp, _value in rows
+        }
+        unconfirmed = {timestamp for timestamp, stamp in captured.items() if stamp is None or stamp > now}
+        retained_partial = {
+            timestamp for timestamp, stamp in captured.items()
+            if stamp is not None and stamp < timestamp + timedelta(hours=1)
+        }
         selected = [
             {
                 "time": iso_utc(timestamp),
                 "mm": values.get(timestamp),
                 "interval_end_utc": iso_utc(timestamp + timedelta(hours=1)),
-                "partial": timestamp + timedelta(hours=1) > now,
+                "partial": timestamp + timedelta(hours=1) > now or timestamp in retained_partial,
+                "confirmation": "unknown" if timestamp in unconfirmed else "captured_during_interval" if timestamp in retained_partial else "consulted_after_interval",
+                "captured_at_utc": iso_utc(captured.get(timestamp)),
             }
             for timestamp in window
         ]
@@ -423,7 +453,7 @@ def load_observed_rain(
             (
                 timestamp
                 for timestamp, value in rows
-                if value is not None and timestamp + timedelta(hours=1) <= now
+                if value is not None and timestamp + timedelta(hours=1) <= now and timestamp not in retained_partial
             ),
             default=None,
         )
@@ -442,12 +472,13 @@ def load_observed_rain(
             "last_closed_interval_end_utc": iso_utc(closed_end),
             "closed_interval_age_minutes": round((now - closed_end).total_seconds() / 60) if closed_end else None,
             "windows": _observed_window_stats(
-                rows,
+                [(timestamp, None if timestamp in retained_partial else value) for timestamp, value in rows],
                 latest_observed=latest_closed,
                 windows=OBSERVED_WINDOW_HOURS,
+                unconfirmed_times=unconfirmed,
             ),
             "message": (
-                "Série observada com carimbo no início da hora; a hora em curso é parcial e não entra nos acumulados de horas fechadas."
+                "Série observada com carimbo no início da hora. Valores consultados durante a hora permanecem parciais até nova consulta após o término e não entram nos acumulados. Sem proveniência da consulta, a cobertura não é marcada como confirmada; isso não comprova cobertura de todas as leituras sub-horárias."
                 if known
                 else "Não há série observada publicada para este código."
             ),
@@ -473,6 +504,7 @@ def _observed_window_stats(
     *,
     latest_observed: datetime | None,
     windows: tuple[int, ...],
+    unconfirmed_times: set[datetime] | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Summarize closed hours, anchored on their latest interval-start label.
 
@@ -488,6 +520,7 @@ def _observed_window_stats(
                 "expected_points": hours,
                 "coverage_ratio": 0.0,
                 "complete": False,
+                "unconfirmed_points": 0,
                 "start_utc": None,
                 "end_utc": None,
             }
@@ -503,13 +536,18 @@ def _observed_window_stats(
         expected_points = hours
         selected = [by_time.get(start + timedelta(hours=offset)) for offset in range(hours)]
         valid = [value for value in selected if value is not None]
+        unconfirmed_count = sum(
+            start + timedelta(hours=offset) in (unconfirmed_times or set()) and value is not None
+            for offset, value in enumerate(selected)
+        )
         coverage_ratio = len(valid) / expected_points
         result[f"{hours}h"] = {
             "mm": round(sum(valid), 3) if valid else None,
             "valid_points": len(valid),
             "expected_points": expected_points,
             "coverage_ratio": round(coverage_ratio, 4),
-            "complete": len(valid) == expected_points,
+            "complete": len(valid) == expected_points and unconfirmed_count == 0,
+            "unconfirmed_points": unconfirmed_count,
             # A collector row labelled 14:00 represents 14:00–15:00.
             "start_utc": iso_utc(start),
             "end_utc": iso_utc(latest_observed + timedelta(hours=1)),
@@ -661,6 +699,16 @@ def _level_forecast_series(raw: dict[str, Any]) -> list[dict[str, Any]]:
     for horizon_id, item in horizons.items():
         if not isinstance(item, dict):
             continue
+        # Alguns robôs preservam o último valor numérico mesmo quando a rodada
+        # corrente está explicitamente indisponível (por base atrasada ou inputs
+        # incompletos). Esses números continuam úteis no feed original para
+        # auditoria, mas não podem aparecer no mapa como previsão futura válida.
+        status_text = str(item.get("status") or item.get("estado") or "").strip().casefold()
+        if status_text and any(
+            token in status_text
+            for token in ("indispon", "incomplet", "sem previs", "aguardando", "falha")
+        ):
+            continue
         value = finite(item.get("nivel_previsto_cm", item.get("nivel_modelo_cm")))
         target = parse_iso(
             item.get("hora_alvo_utc")
@@ -769,6 +817,29 @@ def load_level_snapshots(paths: tuple[Path, ...] = LIVE_FEEDS) -> dict[str, dict
             )
     return result
 
+
+
+def normalize_level_measurement(level: dict[str, Any]) -> dict[str, Any]:
+    """Separate river stage from values that are clearly another vertical datum."""
+
+    raw = finite(level.get("current_cm"))
+    if raw is None:
+        level["measurement_classification"] = "unavailable"
+        return level
+    if 0 <= raw <= MAX_PLAUSIBLE_RIVER_LEVEL_CM:
+        level["measurement_classification"] = "river_stage"
+        return level
+
+    level["raw_current_cm"] = raw
+    level["current_cm"] = None
+    level["state"] = "suspect_scale"
+    level["measurement_classification"] = "cota_or_incompatible_scale"
+    level["quality"] = "SUSPECT_SCALE"
+    level["message"] = (
+        f"Valor bruto {raw / 100:.2f} m preservado para auditoria, "
+        "mas excluído do nível hidrométrico por escala/cota incompatível."
+    )
+    return level
 
 def build_open_meteo_url(stations: list[dict[str, Any]]) -> str:
     params = {
@@ -1037,9 +1108,11 @@ def build_feed(
                 "message": "Não há coluna observada publicada para esta estação.",
             },
         )
-        item["level"] = _decorate_level_snapshot(
-            levels.get(item["code"], _unavailable_level(item["code"])),
-            now=now,
+        item["level"] = normalize_level_measurement(
+            _decorate_level_snapshot(
+                levels.get(item["code"], _unavailable_level(item["code"])),
+                now=now,
+            )
         )
         item["forecast"] = _unavailable_forecast("Aguardando a rodada meteorológica.")
 
@@ -1083,6 +1156,47 @@ def build_feed(
     available_levels = sum(
         item["level"]["state"] in {"available", "partial"} for item in stations
     )
+    available_cemaden_hydro = sum(
+        any(
+            source.get("source") == "CEMADEN"
+            and source.get("metric") == "nivel_cemaden"
+            and source.get("source_status") in (0, "0")
+            and finite(source.get("value")) is not None
+            for source in item.get("source_observations", [])
+            if isinstance(source, dict)
+        )
+        for item in stations
+    )
+    available_source_observation_stations = sum(
+        any(
+            finite(source.get("value")) is not None
+            for source in item.get("source_observations", [])
+            if isinstance(source, dict)
+        )
+        for item in stations
+    )
+    available_any_observed = sum(
+        item["observed_rain"]["state"] == "available"
+        or item["level"]["state"] in {"available", "partial"}
+        or any(
+            finite(source.get("value")) is not None
+            for source in item.get("source_observations", [])
+            if isinstance(source, dict)
+        )
+        for item in stations
+    )
+    rain_ages = [
+        finite(item["observed_rain"].get("closed_interval_age_minutes"))
+        for item in stations
+        if item["observed_rain"]["state"] == "available"
+    ]
+    rain_ages = [value for value in rain_ages if value is not None]
+    level_ages = [
+        finite(item["level"].get("observed_age_minutes"))
+        for item in stations
+        if item["level"]["state"] in {"available", "partial"}
+    ]
+    level_ages = [value for value in level_ages if value is not None]
     complete_forecast = available_forecasts == len(stations)
     return {
         "schema_version": 1,
@@ -1095,7 +1209,14 @@ def build_feed(
         "refresh_contract": {
             "scheduled_every_minutes": 5,
             "next_cycle_is_nominal": True,
-            "schedule_note": "Meta nominal de cinco minutos, encadeada desde o início de cada rodada; next_cycle_utc é referência nominal, não hora garantida. Filas, duração da consulta e indisponibilidade das fontes podem causar atraso.",
+            "mode": "chained_repository_dispatch",
+            "nominal_cycle_from_job_start_minutes": 5,
+            "bootstrap_cron_minute": 31,
+            "schedule_note": (
+                "Meta nominal de cinco minutos, encadeada desde o início de cada rodada; "
+                "next_cycle_utc é referência nominal, não hora garantida. Filas, duração "
+                "da consulta, testes e indisponibilidade das fontes podem causar atraso."
+            ),
         },
         "scope": {
             "basin": "Taquari–Antas · G040",
@@ -1106,6 +1227,9 @@ def build_feed(
             "observed_rain_hourly_station_count": available_hourly_observations,
             "observed_rain_cemaden_24h_station_count": available_cemaden_24h,
             "level_station_count": available_levels,
+            "cemaden_hydro_station_count": available_cemaden_hydro,
+            "source_observation_station_count": available_source_observation_stations,
+            "observed_any_station_count": available_any_observed,
             **_coordinate_coverage(stations),
             "catalogs": [
                 "assets/data/estudo_bacia_taquari_antas/postos_g040.geojson",
@@ -1131,6 +1255,20 @@ def build_feed(
                 "Cobertura completa da rodada meteorológica."
                 if complete_forecast
                 else "Cobertura parcial: estações sem resposta permanecem como indisponíveis."
+            ),
+        },
+        "freshness": {
+            "hourly_rain_max_age_minutes": max(rain_ages) if rain_ages else None,
+            "hourly_rain_over_60min_count": sum(value > 60 for value in rain_ages),
+            "hourly_rain_age_count": len(rain_ages),
+            "level_max_age_minutes": max(level_ages) if level_ages else None,
+            "level_over_60min_count": sum(value > 60 for value in level_ages),
+            "level_age_count": len(level_ages),
+            "note": (
+                "Na chuva horária, idade do término do último intervalo encerrado no calendário; "
+                "isso não comprova leitura individual recente nem cobertura sub-horária. "
+                "A proveniência da consulta condiciona a confirmação da janela. O nível usa o "
+                "horário individual publicado. CEMADEN 24h mantém a hora do painel separada."
             ),
         },
         "models": list(MODEL_SPECS),
@@ -1250,9 +1388,188 @@ def validate_complete_feed(feed: dict[str, Any]) -> None:
                         f"mínimo exigido {required}."
                     )
 
+
+def _compact_station_status(
+    station: dict[str, Any], *, generated_at: datetime | None
+) -> dict[str, Any]:
+    """Return the lightweight per-station contract used by the public G040 map.
+
+    The large forecast arrays stay in the full basin forecast JSON. This
+    snapshot exposes only current forward accumulations plus observed-data
+    metadata so the browser can render all stations without the meteorological
+    cube on every refresh.
+    """
+
+    forecast = station.get("forecast") if isinstance(station.get("forecast"), dict) else {}
+    times = forecast.get("times") if isinstance(forecast.get("times"), list) else []
+    future_index = None
+    if generated_at is not None and times:
+        future_index = next(
+            (
+                index
+                for index, raw_time in enumerate(times)
+                if (parsed := parse_iso(raw_time, default_timezone=UTC)) is not None
+                and parsed >= generated_at
+            ),
+            None,
+        )
+
+    model_summary: dict[str, Any] = {}
+    raw_models = forecast.get("models") if isinstance(forecast.get("models"), dict) else {}
+    for spec in MODEL_SPECS:
+        model_id = spec["id"]
+        model = raw_models.get(model_id)
+        windows_out: dict[str, float | None] = {}
+        if isinstance(model, dict):
+            windows = model.get("precipitation_windows")
+            windows = windows if isinstance(windows, dict) else {}
+            for hours in PRECIPITATION_WINDOW_HOURS:
+                series = windows.get(f"{hours}h")
+                value = (
+                    finite(series[future_index])
+                    if isinstance(series, list) and future_index is not None and future_index < len(series)
+                    else None
+                )
+                windows_out[f"{hours}h"] = round(value, 3) if value is not None else None
+        else:
+            windows_out = {f"{hours}h": None for hours in PRECIPITATION_WINDOW_HOURS}
+        valid_window_count = sum(value is not None for value in windows_out.values())
+        window_state = (
+            "complete"
+            if valid_window_count == len(PRECIPITATION_WINDOW_HOURS)
+            else "partial"
+            if valid_window_count
+            else "unavailable"
+        )
+        model_summary[model_id] = {
+            "available": isinstance(model, dict),
+            "precipitation_state": window_state,
+            "precipitation_valid_window_count": valid_window_count,
+            "precipitation_expected_window_count": len(PRECIPITATION_WINDOW_HOURS),
+            "precipitation_windows_mm": windows_out,
+        }
+
+    observed_rain = station.get("observed_rain")
+    observed_rain = observed_rain if isinstance(observed_rain, dict) else {}
+    level = station.get("level")
+    level = level if isinstance(level, dict) else {}
+
+    source_observations = []
+    for item in station.get("source_observations") or []:
+        if not isinstance(item, dict):
+            continue
+        source_observations.append(
+            {
+                key: item.get(key)
+                for key in (
+                    "source",
+                    "source_url",
+                    "updated_at_utc",
+                    "catalog_code",
+                    "metric",
+                    "value",
+                    "unit",
+                    "source_status",
+                )
+            }
+        )
+
+    observed_windows = {}
+    for key, value in (observed_rain.get("windows") or {}).items():
+        if isinstance(value, dict):
+            observed_windows[str(key)] = {
+                "mm": finite(value.get("mm")),
+                "valid_points": value.get("valid_points"),
+                "expected_points": value.get("expected_points"),
+                "coverage_ratio": finite(value.get("coverage_ratio")),
+                "complete": bool(value.get("complete")),
+                "unconfirmed_points": value.get("unconfirmed_points"),
+                "start_utc": value.get("start_utc"),
+                "end_utc": value.get("end_utc"),
+            }
+
+    return {
+        "id": station.get("id"),
+        "code": station.get("code"),
+        "name": station.get("name"),
+        "network": station.get("network"),
+        "latitude": finite(station.get("latitude")),
+        "longitude": finite(station.get("longitude")),
+        "type_label": station.get("type_label"),
+        "upg_label": station.get("upg_label"),
+        "drainage_area_km2": finite(station.get("drainage_area_km2")),
+        "operating": station.get("operating"),
+        "source_networks": list(station.get("source_networks") or []),
+        "source_roles": list(station.get("source_roles") or []),
+        "source_observations": source_observations,
+        "observed_rain": {
+            "state": observed_rain.get("state"),
+            "source": observed_rain.get("source"),
+            "unit": observed_rain.get("unit"),
+            "last_observed_at_utc": observed_rain.get("last_observed_at_utc"),
+            "observed_age_minutes": finite(observed_rain.get("observed_age_minutes")),
+            "timestamp_role": observed_rain.get("timestamp_role"),
+            "last_closed_interval_end_utc": observed_rain.get("last_closed_interval_end_utc"),
+            "closed_interval_age_minutes": finite(observed_rain.get("closed_interval_age_minutes")),
+            "windows": observed_windows,
+            "message": observed_rain.get("message"),
+        },
+        "level": {
+            "state": level.get("state"),
+            "current_cm": finite(level.get("current_cm")),
+            "raw_current_cm": finite(level.get("raw_current_cm")),
+            "measurement_classification": level.get("measurement_classification"),
+            "observed_at_utc": level.get("observed_at_utc"),
+            "observed_age_minutes": finite(level.get("observed_age_minutes")),
+            "forecast_applicable": bool(level.get("forecast_applicable")),
+            "forecast_status": level.get("forecast_status"),
+            "forecast_cm": finite(level.get("forecast_cm")),
+            "forecast_at_utc": level.get("forecast_at_utc"),
+            "threshold_cm": finite(level.get("threshold_cm")),
+            "unit": level.get("unit"),
+            "forecasts": list(level.get("forecasts") or []),
+            "source": level.get("source"),
+            "quality": level.get("quality"),
+            "message": level.get("message"),
+        },
+        "forecast": {
+            "state": forecast.get("state"),
+            "fetched_at_utc": forecast.get("fetched_at_utc"),
+            "models": model_summary,
+        },
+    }
+
+
+def _status_snapshot(feed: dict[str, Any]) -> dict[str, Any]:
+    """Audit-friendly summary plus a lightweight per-station map contract."""
+    generated_at = parse_iso(feed.get("generated_at_utc"), default_timezone=UTC)
+    return {
+        "schema_version": 2,
+        "feed_type": "basin_station_status",
+        "generated_at_utc": feed.get("generated_at_utc"),
+        "next_cycle_utc": feed.get("next_cycle_utc"),
+        "status": feed.get("status"),
+        "research_only": feed.get("research_only"),
+        "official_alert": feed.get("official_alert"),
+        "scope": feed.get("scope") or {},
+        "source_counts": feed.get("source_counts") or {},
+        "coverage": feed.get("coverage") or {},
+        "freshness": feed.get("freshness") or {},
+        "catalog": feed.get("catalog") or {},
+        "models": feed.get("models") or [],
+        "metric_coverage": feed.get("metric_coverage") or {},
+        "refresh_contract": feed.get("refresh_contract") or {},
+        "stations": [
+            _compact_station_status(station, generated_at=generated_at)
+            for station in feed.get("stations") or []
+        ],
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--status-output", type=Path, default=DEFAULT_STATUS_OUTPUT)
     args = parser.parse_args()
     feed = build_feed(include_external=True)
     validate_complete_feed(feed)
@@ -1261,13 +1578,67 @@ def main() -> int:
         json.dumps(feed, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+    status_snapshot = _status_snapshot(feed)
+    args.status_output.parent.mkdir(parents=True, exist_ok=True)
+    args.status_output.write_text(
+        json.dumps(status_snapshot, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    rain_ages = [
+        finite((item.get("observed_rain") or {}).get("closed_interval_age_minutes"))
+        for item in feed.get("stations", [])
+        if (item.get("observed_rain") or {}).get("state") == "available"
+    ]
+    rain_ages = [value for value in rain_ages if value is not None]
+    level_ages = [
+        finite((item.get("level") or {}).get("observed_age_minutes"))
+        for item in feed.get("stations", [])
+        if (item.get("level") or {}).get("state") in {"available", "partial"}
+    ]
+    level_ages = [value for value in level_ages if value is not None]
+    source_states = {
+        key: (value or {}).get("state")
+        for key, value in ((feed.get("catalog") or {}).get("sources") or {}).items()
+    }
     print(
         "feed written:",
         args.output,
+        "status=",
+        args.status_output,
         "stations=",
         feed["scope"]["station_count"],
         "forecast=",
         feed["scope"]["forecast_station_count"],
+        "observed_total=",
+        feed["scope"]["observed_rain_station_count"],
+        "observed_hourly=",
+        feed["scope"]["observed_rain_hourly_station_count"],
+        "cemaden_24h=",
+        feed["scope"]["observed_rain_cemaden_24h_station_count"],
+        "levels=",
+        feed["scope"]["level_station_count"],
+        "cemaden_hydro=",
+        feed["scope"].get("cemaden_hydro_station_count"),
+        "observed_any=",
+        feed["scope"].get("observed_any_station_count"),
+        "source_observed_stations=",
+        feed["scope"].get("source_observation_station_count"),
+        "unique_locations=",
+        feed["scope"].get("forecast_location_count"),
+        "rain_age_max_min=",
+        max(rain_ages) if rain_ages else None,
+        "rain_over_60min=",
+        sum(value > 60 for value in rain_ages),
+        "level_age_max_min=",
+        max(level_ages) if level_ages else None,
+        "level_over_60min=",
+        sum(value > 60 for value in level_ages),
+        "sources=",
+        feed.get("source_counts"),
+        "catalog_sources=",
+        source_states,
+        "catalog_complete=",
+        (feed.get("catalog") or {}).get("complete"),
     )
     return 0
 

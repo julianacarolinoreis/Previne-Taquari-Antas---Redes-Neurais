@@ -4,7 +4,7 @@
 Operational research logic:
 - 86472000 Linha José Júlio is a native HEC Source/Flow Gage using observed Q history.
 - 86500000 Passo Carreiro is a second native HEC Source/Flow Gage using observed Q history.
-- Future LJJ shape uses the latest full-event HEC restart increment, anchored to the last observed LJJ Q.
+- Future LJJ shape uses the current-cycle operational HEC increment, anchored to the last observed LJJ Q.
 - Future Carreiro shape uses the E28 calibrated branch response to spatial ECMWF/IFS, anchored to observed Carreiro Q.
 - Only the small residual areas Carreiro->STZ and STZ->Muçum are rainfall-runoff subbasins.
 - Routing uses the E28 eventwise values (K1=2.5 h, K2=2.5 h, K3=1 h, x=0.2).
@@ -28,7 +28,7 @@ from run_mucum_06z_upstream_assimilated import solve_dn_ratio
 OUT=ROOT/"assets/data/estudo_bacia_taquari_antas"
 OBS=OUT/"mucum_observed_multistation_latest.json"
 LIVE=ROOT/"previsao_ao_vivo_mucum.json"
-RESTART=OUT/"hec_hms_operational_restart_latest.json"
+RESTART=OUT/"hec_hms_operational_forecast_latest.json"
 FORCING=OUT/"hec_twin_ifs_spatial_forcing_5d_latest.json"
 LIB=OUT/"modelo_mucum_eventwise_v1_fechado_latest.json"
 ZONE=OUT/"hec_hms_spatial_forecast_mucum/zone_hourly.csv"
@@ -608,7 +608,9 @@ def main():
         operational_stage=[obs_n+(float(n)-model_now) for n in stages]
         state_mode="explicit_observed_stage_conditioning"
         state_assimilation_applied=True
-        publishable=(adj_rmse is None or adj_rmse<=45.0) and (slope_error_cm_h is None or abs(slope_error_cm_h)<=20.0)
+        # Conditioning is retained only as a diagnostic delta trajectory.
+        # It must never promote a HEC run whose native internal state misses t0.
+        publishable=False
 
     future=[(t,n,q) for t,n,q in zip(times,operational_stage,vals) if t>=obs_t]
     peak=max(future,key=lambda z:z[1])

@@ -70,7 +70,7 @@ Corrigido gerando na precisão decimétrica nativa do HAND (0,1 m, igual o
 raster já era). Faixa vetorial atual: 0–30 m (301 níveis). Custo: arquivo maior
 (Muçum ~8,5 MB), ainda buscado via fetch() assíncrono.
 
-Uso: python codigo_python/02_mdt_hand_mancha/gerar_contornos_vetoriais.py [mucum|santa_tereza]
+Uso: python codigo_python/02_mdt_hand_mancha/gerar_contornos_vetoriais.py mucum\n\nSanta Tereza foi bloqueada neste gerador legado; os contornos são produzidos pelo gerador LiDAR.
 """
 import os
 import sys
@@ -150,6 +150,11 @@ def arredonda_geom(geom_mapping, casas):
 
 
 def gera(cidade):
+    if cidade == "santa_tereza":
+        raise RuntimeError(
+            "BLOQUEADO: contornos de Santa Tereza devem vir do HAND hidráulico LiDAR "
+            "(gerar_hand_lidar_santa_tereza.py), nunca do mosaico drone+ANADEM."
+        )
     cfg = CIDADES[cidade]
     print(f"=== {cidade} ===")
     dem_a, transform_a, crs_a, _ = le(cfg["anadem"])
@@ -219,6 +224,12 @@ def gera(cidade):
 
 
 if __name__ == "__main__":
-    alvo = sys.argv[1] if len(sys.argv) > 1 else None
-    for cidade in ([alvo] if alvo else CIDADES.keys()):
-        gera(cidade)
+    alvo = sys.argv[1] if len(sys.argv) > 1 else "mucum"
+    if alvo == "santa_tereza":
+        raise SystemExit(
+            "BLOQUEADO: os contornos de Santa Tereza são gerados pelo pipeline LiDAR "
+            "(gerar_hand_lidar_santa_tereza.py)."
+        )
+    if alvo not in CIDADES:
+        raise SystemExit(f"cidade inválida: {alvo}")
+    gera(alvo)

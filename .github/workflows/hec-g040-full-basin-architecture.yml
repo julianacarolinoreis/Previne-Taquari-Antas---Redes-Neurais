@@ -1,0 +1,104 @@
+name: HEC G040 management-layer audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/build_hec_hms_g040_full_basin_architecture.py"
+      - "scripts/build_g040_hydro_stack_scaffold.py"
+      - "config/g040_hydro_stack_v1.json"
+      - ".github/workflows/hec-g040-full-basin-architecture.yml"
+      - "assets/data/hec_hms_g040_full_basin/original_145_report_inventory_latest.json"
+      - "assets/data/estudo_bacia_taquari_antas/sub_bacias_q040_enquadramento.geojson"
+      - "assets/data/estudo_bacia_taquari_antas/subbacias_e_fozes_latest.json"
+      - "assets/data/estudo_bacia_taquari_antas/postos_g040.geojson"
+      - "assets/data/estudo_bacia_taquari_antas/pluviometria_g040.geojson"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hec-g040-full-basin-architecture
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dependencies
+        run: pip install --disable-pip-version-check requests shapely pyproj
+
+      - name: Build G040 management audit and station matrix
+        run: python -B scripts/build_hec_hms_g040_full_basin_architecture.py
+
+      - name: Audit diagnostics
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          p="assets/data/hec_hms_g040_full_basin/full_basin_architecture_latest.json"
+          j=json.load(open(p,encoding="utf-8"))
+          a=j["topology_audit"]
+          print("STATUS:",j["status"])
+          print("AREA:",json.dumps(j["area_audit"],ensure_ascii=False))
+          print("COARSE CONNECTIVITY:",json.dumps({
+              "edge_count":a["edge_count"],
+              "outlet_candidates":a["outlet_candidates"],
+              "ambiguity_count":len(a["ambiguities"]),
+              "cycle_count":len(a["cycles"]),
+              "topology_pass_diagnostic":a["topology_pass"],
+          },ensure_ascii=False))
+          print("32 IEDE polygons remain management/audit units only.")
+          print("HEC target remains the report-listed 145 sub-basins + 72 reaches.")
+          PY
+
+      - name: Test hydro stack scaffold
+        run: python -B scripts/test_g040_hydro_stack_scaffold.py
+
+      - name: Build SMA MGB RAS assimilation ensemble scaffolds
+        run: python -B scripts/build_g040_hydro_stack_scaffold.py
+
+      - name: Publish research artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-hec-g040-bot"
+          git config user.email "previne-hec-g040-bot@users.noreply.github.com"
+
+          BASE="assets/data/hec_hms_g040_full_basin"
+          STACK="assets/data/g040_hydro_stack"
+          mkdir -p /tmp/hec_g040 /tmp/g040_hydro_stack
+          cp "$BASE/full_basin_architecture_latest.json" /tmp/hec_g040/
+          cp "$BASE/full_basin_subbasins.geojson" /tmp/hec_g040/
+          cp "$BASE/full_basin_topology_edges.csv" /tmp/hec_g040/
+          cp "$BASE/full_basin_station_matrix.csv" /tmp/hec_g040/
+          cp "$STACK/sma_parameter_template.csv" /tmp/g040_hydro_stack/
+          cp "$STACK/mgb_prep_manifest.json" /tmp/g040_hydro_stack/
+          cp "$STACK/hec_ras_coupling_manifest.json" /tmp/g040_hydro_stack/
+          cp "$STACK/assimilation_ensemble_contract.json" /tmp/g040_hydro_stack/
+          cp "$STACK/readiness_latest.json" /tmp/g040_hydro_stack/
+
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p "$BASE" "$STACK"
+            cp /tmp/hec_g040/* "$BASE/"
+            cp /tmp/g040_hydro_stack/* "$STACK/"
+            git add -- "$BASE" "$STACK"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "bot: update G040 management audit and hydro stack [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt * 2))
+          done
+          exit 1

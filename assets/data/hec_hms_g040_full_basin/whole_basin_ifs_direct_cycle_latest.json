@@ -1,0 +1,68 @@
+{
+  "schema_version": "g040_ifs_direct_cycle_v1",
+  "generated_at_utc": "2026-10-01T14:27:42.856177Z",
+  "research_only": true,
+  "status": "EXACT_CYCLE_FULLGRID_READY",
+  "source": {
+    "provider": "ECMWF Open Data",
+    "model": "IFS",
+    "native_model_resolution_deg": 0.25,
+    "sampling_grid_resolution_deg": 0.1,
+    "variable": "tp",
+    "cycle_time_utc": "2026-10-01T06:00:00Z",
+    "cycle_locked": true,
+    "source_root": "https://data.ecmwf.int/forecasts",
+    "fallback_used": false,
+    "native_temporal_resolution_h": 3,
+    "hourly_disaggregation": "each 3-hour tp increment divided uniformly over the block"
+  },
+  "window": {
+    "start_utc": "2026-10-01T06:00:00Z",
+    "end_utc": "2026-10-06T05:00:00Z",
+    "hours": 120
+  },
+  "boundary_scenario": {
+    "name": "live_available_boundaries",
+    "active_boundary_codes": [
+      "86500000"
+    ]
+  },
+  "grid": {
+    "resolution_deg": 0.1,
+    "rows_latitude": 20,
+    "cols_longitude": 30,
+    "cells": 600,
+    "edge_bounds": {
+      "west": -52.8,
+      "east": -49.8,
+      "south": -30.0,
+      "north": -28.0
+    },
+    "cell_center_bounds": {
+      "west": -52.75,
+      "east": -49.85,
+      "south": -29.95,
+      "north": -28.05
+    },
+    "crs": "EPSG:4326",
+    "complete_cells": 600,
+    "min_total_mm": 20.08,
+    "max_total_mm": 73.62
+  },
+  "interval_count": 8,
+  "component_count": 11,
+  "gates": {
+    "full_600_cell_grid": true,
+    "all_hours_complete": true,
+    "exact_cycle_id_available": true,
+    "cycle_locked": true,
+    "fallback_used": false,
+    "negative_increment_detected": false
+  },
+  "artifacts": {
+    "full_grid_hourly_csv": "assets/data/hec_hms_g040_full_basin/whole_basin_ifs_direct_cycle_fullgrid_hourly.csv",
+    "interval_hourly_csv": "assets/data/hec_hms_g040_full_basin/whole_basin_ifs_direct_cycle_intervals_hourly.csv",
+    "component_hourly_csv": "assets/data/hec_hms_g040_full_basin/whole_basin_ifs_direct_cycle_components_hourly.csv"
+  },
+  "promotion_note": "This closes cycle provenance only. Hydrologic-model operational promotion remains subject to independent validation and all other gates."
+}

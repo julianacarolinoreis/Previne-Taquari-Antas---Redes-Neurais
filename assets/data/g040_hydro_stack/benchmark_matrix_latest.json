@@ -1,0 +1,139 @@
+{
+  "schema_version": "g040_benchmark_matrix_v1",
+  "generated_at_utc": "2026-10-02T03:19:32.887863Z",
+  "research_only": true,
+  "events": [
+    {
+      "event_id": "E19_MAY2023",
+      "proposed_role": "development",
+      "present": true,
+      "station_count": 16,
+      "stations_with_flow": 5,
+      "stations_with_level": 7,
+      "flow_hours_total": 591,
+      "propagation_pair_count": 5,
+      "propagation_fit_quality_counts": {
+        "high": 2,
+        "low": 1,
+        "none": 2
+      },
+      "reliable_peak_lag_pairs": 2,
+      "use_gate": "QC_REQUIRED_BEFORE_CALIBRATION_OR_SCORING"
+    },
+    {
+      "event_id": "E22_SEP2023",
+      "proposed_role": "calibration",
+      "present": true,
+      "station_count": 16,
+      "stations_with_flow": 5,
+      "stations_with_level": 7,
+      "flow_hours_total": 672,
+      "propagation_pair_count": 5,
+      "propagation_fit_quality_counts": {
+        "high": 1,
+        "low": 2,
+        "none": 2
+      },
+      "reliable_peak_lag_pairs": 0,
+      "use_gate": "QC_REQUIRED_BEFORE_CALIBRATION_OR_SCORING"
+    },
+    {
+      "event_id": "E24_NOV2023",
+      "proposed_role": "calibration",
+      "present": true,
+      "station_count": 16,
+      "stations_with_flow": 6,
+      "stations_with_level": 8,
+      "flow_hours_total": 1000,
+      "propagation_pair_count": 5,
+      "propagation_fit_quality_counts": {
+        "high": 2,
+        "medium": 2,
+        "none": 1
+      },
+      "reliable_peak_lag_pairs": 2,
+      "use_gate": "QC_REQUIRED_BEFORE_CALIBRATION_OR_SCORING"
+    },
+    {
+      "event_id": "E27_MAY2024",
+      "proposed_role": "independent_validation",
+      "present": true,
+      "station_count": 16,
+      "stations_with_flow": 5,
+      "stations_with_level": 7,
+      "flow_hours_total": 685,
+      "propagation_pair_count": 5,
+      "propagation_fit_quality_counts": {
+        "low": 3,
+        "none": 2
+      },
+      "reliable_peak_lag_pairs": 0,
+      "use_gate": "QC_REQUIRED_BEFORE_CALIBRATION_OR_SCORING"
+    },
+    {
+      "event_id": "E28_JUN2024",
+      "proposed_role": "independent_validation",
+      "present": true,
+      "station_count": 16,
+      "stations_with_flow": 3,
+      "stations_with_level": 4,
+      "flow_hours_total": 638,
+      "propagation_pair_count": 5,
+      "propagation_fit_quality_counts": {
+        "none": 3,
+        "medium": 2
+      },
+      "reliable_peak_lag_pairs": 0,
+      "use_gate": "QC_REQUIRED_BEFORE_CALIBRATION_OR_SCORING"
+    },
+    {
+      "event_id": "E2026_JUL",
+      "proposed_role": "pseudo_operational_holdout",
+      "present": true,
+      "station_count": 16,
+      "stations_with_flow": 7,
+      "stations_with_level": 10,
+      "flow_hours_total": 989,
+      "propagation_pair_count": 5,
+      "propagation_fit_quality_counts": {
+        "high": 2,
+        "medium": 2,
+        "none": 1
+      },
+      "reliable_peak_lag_pairs": 2,
+      "use_gate": "QC_REQUIRED_BEFORE_CALIBRATION_OR_SCORING"
+    }
+  ],
+  "required_metrics": [
+    "NSE",
+    "KGE",
+    "PBIAS",
+    "RMSE",
+    "MAE",
+    "volume_error",
+    "peak_error",
+    "peak_timing_error",
+    "rise_skill",
+    "recession_skill"
+  ],
+  "checkpoint_policy": "score multiple mainstem checkpoints; do not optimize a single outlet only",
+  "split_policy": {
+    "proposal_only": true,
+    "development": [
+      "E19_MAY2023"
+    ],
+    "calibration": [
+      "E22_SEP2023",
+      "E24_NOV2023"
+    ],
+    "independent_validation": [
+      "E27_MAY2024",
+      "E28_JUN2024"
+    ],
+    "pseudo_operational_holdout": [
+      "E2026_JUL"
+    ],
+    "no_event_may_move_from_validation_to_calibration_after_results_are_seen": true
+  },
+  "promotion_gate": "no model promotion from a single event or only NSE"
+}

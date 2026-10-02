@@ -572,6 +572,20 @@
   .expl-list span{color:var(--muted)}
   .expl .disc{margin-top:2px}
   @media (max-width:760px){.expl-grid{grid-template-columns:1fr}}
+  .spatial-analysis{margin:12px 0;border:1px solid #cfdad4;border-radius:12px;background:#f7faf8}
+  .spatial-analysis summary{cursor:pointer;padding:10px 12px;font-weight:800;font-size:12px;color:var(--brand)}
+  .spatial-analysis-body{padding:0 12px 12px;display:grid;gap:9px}
+  .spatial-analysis-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .spatial-analysis label{display:grid;gap:4px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:800;color:var(--muted)}
+  .spatial-analysis select{width:100%;min-width:0;padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font:inherit;text-transform:none;letter-spacing:0;font-weight:600}
+  .spatial-analysis-status{padding:9px 10px;border-radius:9px;background:#fff;border:1px solid var(--line);font-size:11px;line-height:1.45;color:var(--muted)}
+  .spatial-analysis-status b{color:var(--ink)}
+  .spatial-analysis-legend{display:flex;flex-wrap:wrap;gap:6px;font-size:10px;color:var(--muted)}
+  .spatial-analysis-legend span{display:inline-flex;align-items:center;gap:4px}
+  .spatial-analysis-legend i{width:11px;height:11px;border-radius:3px;border:1px solid rgba(0,0,0,.18)}
+  .spatial-preset{border:1px solid var(--line);border-radius:8px;background:#fff;padding:7px 9px;font-size:11px;font-weight:700;color:var(--brand);cursor:pointer}
+  .spatial-preset:hover{background:#edf5f1}
+  @media(max-width:760px){.spatial-analysis-grid{grid-template-columns:1fr}}
 </style>
 <link rel="stylesheet" href="assets/css/gestor_chrome.css">
 </head>
@@ -603,7 +617,7 @@
   <aside>
     <div class="concept-note" role="note" aria-label="Diferença entre vulnerabilidade, perigo e risco">
       <b>Vulnerabilidade social &ne; perigo &ne; risco.</b>
-      Aqui você vê <b>quem</b> pode sofrer mais (pessoas e domicílios), a <b>exposição</b> (quanto há no lugar) e a <b>capacidade</b> municipal de gestão. Perigo é a ameaça física de cheia; risco só existe ao cruzar vulnerabilidade com uma mancha ou cota validada — ainda em fase seguinte do PREVINE.
+      Aqui você vê <b>quem</b> pode sofrer mais (pessoas e domicílios), a <b>exposição</b> (quanto há no lugar) e a <b>capacidade</b> municipal de gestão. Perigo é a ameaça física de cheia; risco só existe ao cruzar vulnerabilidade com uma mancha ou cota validada. O bloco de análise espacial permite sobreposições de pesquisa sem fundir essas dimensões em uma nota única.
     </div>
     <div class="research-banner" role="note"><b>Modo pesquisa:</b> consulte e compare dados. Esta página não é alerta, classificação de risco nem recomendação operacional.</div>
     <div class="dataset-strip" id="datasetStrip" role="group" aria-label="Resumo do conjunto de dados">
@@ -688,6 +702,46 @@
       </div>
       <div class="scope-help" id="gradeAjuda">Abra um município para ativar a Grade IBGE 2022. Ela usa 200 m no urbano e 1 km no rural; a resolução aparece em cada célula.</div>
     </div>
+
+    <details class="spatial-analysis" id="analiseEspacial">
+      <summary>Análise espacial · LISA, convergência e cheias</summary>
+      <div class="spatial-analysis-body">
+        <div class="scope-help">Camadas de pesquisa calculadas para os 3.283 setores. LISA usa 6 vizinhos, 9.999 permutações locais e FDR Benjamini–Hochberg α=0,05. HH/LL significam valores altos/baixos cercados por valores semelhantes; não são “alto/baixo risco”.</div>
+        <div class="spatial-analysis-grid">
+          <label>Camada estatística
+            <select id="spatialMetric">
+              <option value="none">sem sobreposição estatística</option>
+              <option value="elderly">LISA robusto · idosos 60+</option>
+              <option value="income">LISA robusto · renda</option>
+              <option value="water">LISA robusto · água</option>
+              <option value="sewage">LISA robusto · esgoto</option>
+              <option value="child">LISA robusto · crianças 0–9</option>
+              <option value="blackbrown">LISA robusto · pretos e pardos</option>
+              <option value="structural">convergência LL · renda + água + esgoto</option>
+              <option value="elderly_structural">idosos HH + condição estrutural LL</option>
+            </select>
+          </label>
+          <label>Perigo / exposição de pesquisa
+            <select id="spatialFlood">
+              <option value="none">sem mancha sobreposta</option>
+              <optgroup label="Santa Tereza · reconstruções históricas">
+                <option value="santa:st-e4-set2023">Set/2023 · régua 24,04 m · HAND 22,4 m</option>
+                <option value="santa:st-e6-nov2023">Nov/2023 · régua 21,61 m · HAND 20,0 m</option>
+                <option value="santa:st-e9-mai2024">Mai/2024 · régua 22,42 m · HAND 20,8 m</option>
+              </optgroup>
+              <optgroup label="Muçum · cenários HAND de pesquisa">
+                <option value="mucum:18">HAND 18 m</option>
+                <option value="mucum:20">HAND 20 m</option>
+                <option value="mucum:25">HAND 25 m</option>
+              </optgroup>
+            </select>
+          </label>
+        </div>
+        <div><button type="button" class="spatial-preset" id="spatialPresetElderlyFlood">Atalho · idosos × maior cheia histórica de Santa Tereza</button></div>
+        <div class="spatial-analysis-legend" id="spatialAnalysisLegend" aria-label="Legenda da análise espacial"></div>
+        <div class="spatial-analysis-status" id="spatialAnalysisStatus" role="status" aria-live="polite">Escolha uma camada estatística ou uma mancha para iniciar a análise.</div>
+      </div>
+    </details>
 
     <div class="action-groups" aria-label="Ações rápidas">
       <div class="action-group">
@@ -807,6 +861,10 @@
         <a href="assets/data/vulnerabilidade/downloads/grade_200m_na_bacia_combinada.csv" download>Grade IBGE 2022 (200 m urbano / 1 km rural) dentro da bacia · CSV</a>
         <span class="download-meta">O CSV mantém as células 200M e 1KME; o identificador e a resolução de cada célula ficam na tabela e no GeoJSON do pacote completo.</span>
         <a href="assets/data/vulnerabilidade/downloads/municipios_combinados.csv" download>Municípios combinados · CSV</a>
+        <div class="download-meta"><b>Análise espacial auditada</b> — Moran Global, LISA/FDR e cruzamentos de pesquisa.</div>
+        <a href="assets/data/vulnerabilidade/analises_spaciais/lisa_setores_bacia.geojson" download>LISA robusto dos setores da bacia · GeoJSON</a>
+        <a href="assets/data/vulnerabilidade/analises_spaciais/lisa_classificacao_setores.json" download>Classificação LISA por setor · JSON compacto</a>
+        <a href="assets/data/vulnerabilidade/analises_spaciais/analysis_vulnerabilidade_spatial_full.json" target="_blank" rel="noopener">Auditoria estatística espacial completa · JSON</a>
         <div class="download-meta"><b>Agregados oficiais IBGE/SIDRA · 118 municípios</b> — indicadores municipais, não recorte setorial na bacia.</div>
         <a href="assets/data/vulnerabilidade/downloads/Agregados_taquari_pessoa.csv" download>Agregados Taquari · pessoas · CSV</a>
         <a href="assets/data/vulnerabilidade/downloads/Agregados_taquari_domicilio.csv" download>Agregados Taquari · domicílios · CSV</a>
@@ -849,6 +907,7 @@
         <li>SGB: setorização de risco em Santa Tereza, levantamento de 2025; não é mancha contínua.</li>
         <li>GeoJSON/GeoPackage/Shapefile: EPSG:4326; para área/distância, reprojete no QGIS/ArcGIS (por exemplo EPSG:31982).</li>
          <li><a href="assets/data/vulnerabilidade/metadados/README_PRODUTO.md" target="_blank" rel="noopener">README do produto</a> · <a href="assets/data/vulnerabilidade/metadados/DICIONARIO_CAMPOS.csv" download>dicionário de campos</a> · <a href="assets/data/vulnerabilidade/metadados/INVENTARIO_CAMADAS.csv" download>inventário de camadas</a> · <a href="assets/data/vulnerabilidade/metadados/ESTILOS_QGIS_ARCGIS.md" target="_blank" rel="noopener">estilos</a> · <a href="assets/data/vulnerabilidade/metadados/README_ESTILOS_QGIS.md" target="_blank" rel="noopener">guia QGIS/ArcGIS</a> · <a href="assets/data/vulnerabilidade/metadados/estilo_icm_municipios.qml" download>QGIS ICM</a> · <a href="assets/data/vulnerabilidade/metadados/estilo_risco_sgb.qml" download>QGIS SGB</a></li>
+         <li><a href="assets/data/vulnerabilidade/analises_spaciais/analysis_vulnerabilidade_spatial_full.json" target="_blank" rel="noopener">Análise espacial</a>: Moran Global (999 permutações), Moran Local (9.999), KNN k=6, sensibilidade k=4/6/8/12 e FDR Benjamini–Hochberg α=0,05.</li>
          <li><a href="assets/data/vulnerabilidade/metadados/ESPECIFICACAO_FICHA_TRIAGEM_CENARIOS.md" target="_blank" rel="noopener">especificação de ficha, triagem e cenários</a> · <a href="assets/data/vulnerabilidade/metadados/ESPECIFICACAO_FICHA_TRIAGEM_CENARIOS.json" target="_blank" rel="noopener">contrato JSON</a> · <a href="assets/data/vulnerabilidade/metadados/README_PRODUTO.md#citacao" target="_blank" rel="noopener">citação pronta</a></li>
       </ul>
     </details>
@@ -862,8 +921,8 @@
       <b>Leitura honesta:</b> retrato da vulnerabilidade <b>social</b> pelo Censo 2022
       (Agregados por Setores Censitários, IBGE). Municípios de borda entram com a
       população inteira; o dado "na bacia" usa os setores dentro do limite da SEMA/DRH.
-      A família de perigo começa com os setores oficiais do SGB em Santa Tereza; a
-      cobertura hidrológica regional e as manchas por cota ainda vêm na próxima fase.
+      A família de perigo inclui os setores oficiais do SGB em Santa Tereza e, no bloco de análise espacial,
+      reconstruções históricas/cenários HAND de pesquisa. Essas camadas não são fundidas num índice de risco nem usadas como alerta.
       Dados brutos e fontes:
       <a href="assets/data/vulnerabilidade/downloads/dados_combinados_taquari_antas.zip">pacote combinado</a> ·
       <a href="assets/data/vulnerabilidade/brutos/setores_bacia_indicadores.csv">CSV censitário bruto</a> ·
@@ -955,8 +1014,8 @@
     </div>
 
     <div class="disc" style="max-width:none">
-      <b>Importante:</b> este é um retrato da vulnerabilidade <b>social</b> — ainda não sobrepõe o perigo
-      hidrológico (a mancha de inundação), que entra na próxima fase do PREVINE. Municípios de borda
+      <b>Importante:</b> a leitura principal continua sendo da vulnerabilidade <b>social</b>. O bloco “Análise espacial”
+      permite sobrepor LISA robusto e algumas manchas/reconstruções de pesquisa, mantendo perigo, vulnerabilidade e capacidade em camadas separadas. Municípios de borda
       aparecem com a população inteira; o recorte “na bacia” usa apenas os setores dentro do limite da
       SEMA/DRH. Um lugar bem colorido não é, sozinho, “o mais em risco”: é onde há mais gente ou mais
       sensibilidade — o risco final cruza isso com a ameaça de cheia.
@@ -1284,7 +1343,163 @@ let detalheFocoPendente = false;
 let zoomChoiceDismissed = false;
 let zoomChoiceTrigger = null;
 let selectionMode = false, selectionStart = null, selectionRect = null, selectionLayers = [];
+let spatialLayer = null, spatialGeoData = null, spatialSummaryData = null, spatialFloodLayer = null;
+let spatialMetric = "none", spatialFlood = "none";
+const SPATIAL_LISA_COLORS = {HH:"#7b3294", LL:"#008837", HL:"#e66101", LH:"#0571b0", NS:"#d9dfdc"};
+const SPATIAL_LISA_LABELS = {HH:"HH · alto cercado por alto", LL:"LL · baixo cercado por baixo", HL:"HL · alto cercado por baixo", LH:"LH · baixo cercado por alto", NS:"não significativo após FDR"};
 
+
+function spatialMetricLabel(k){
+  return ({income:"renda",water:"água — rede geral",sewage:"esgoto — rede geral",child:"crianças 0–9",elderly:"idosos 60+",blackbrown:"pretos e pardos",structural:"convergência estrutural",elderly_structural:"idosos HH + condição estrutural LL"})[k] || k;
+}
+async function garanteSpatialSummary(){
+  if(spatialSummaryData) return spatialSummaryData;
+  spatialSummaryData = await carrega("analises_spaciais/analysis_vulnerabilidade_spatial_full.json");
+  return spatialSummaryData;
+}
+async function garanteSpatialGeo(){
+  if(spatialGeoData) return spatialGeoData;
+  spatialGeoData = await carrega("analises_spaciais/lisa_setores_bacia.geojson");
+  return spatialGeoData;
+}
+function estiloSpatial(ft){
+  const p=ft?.properties||{};
+  if(spatialMetric==="structural"){
+    const n=Number(p.structural_ll_count)||0;
+    const cores=["#eef3f1","#ddd1e8","#9c70b5","#4d2a6e"];
+    return {fillColor:cores[Math.min(3,n)],fillOpacity:n?0.72:0.025,color:n?"#4d2a6e":"#9da8a3",weight:n?0.7:0.25,opacity:n?0.9:0.25};
+  }
+  if(spatialMetric==="elderly_structural"){
+    const ativo=Number(p.elderly_hh_plus_structural)===1;
+    return {fillColor:ativo?"#a63d13":"#eef3f1",fillOpacity:ativo?0.76:0.02,color:ativo?"#7a2c0d":"#aab3af",weight:ativo?0.8:0.2,opacity:ativo?0.95:0.2};
+  }
+  const cat=p[`lisa_fdr_${spatialMetric}`]||"NS";
+  return {fillColor:SPATIAL_LISA_COLORS[cat]||SPATIAL_LISA_COLORS.NS,fillOpacity:cat==="NS"?0.035:0.66,color:cat==="NS"?"#aab3af":SPATIAL_LISA_COLORS[cat],weight:cat==="NS"?0.25:0.65,opacity:cat==="NS"?0.3:0.9};
+}
+function popupSpatial(p){
+  if(spatialMetric==="structural"){
+    const n=Number(p.structural_ll_count)||0;
+    return `<div class="pop"><b>${escHTML(p.municipio||"Setor")}</b><br><small>Setor ${escHTML(p.setor||"")}</small><p><b>Convergência LL:</b> ${n} de 3 dimensões (renda, água, esgoto).</p><small>É coocorrência espacial robusta, não IVS nem classificação de risco.</small></div>`;
+  }
+  if(spatialMetric==="elderly_structural"){
+    const ativo=Number(p.elderly_hh_plus_structural)===1;
+    return `<div class="pop"><b>${escHTML(p.municipio||"Setor")}</b><br><small>Setor ${escHTML(p.setor||"")}</small><p>${ativo?"Idosos em HH e ao menos uma condição estrutural em LL.":"Não pertence a esta convergência após FDR."}</p><small>Pesquisa; não é prioridade operacional automática.</small></div>`;
+  }
+  const cat=p[`lisa_fdr_${spatialMetric}`]||"NS";
+  return `<div class="pop"><b>${escHTML(p.municipio||"Setor")}</b><br><small>Setor ${escHTML(p.setor||"")}</small><p><b>${escHTML(spatialMetricLabel(spatialMetric))}:</b> ${escHTML(SPATIAL_LISA_LABELS[cat]||cat)}</p><small>Moran Local, 9.999 permutações, FDR BH α=0,05. HH/LL não significam risco alto/baixo.</small></div>`;
+}
+function atualizaSpatialLegend(){
+  const el=document.getElementById("spatialAnalysisLegend"); if(!el)return;
+  if(spatialMetric==="none"){el.innerHTML="";return;}
+  if(spatialMetric==="structural"){
+    el.innerHTML=[0,1,2,3].map(n=>`<span><i style="background:${["#eef3f1","#ddd1e8","#9c70b5","#4d2a6e"][n]}"></i>${n} LL${n===3?" · renda+água+esgoto":""}</span>`).join("");
+    return;
+  }
+  if(spatialMetric==="elderly_structural"){
+    el.innerHTML=`<span><i style="background:#a63d13"></i>idosos HH + ≥1 dimensão estrutural LL</span>`;
+    return;
+  }
+  el.innerHTML=["HH","LL","HL","LH","NS"].map(k=>`<span><i style="background:${SPATIAL_LISA_COLORS[k]}"></i>${escHTML(SPATIAL_LISA_LABELS[k])}</span>`).join("");
+}
+async function aplicaSpatialMetric(valor, ajustar=false){
+  spatialMetric=valor||"none";
+  if(spatialLayer){map.removeLayer(spatialLayer);spatialLayer=null;}
+  atualizaSpatialLegend();
+  if(spatialMetric==="none"){atualizaSpatialStatus();sincronizaURL();return;}
+  const status=document.getElementById("spatialAnalysisStatus"); if(status)status.textContent="Carregando análise espacial dos setores…";
+  try{
+    const gj=await garanteSpatialGeo();
+    spatialLayer=L.geoJSON(gj,{pane:"analiseEspacial",style:estiloSpatial,onEachFeature:(ft,l)=>{
+      l.bindPopup(()=>popupSpatial(ft.properties),POPUP_OPTS);
+      acessibilizaFeicaoMapa(l,`Análise espacial · setor ${ft.properties?.setor||""}`);
+    }}).addTo(map);
+    spatialLayer.bringToFront();
+    if(ajustar && spatialLayer.getBounds().isValid())map.fitBounds(spatialLayer.getBounds(),{padding:[8,8]});
+    await atualizaSpatialStatus();
+    sincronizaURL();
+  }catch(e){
+    if(status)status.textContent="Não foi possível carregar a análise espacial agora. Os indicadores principais continuam disponíveis.";
+  }
+}
+function removeFloodLayer(){
+  if(spatialFloodLayer){map.removeLayer(spatialFloodLayer);spatialFloodLayer=null;}
+}
+function estiloFlood(){return {color:"#006d8f",weight:2,fillColor:"#2b8cbe",fillOpacity:0.16,dashArray:"7 4"};}
+async function aplicaSpatialFlood(valor, ajustar=true){
+  spatialFlood=valor||"none"; removeFloodLayer();
+  if(spatialFlood==="none"){await atualizaSpatialStatus();sincronizaURL();return;}
+  const status=document.getElementById("spatialAnalysisStatus"); if(status)status.textContent="Carregando mancha/cenário de pesquisa…";
+  try{
+    let gj, selecionado;
+    if(spatialFlood.startsWith("santa:")){
+      const id=spatialFlood.split(":")[1];
+      const doc=await carrega("../estudo_caso_territorio/santa_tereza_event_spatial.json","assets/data/vulnerabilidade");
+      const feats=(doc.event_contours?.features||[]).filter(f=>String(f.properties?.case_id)===id);
+      gj={type:"FeatureCollection",features:feats};
+      selecionado=id;
+    }else{
+      const nivel=Number(spatialFlood.split(":")[1]);
+      const doc=await carrega("../estudo_caso_territorio/mancha_mucum.geojson","assets/data/vulnerabilidade");
+      const feats=(doc.features||[]).filter(f=>Number(f.properties?.nivel_m)===nivel);
+      gj={type:"FeatureCollection",features:feats};
+      selecionado=`HAND ${nivel} m`;
+    }
+    spatialFloodLayer=L.geoJSON(gj,{pane:"analisePerigo",style:estiloFlood,onEachFeature:(ft,l)=>{
+      const p=ft.properties||{};
+      l.bindPopup(`<div class="pop"><b>${spatialFlood.startsWith("santa:")?"Reconstrução histórica · Santa Tereza":"Cenário HAND · Muçum"}</b><p>${escHTML(p.event_label||selecionado)}${p.contour_level_m!=null?` · HAND ${fmt(Number(p.contour_level_m))} m`:""}</p><small>Camada de pesquisa; não é limite observado de inundação nem alerta.</small></div>`,POPUP_OPTS);
+    }}).addTo(map);
+    spatialFloodLayer.bringToFront();
+    if(spatialLayer)spatialLayer.bringToFront();
+    if(ajustar && spatialFloodLayer.getBounds().isValid())map.fitBounds(spatialFloodLayer.getBounds(),{padding:[24,24]});
+    await atualizaSpatialStatus();
+    sincronizaURL();
+  }catch(e){
+    if(status)status.textContent="Não foi possível carregar esta mancha agora. A camada estatística permanece disponível.";
+  }
+}
+async function atualizaSpatialStatus(){
+  const el=document.getElementById("spatialAnalysisStatus"); if(!el)return;
+  if(spatialMetric==="none" && spatialFlood==="none"){el.textContent="Escolha uma camada estatística ou uma mancha para iniciar a análise.";return;}
+  try{
+    const d=await garanteSpatialSummary();
+    const partes=[];
+    if(spatialMetric!=="none"){
+      if(spatialMetric==="structural"){
+        partes.push("<b>Convergência estrutural:</b> 184 setores têm ≥2 clusters LL entre renda, água e esgoto; 22 têm os três.");
+      }else if(spatialMetric==="elderly_structural"){
+        partes.push("<b>Idosos + estrutura:</b> 146 setores combinam idosos HH com ≥1 condição estrutural LL.");
+      }else{
+        const s=d.spatial_statistics?.[spatialMetric], f=s?.lisa_counts_fdr_bh||{};
+        if(s)partes.push(`<b>${escHTML(spatialMetricLabel(spatialMetric))}:</b> Moran I ${Number(s.global.I).toLocaleString("pt-BR",{maximumFractionDigits:3})}; FDR: ${f.HH||0} HH, ${f.LL||0} LL, ${f.HL||0} HL e ${f.LH||0} LH.`);
+      }
+    }
+    if(spatialFlood.startsWith("santa:")){
+      const id=spatialFlood.split(":")[1],e=(d.santa_tereza_historical_events||[]).find(x=>x.case_id===id);
+      if(e){
+        const o=e.sector_overlay||{}, hh=o.lisa_touched?.elderly?.HH||0;
+        partes.push(`<b>${escHTML(e.event_label)}:</b> ${o.sectors_touched||0} setores tocados; proxy setorial ${Number(o.population_area_weighted_proxy||0).toLocaleString("pt-BR",{maximumFractionDigits:0})} pessoas; ${hh} setores HH de idosos. Proxy geométrico ≠ pessoas observadas inundadas.`);
+      }
+    }else if(spatialFlood.startsWith("mucum:")){
+      const nivel=Number(spatialFlood.split(":")[1]),e=(d.mucum_research_scenarios||[]).find(x=>Number(x.nivel_m)===nivel);
+      if(e){
+        const o=e.sector_overlay||{}, hh=o.lisa_touched?.elderly?.HH||0;
+        partes.push(`<b>Muçum HAND ${nivel} m:</b> ${o.sectors_touched||0} setores tocados; proxy ${Number(o.population_area_weighted_proxy||0).toLocaleString("pt-BR",{maximumFractionDigits:0})} pessoas; ${hh} setores HH de idosos. Cenário de pesquisa, não evento observado.`);
+      }
+    }
+    el.innerHTML=partes.join("<br>");
+  }catch(_){el.textContent="Camada ativa. O resumo estatístico não pôde ser carregado, mas a geometria continua visível.";}
+}
+function restauraSpatialURL(){
+  const sm=PARAMS.get("spatial");
+  const sf=PARAMS.get("flood");
+  const validM=new Set(["none","income","water","sewage","child","elderly","blackbrown","structural","elderly_structural"]);
+  if(validM.has(sm)) spatialMetric=sm;
+  if(sf) spatialFlood=sf;
+  const m=document.getElementById("spatialMetric"),f=document.getElementById("spatialFlood");
+  if(m)m.value=spatialMetric;if(f)f.value=spatialFlood;
+  if(spatialMetric!=="none") aplicaSpatialMetric(spatialMetric,false);
+  if(spatialFlood!=="none") aplicaSpatialFlood(spatialFlood,false);
+}
 function informa(msg){
   const texto = msg || "";
   const status = document.getElementById("status");
@@ -1353,6 +1568,13 @@ function atualizaDownloadVistaMeta(){
   el.textContent=`Vista atual: ${fmt(n)} ${unidade} disponíveis para CSV/GeoJSON${selecao}. O arquivo mantém a fonte, a unidade e o escopo.`;
 }
 document.getElementById("tentarDependencias")?.addEventListener("click",()=>{ cacheJSON.clear(); location.reload(); });
+document.getElementById("spatialMetric")?.addEventListener("change",e=>aplicaSpatialMetric(e.target.value,false));
+document.getElementById("spatialFlood")?.addEventListener("change",e=>aplicaSpatialFlood(e.target.value,true));
+document.getElementById("spatialPresetElderlyFlood")?.addEventListener("click",()=>{
+  const m=document.getElementById("spatialMetric"),f=document.getElementById("spatialFlood");
+  if(m)m.value="elderly"; if(f)f.value="santa:st-e4-set2023";
+  aplicaSpatialMetric("elderly",false); aplicaSpatialFlood("santa:st-e4-set2023",true);
+});
 document.querySelectorAll(".download-links a[download]").forEach(link=>{
   link.addEventListener("click",()=>informa(`Download iniciado: ${link.textContent.trim()}.`));
 });
@@ -3220,6 +3442,8 @@ function sincronizaURL(){
   u.searchParams.set("escala", escala);
   u.searchParams.set("escopo", escopo);
   u.searchParams.set("opacidade", Math.round(opacidade*100));
+  if (spatialMetric && spatialMetric !== "none") u.searchParams.set("spatial", spatialMetric); else u.searchParams.delete("spatial");
+  if (spatialFlood && spatialFlood !== "none") u.searchParams.set("flood", spatialFlood); else u.searchParams.delete("flood");
   if (munAtual) u.searchParams.set("municipio", munAtual.cod_mun); else u.searchParams.delete("municipio");
   if (selectionRect){
     const b=selectionRect.getBounds();
@@ -3390,6 +3614,10 @@ atualizaEscopoDados();
 // mapa principal: mostra o Brasil, mas com "holofote" no RS — tudo fora do
 // estado ganha um véu para destacar a região (o resto fica ~30% visível)
 map = L.map("map", {scrollWheelZoom:window.innerWidth > 900, minZoom:4, preferCanvas:true, zoomControl:false}).setView([-29.5,-53.5], 7);
+map.createPane("analisePerigo");
+map.getPane("analisePerigo").style.zIndex="465";
+map.createPane("analiseEspacial");
+map.getPane("analiseEspacial").style.zIndex="470";
 // Escolha explícita do detalhe local: ao aproximar, a pessoa decide entre
 // setores censitários e células de 200 m, sem trocar silenciosamente a unidade.
 function montaEscolhaZoom(){
@@ -4375,6 +4603,8 @@ carrega("icm_municipios.json", "assets/data").then(d=>{
 });
 
 initUxApoios();
+
+window.addEventListener("load",()=>{ setTimeout(restauraSpatialURL,0); },{once:true});
 </script>
 <script src="assets/js/gestor_chrome.js" data-page="pessoas" data-place="bacia"></script>
 </body>

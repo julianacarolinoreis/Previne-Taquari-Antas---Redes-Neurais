@@ -1,0 +1,265 @@
+{
+  "schema_version": "g040_hydro_stack_v2",
+  "research_only": true,
+  "basin": {
+    "name": "Taquari-Antas",
+    "code": "G040",
+    "official_area_km2": 26430,
+    "management_units": 7,
+    "management_polygons": 32,
+    "hec_target_subbasins": 145,
+    "hec_target_reaches": 72
+  },
+  "dependencies": {
+    "management_layer_architecture": "assets/data/hec_hms_g040_full_basin/full_basin_architecture_latest.json",
+    "original_145_report_inventory": "assets/data/hec_hms_g040_full_basin/original_145_report_inventory_latest.json",
+    "rain_station_inventory": "assets/data/estudo_bacia_taquari_antas/pluviometria_g040.geojson",
+    "flow_station_inventory": "assets/data/estudo_bacia_taquari_antas/postos_g040.geojson",
+    "management_polygons": "assets/data/estudo_bacia_taquari_antas/sub_bacias_q040_enquadramento.geojson",
+    "current_live_rain": "assets/data/chuvas_horarias.csv"
+  },
+  "geometry_policy": {
+    "management_32": "audit/grouping and forcing-support layer only; not HEC computational sub-basins",
+    "hec_145": "target inventory recovered from the July 2026 report; native HEC geometry/topology files still required before executable network generation",
+    "no_topology_inference_from_32": true
+  },
+  "forcing_contract": {
+    "observed_rain": {
+      "temporal_resolution": "hourly",
+      "semantics": "accumulated precipitation over the reported interval",
+      "spatialization": "eventually per verified HEC computational unit; 32 management polygons may support QC/aggregation but do not define the HEC network",
+      "diagnostics_hours": [
+        1,
+        3,
+        6,
+        12,
+        24,
+        48,
+        72
+      ],
+      "missing_policy": "missing is never coerced to zero",
+      "current_full_grid_archive": {
+        "method": "ANA observed rainfall spatialized by IDW over all 600 grid cells",
+        "observed_bands": 83,
+        "missing_policy": "missing observations remain missing during source QC; final DSS validation requires zero missing grid records"
+      }
+    },
+    "forecast_rain": {
+      "preferred_source": "ECMWF/IFS",
+      "preserve_cycle": true,
+      "preserve_lead_time": true,
+      "preserve_member": true,
+      "transition_observed_to_forecast_must_be_explicit": true,
+      "status": "forcing_contract_recovered",
+      "full_grid": {
+        "rows": 30,
+        "cols": 20,
+        "cells": 600,
+        "resolution_deg": 0.1,
+        "spatial_extent": "Taquari-Antas G040 full grid"
+      },
+      "hec_dss_archive": {
+        "hourly_bands_total": 203,
+        "observed_bands": 83,
+        "forecast_bands": 120,
+        "interval_minutes": 60,
+        "validation": {
+          "path_count": 203,
+          "total_missing": 0,
+          "records_with_missing": 0,
+          "bad_dimensions": 0
+        },
+        "hec_settings": {
+          "time_shift_hours": 3,
+          "transpose": false,
+          "replace_missing": "Abort Compute"
+        }
+      },
+      "hec_subbasin_point_sampling": {
+        "points": 145,
+        "direct_grid_cell": 141,
+        "one_cell_edge_fallback": 4,
+        "fallback_subbasins": [
+          25,
+          34,
+          107,
+          136
+        ],
+        "source": "archived ECMWF point table used for Bacia1..Bacia145",
+        "persistence_status": "source workbook recovered; compact repo table pending"
+      }
+    },
+    "potential_et": {
+      "required_for_continuous_sma": true,
+      "source": null,
+      "method": null,
+      "status": "pending_source_selection"
+    },
+    "soil_moisture_external": {
+      "role": "independent diagnostic or assimilation source, not direct parameter replacement",
+      "source": null,
+      "status": "pending_source_selection"
+    }
+  },
+  "hec_hms_sma": {
+    "status": "scaffold",
+    "mode": "continuous",
+    "target_units": "145 report-listed HEC sub-basins; geometry/topology verification pending",
+    "legacy_event_model": "SCS CN + SCS UH + Muskingum-Cunge from report inventory; preserved only as reference, not silently converted to SMA",
+    "loss_method": "Soil Moisture Accounting",
+    "parameter_fields": [
+      "canopy_storage_mm",
+      "surface_storage_mm",
+      "soil_storage_mm",
+      "tension_storage_mm",
+      "soil_percolation_mm_h",
+      "gw1_storage_mm",
+      "gw1_percolation_mm_h",
+      "gw1_coefficient_h",
+      "gw2_storage_mm",
+      "gw2_percolation_mm_h",
+      "gw2_coefficient_h",
+      "initial_canopy_pct",
+      "initial_surface_pct",
+      "initial_soil_pct",
+      "initial_gw1_pct",
+      "initial_gw2_pct"
+    ],
+    "parameter_policy": "blank until sourced; initial estimates require provenance; calibrated values require independent validation",
+    "warmup_days": null,
+    "routing_method": null,
+    "transform_method": null,
+    "baseflow_method": null
+  },
+  "mgb": {
+    "status": "scaffold",
+    "role": "independent large-basin rainfall-runoff member",
+    "required_inputs": [
+      "hydrologically_consistent_dem",
+      "river_network",
+      "mini_basins",
+      "hydrologic_response_units",
+      "soil",
+      "land_cover",
+      "precipitation",
+      "air_temperature",
+      "relative_humidity",
+      "wind_speed",
+      "solar_or_sunshine_input",
+      "air_pressure_or_supported_equivalent",
+      "observed_discharge_for_calibration_validation"
+    ],
+    "discretization_policy": "derive MGB mini-basins/HRUs independently; neither the 32 management polygons nor the 145 HEC inventory is assumed to be the final MGB discretization",
+    "calibration_policy": "multi-period/event with independent validation"
+  },
+  "hec_ras": {
+    "status": "scaffold",
+    "role": "hydraulic routing and inundation from hydrologic hydrographs",
+    "strategy": {
+      "river_channel": "1D where appropriate",
+      "floodplain_urban": "2D where lateral flow matters"
+    },
+    "equation_test": [
+      "Diffusion Wave",
+      "SWE-ELM",
+      "SWE-EM where available/appropriate"
+    ],
+    "pilot_domains": [
+      {
+        "name": "Santa Tereza",
+        "status": "candidate_existing_terrain_and_inundation_assets"
+      },
+      {
+        "name": "Muçum",
+        "status": "candidate_existing_terrain_and_inundation_assets"
+      },
+      {
+        "name": "Encantado",
+        "status": "candidate_geometry_pending"
+      },
+      {
+        "name": "Arroio do Meio",
+        "status": "candidate_geometry_pending"
+      },
+      {
+        "name": "Lajeado",
+        "status": "candidate_geometry_pending"
+      },
+      {
+        "name": "Estrela",
+        "status": "candidate_existing_HEC_control_in_report_but_2D_geometry_pending"
+      },
+      {
+        "name": "Taquari",
+        "status": "candidate_geometry_pending"
+      }
+    ],
+    "swe_priority_conditions": [
+      "bridges_or_contractions",
+      "confluences",
+      "rapid_expansion",
+      "sharp_bends",
+      "confined_valley",
+      "urban_multidirectional_flow",
+      "backwater_or_strong_momentum_effects"
+    ],
+    "downstream_note": "lower Taquari may require downstream hydraulic boundary representation of Jacui/Guaiba backwater"
+  },
+  "assimilation": {
+    "status": "partial_existing_mucum_to_be_generalized",
+    "allowed_first_version": "documented deterministic state/boundary update",
+    "prohibited_shortcut": "visual stage shifting presented as state assimilation",
+    "candidate_observations": [
+      "level",
+      "discharge",
+      "rainfall"
+    ],
+    "future_methods": [
+      "ensemble Kalman family or other validated sequential assimilation"
+    ]
+  },
+  "ensemble": {
+    "status": "scaffold",
+    "members": [
+      "HEC-HMS SMA",
+      "MGB",
+      "RNA where locally validated"
+    ],
+    "automatic_simple_mean": false,
+    "weighting_policy": "skill-based only after hindcast/pseudo-operational evaluation",
+    "report": [
+      "central_estimate",
+      "model_spread",
+      "model_disagreement",
+      "confidence_flag",
+      "reason_for_low_confidence"
+    ]
+  },
+  "validation": {
+    "hydrology_metrics": [
+      "NSE",
+      "KGE",
+      "PBIAS",
+      "RMSE",
+      "MAE",
+      "volume_error",
+      "peak_error",
+      "peak_timing_error",
+      "rise_fall_skill"
+    ],
+    "hydraulics_metrics": [
+      "stage_error",
+      "arrival_time_error",
+      "inundation_CSI_or_F1",
+      "depth_error",
+      "velocity_plausibility",
+      "parameter_sensitivity"
+    ],
+    "promotion_states": [
+      "research",
+      "candidate",
+      "operational"
+    ],
+    "operational_gate": "independent validation + local procedures + explicit governance"
+  }
+}

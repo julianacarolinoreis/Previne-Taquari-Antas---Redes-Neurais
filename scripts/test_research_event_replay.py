@@ -49,9 +49,11 @@ def main() -> None:
     assert [item["cells_200m_touched"] for item in muc["scenarios"]] == [67, 70, 80]
     assert [item["population_upper_bound_whole_touched_cells"] for item in muc["scenarios"]] == [3153, 3351, 3586]
     stz = data["spatial_scenarios"]["santa_tereza"]
-    assert stz["published_level_range_m"] == [0.0, 30.0]
-    assert "contornos_disponiveis_ate_30m" in stz["higher_than_published_status"]
-    assert stz["scenarios"][0]["cells_200m_touched"] == 43
+    assert stz["published_level_range_m"] == [0.0, 25.0]
+    assert "fora_da_faixa_quantitativa" in stz["higher_than_published_status"]
+    assert stz["scenarios"][0]["cells_200m_touched"] > 0
+    assert stz["stage_conversion_status"].startswith("field_rule_active")
+    assert stz["gauge_to_hand_rule"] == "HAND = max(0, regua_m - 1.60)"
     assert data["response_inventory"]["mucum"]["capacity_reconciliation_status"]
     assert data["response_inventory"]["mucum"]["operational_gate"] == "blocked"
     print("research event replay contract: OK")

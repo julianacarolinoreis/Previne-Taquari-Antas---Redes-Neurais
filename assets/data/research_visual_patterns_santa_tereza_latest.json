@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at_utc": "2026-09-30T13:01:30Z",
+  "generated_at_utc": "2026-10-02T12:26:15Z",
   "location": "santa_tereza",
   "station_name": "Santa Tereza",
   "threshold_cm": 1500.0,
@@ -9,7 +9,7 @@
     "model_card_event_count": 5,
     "peak_max_cm": 2365.0,
     "peak_min_cm": 1746.0,
-    "pattern_text": "A série pública já permite comparar os picos e o desempenho dos modelos; a chuva antecedente por evento ainda não está ligada a este painel."
+    "pattern_text": "Nov/2023 e mai/2024 já têm chuva local antecedente auditada; set/2023 usa somente um proxy jusante explicitamente marcado. Eventos sem chuva auditada mostram outras evidências disponíveis, sem preencher lacunas com valores inventados."
   },
   "events": [
     {
@@ -20,7 +20,25 @@
       "model_count": 322,
       "nse_test": null,
       "nse_validation": null,
-      "difficulty": 0.644
+      "difficulty": 0.644,
+      "rain_24h_mm": null,
+      "rain_48h_mm": null,
+      "rain_72h_mm": null,
+      "event_rain_sum_mm": null,
+      "rain_coverage_pct": 91.7,
+      "rain_source_kind": "downstream_proxy",
+      "rain_station": "86510000",
+      "proxy_rain_24h_mm": 99.2,
+      "total_rise_cm": 2188,
+      "max_hourly_rise_cm_h": 221,
+      "rna_peak_error_cm": 2.5,
+      "context_note": "Proxy jusante em Muçum; não é chuva local de Santa Tereza e não deve ser comparado como equivalente espacial.",
+      "context_source": "assets/data/hec_hms_audit/santa_tereza_event_input_audit_latest.json",
+      "replay_event": "4",
+      "replay_role": "Treino",
+      "replay_peak_at": "2023-09-04 22:00",
+      "rna_mae_cm": 5.69,
+      "rna_max_error_cm": 137.5
     },
     {
       "id": "SANTA-2023-11-18",
@@ -30,7 +48,25 @@
       "model_count": 322,
       "nse_test": null,
       "nse_validation": null,
-      "difficulty": 0.875
+      "difficulty": 0.875,
+      "rain_24h_mm": 119.6,
+      "rain_48h_mm": 162,
+      "rain_72h_mm": 170,
+      "event_rain_sum_mm": 206.8,
+      "rain_coverage_pct": 97.6,
+      "rain_source_kind": "local_station",
+      "rain_station": "86472600",
+      "proxy_rain_24h_mm": null,
+      "total_rise_cm": 1834,
+      "max_hourly_rise_cm_h": 107,
+      "rna_peak_error_cm": 9.900000000000091,
+      "context_note": "A telemetria bruta de 15 min registra o máximo às 22:00, enquanto o pacote RNA posiciona o pico do replay às 20:00. As duas referências de tempo são mantidas separadas; não foi aplicado deslocamento artificial.",
+      "context_source": "assets/data/hec_hms_audit/raw/ana/events/telemetry_86472600_E24.xml",
+      "replay_event": "6",
+      "replay_role": "Treino",
+      "replay_peak_at": "2023-11-18 20:00",
+      "rna_mae_cm": 4.81,
+      "rna_max_error_cm": 46.2
     },
     {
       "id": "SANTA-2024-04-29",
@@ -40,7 +76,20 @@
       "model_count": 322,
       "nse_test": null,
       "nse_validation": null,
-      "difficulty": 0.635
+      "difficulty": 0.635,
+      "rain_24h_mm": 208.4,
+      "rain_48h_mm": 400.2,
+      "rain_72h_mm": 574.8,
+      "event_rain_sum_mm": 709.2,
+      "rain_coverage_pct": 100,
+      "rain_source_kind": "local_station",
+      "rain_station": "86472600",
+      "proxy_rain_24h_mm": null,
+      "total_rise_cm": 1878,
+      "max_hourly_rise_cm_h": 45,
+      "rna_peak_error_cm": 5.599999999999909,
+      "context_note": "O máximo bruto do evento ocorre depois do recorte principal da série RNA E9; por isso pico do replay e pico bruto são mostrados separadamente.",
+      "context_source": "assets/data/hec_hms_audit/raw/ana/events/telemetry_86472600_E27.xml"
     },
     {
       "id": "SANTA-2026-07-22",
@@ -50,58 +99,67 @@
       "model_count": 10,
       "nse_test": null,
       "nse_validation": null,
-      "difficulty": 0.959
+      "difficulty": 0.959,
+      "replay_event": "20",
+      "replay_role": "Treino",
+      "replay_peak_at": "2026-07-22 10:00",
+      "total_rise_cm": 1420.0,
+      "max_hourly_rise_cm_h": 145.0,
+      "rna_peak_error_cm": 5.57302,
+      "rna_mae_cm": 9.19,
+      "rna_max_error_cm": 51.2,
+      "context_source": "assets/data/santa_tereza_eventwise_replay_rna_2h/events_metrics.csv"
     }
   ],
   "horizons": [
     {
       "hours": 24,
-      "ifs_mean_mm": 0.6,
-      "ifs_max_mm": 1.5,
-      "point_mm": 0.3,
+      "ifs_mean_mm": 0.0,
+      "ifs_max_mm": 0.0,
+      "point_mm": 0.0,
       "rna_score_percent": null,
-      "probability_percent": 3.2881,
-      "decision": "NAO_VAI",
+      "probability_percent": null,
+      "decision": null,
       "screening_threshold_mm": 40.0
     },
     {
       "hours": 48,
-      "ifs_mean_mm": 0.6,
-      "ifs_max_mm": 1.5,
-      "point_mm": 0.3,
+      "ifs_mean_mm": 28.28,
+      "ifs_max_mm": 32.4,
+      "point_mm": 27.9,
       "rna_score_percent": null,
-      "probability_percent": 18.0375,
-      "decision": "NAO_VAI",
+      "probability_percent": null,
+      "decision": null,
       "screening_threshold_mm": null
     },
     {
       "hours": 72,
-      "ifs_mean_mm": 0.6,
-      "ifs_max_mm": 1.5,
-      "point_mm": 0.3,
+      "ifs_mean_mm": 31.65,
+      "ifs_max_mm": 34.2,
+      "point_mm": 28.2,
       "rna_score_percent": null,
-      "probability_percent": 32.9834,
-      "decision": "NAO_VAI",
+      "probability_percent": null,
+      "decision": null,
       "screening_threshold_mm": 80.0
     },
     {
       "hours": 120,
-      "ifs_mean_mm": 32.4,
-      "ifs_max_mm": 42.9,
-      "point_mm": 35.7,
+      "ifs_mean_mm": 59.03,
+      "ifs_max_mm": 60.9,
+      "point_mm": 52.5,
       "rna_score_percent": null,
-      "probability_percent": 47.7028,
-      "decision": "NAO_VAI",
+      "probability_percent": null,
+      "decision": null,
       "screening_threshold_mm": null
     },
     {
       "hours": 168,
-      "ifs_mean_mm": 52.73,
-      "ifs_max_mm": 71.4,
-      "point_mm": 42.9,
+      "ifs_mean_mm": 105.15,
+      "ifs_max_mm": 137.1,
+      "point_mm": 85.8,
       "rna_score_percent": null,
-      "probability_percent": 61.31490000000001,
-      "decision": "VAI",
+      "probability_percent": null,
+      "decision": null,
       "screening_threshold_mm": 120.0
     }
   ],
@@ -119,10 +177,10 @@
       "description": "score MLP do feed meteorológico"
     },
     {
-      "name": "Probabilidade GEFS",
+      "name": "Score GEFS experimental",
       "kind": "risk",
       "unit": "%",
-      "description": "probabilidade experimental do modelo GEFS"
+      "description": "score experimental; ocultado quando a fonte tem mais de 36 h"
     },
     {
       "name": "Modelos de nível",
@@ -190,8 +248,23 @@
     "model_verdict": "SINAL_PARCIAL_REQUER_VALIDACAO",
     "validation_source": "assets/data/research_card_santa_tereza_20260811.json"
   },
+  "source_quality": {
+    "probability": {
+      "state": "stale",
+      "generated_at_utc": "2026-08-27T12:30:06.236870+00:00",
+      "age_hours": 863.9358872266666,
+      "max_age_hours": 36.0
+    },
+    "weather": {
+      "state": "fresh",
+      "generated_at_utc": "2026-10-02T12:25:50Z",
+      "age_hours": 0.007064135,
+      "max_age_hours": 30.0
+    }
+  },
   "sources": {
     "events": "assets/data/eventos_analise.json",
+    "historical_context": "assets/data/estudo_caso_territorio/casos_acoplados.json",
     "model_card": "assets/data/research_card_santa_tereza_20260811.json",
     "probability": "assets/data/research_probability_santa_tereza_latest.json",
     "weather": "assets/data/research_weather_santa_tereza_latest.json",

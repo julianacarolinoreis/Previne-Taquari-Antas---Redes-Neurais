@@ -78,23 +78,33 @@ def objective(pkg: dict) -> tuple[float, dict]:
     rmse = fnum(fit.get("rmse_cm"))
     rmse12 = fnum(fit12.get("rmse_cm"), rmse)
     rmse6 = fnum(fit6.get("rmse_cm"), rmse12)
+    lag_event = abs(fnum(fit.get("peak_time_error_h"), 24.0))
     lag12 = abs(fnum(fit12.get("peak_time_error_h"), 24.0))
     lag6 = abs(fnum(fit6.get("peak_time_error_h"), 12.0))
     nse = fnum(fit.get("nse"), -999.0)
     nse12 = fnum(fit12.get("nse"), -999.0)
+    bias = abs(fnum(fit.get("bias_cm"), 0.0))
+    obs_peak = fnum(fit.get("observed_peak_cm"), 1e9)
+    mod_peak = fnum(fit.get("model_peak_cm_on_obs_times"), 1e9)
+    peak_stage_error = abs(mod_peak - obs_peak) if obs_peak < 1e8 and mod_peak < 1e8 else 1e9
 
-    # Operational flood calibration: the last 6-12 h and the current state
-    # dominate. The whole event remains a regularizer so the optimizer cannot
-    # obtain a good launch state by destroying the event hydrograph.
+    # Two-tier objective:
+    # 1) launch state + recent 6/12 h remain the operational priority;
+    # 2) among candidates that can launch safely, explicitly improve the
+    #    complete-event crest magnitude/timing instead of tolerating a good t0
+    #    produced by a historically under-amplified hydrograph.
     score = (
-        rmse / 500.0
-        + rmse12 / 110.0
-        + rmse6 / 45.0
-        + stage / 18.0
-        + qerr / 14.0
-        + trend / 4.0
+        rmse12 / 80.0
+        + rmse6 / 35.0
+        + stage / 15.0
+        + qerr / 12.0
+        + trend / 5.0
         + lag12 / 12.0
         + lag6 / 4.0
+        + rmse / 280.0
+        + bias / 180.0
+        + peak_stage_error / 100.0
+        + lag_event / 8.0
     )
     if nse < -20:
         score += 3.0
@@ -106,6 +116,9 @@ def objective(pkg: dict) -> tuple[float, dict]:
         "event_nse": fit.get("nse"),
         "event_mae_cm": fit.get("mae_cm"),
         "event_bias_cm": fit.get("bias_cm"),
+        "event_observed_peak_cm": fit.get("observed_peak_cm"),
+        "event_model_peak_cm": fit.get("model_peak_cm_on_obs_times"),
+        "event_peak_stage_error_cm": None if peak_stage_error >= 1e8 else round(mod_peak - obs_peak, 3),
         "event_peak_time_error_h": fit.get("peak_time_error_h"),
         "recent_12h_rmse_cm": fit12.get("rmse_cm"),
         "recent_12h_nse": fit12.get("nse"),
@@ -184,15 +197,15 @@ def main() -> int:
     # timing jointly with stronger Initial+Constant losses so timing and
     # magnitude can be reconciled instead of trading one error for the other.
     timing_pairs = [
-        # Focused on the current fast rising limb. The previous 320-candidate
-        # grid was too slow operationally and spent most runs in clearly
-        # incompatible slow-response regions.
-        (1.0, 1.0), (1.0, 2.0), (2.0, 1.0), (2.0, 2.0),
-        (2.0, 3.0), (3.0, 2.0), (3.0, 3.0), (4.0, 3.0),
-        (4.0, 4.0), (5.0, 5.0), (5.0, 8.0), (8.0, 5.0), (8.0, 8.0),
-        (8.0, 12.0), (10.0, 8.0), (10.0, 10.0), (10.0, 15.0),
-        (12.0, 8.0), (12.0, 12.0), (15.0, 10.0), (15.0, 15.0),
-        (20.0, 10.0), (20.0, 15.0), (25.0, 20.0),
+        # Start from the response family that already reproduces the current
+        # recession, then move progressively faster to correct the historical
+        # crest that is still too low and several hours late.
+        (30.0, 30.0), (28.0, 28.0), (26.0, 26.0), (24.0, 24.0),
+        (22.0, 22.0), (20.0, 20.0), (18.0, 18.0), (16.0, 16.0),
+        (28.0, 24.0), (24.0, 28.0), (26.0, 22.0), (22.0, 26.0),
+        (24.0, 20.0), (20.0, 24.0), (22.0, 18.0), (18.0, 22.0),
+        (20.0, 16.0), (16.0, 20.0), (15.0, 15.0), (12.0, 12.0),
+        (10.0, 10.0), (8.0, 8.0),
     ]
     loss_profiles = [
         # Wet/saturated-basin candidates are essential after large recent
@@ -210,6 +223,20 @@ def main() -> int:
     ]
 
     candidates = []
+    # Never lose the last accepted calibration while exploring a better one.
+    if CAL_JSON.exists():
+        try:
+            prev = load(CAL_JSON)
+            prev_params = prev.get("selected_parameters") or {}
+            if all(k in prev_params for k in ENV_KEYS):
+                candidates.append((
+                    str((prev.get("selected") or {}).get("seed_event") or prev.get("seed_event") or selected_seed),
+                    rounded_params(prev_params),
+                    "previous_accepted_calibration",
+                ))
+        except Exception:
+            pass
+
     # Always include the four original HEC-HMS replay presets.
     for event, p0 in PRESETS.items():
         candidates.append((event, rounded_params(p0), f"preset_{event}"))
@@ -272,7 +299,7 @@ def main() -> int:
 
     for sidx, r in enumerate(state_seeds, 1):
         base = {k: r[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession","initial_flow_multiplier")}
-        for mult in (0.35, 0.55, 0.75, 0.90, 1.10, 1.25):
+        for mult in (0.45, 0.55, 0.65, 0.75, 0.85, 0.95, 1.10):
             p = dict(base)
             p["initial_flow_multiplier"] = mult
             p = rounded_params(p)
@@ -292,17 +319,17 @@ def main() -> int:
     # Fine coordinate search around coarse/state winner, plus coupled timing moves.
     fine = [rounded_params(bp)]
     perturb = {
-        "initial_loss_mm": (-5.0, 5.0),
-        "constant_loss_mm_h": (-0.5, 0.5),
-        "tc_h": (-4.0, -2.0, 2.0, 4.0),
-        "storage_h": (-4.0, -2.0, 2.0, 4.0),
-        "recession": (-0.03, 0.03),
-        "initial_flow_multiplier": (-0.25, -0.1, 0.1, 0.25),
+        "initial_loss_mm": (-10.0, -5.0, 5.0, 10.0),
+        "constant_loss_mm_h": (-0.75, -0.5, 0.5, 0.75),
+        "tc_h": (-8.0, -6.0, -4.0, -2.0, 2.0, 4.0),
+        "storage_h": (-8.0, -6.0, -4.0, -2.0, 2.0, 4.0),
+        "recession": (-0.05, -0.03, 0.03, 0.05),
+        "initial_flow_multiplier": (-0.25, -0.15, -0.1, 0.1, 0.15, 0.25),
     }
     for name, ds in perturb.items():
         for d in ds:
             p = dict(bp); p[name] = p[name] + d; fine.append(rounded_params(p))
-    for dt, ds in ((-4,-4),(-3,-1),(-1,-3),(-2,2),(2,-2),(2,2),(4,4)):
+    for dt, ds in ((-8,-8),(-8,-4),(-6,-6),(-6,-2),(-4,-8),(-4,-4),(-3,-1),(-1,-3),(-2,2),(2,-2),(2,2),(4,4)):
         p = dict(bp); p["tc_h"] += dt; p["storage_h"] += ds; fine.append(rounded_params(p))
 
     seen = {key({k:r[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession","initial_flow_multiplier")}): True for r in valid}
@@ -322,10 +349,10 @@ def main() -> int:
     final = run_one(hec_sh, seed_event, best_params, "selected_live_event_calibration")
     pkg = final.pop("_pkg")
     pkg["live_event_calibration"] = {
-        "method": "coarse_plus_coordinate_fine_search_since_20260926",
+        "method": "operational_guarded_multiobjective_search_since_20260926",
         "seed_event": seed_event,
         "selected_parameters": best_params,
-        "objective": "recent 6h/12h hydrograph + t0 stage/Q + current trend, with whole-event regularization and no visual stage anchoring",
+        "objective": "hard operational guards on t0 + recent 6h/12h; then minimize whole-event RMSE/bias and crest magnitude/timing error, with no visual stage anchoring",
         "selected_score": final["score"],
         "candidate_count": len(rows),
         "selected_metrics": {k:v for k,v in final.items() if k not in {"label","seed_event",*best_params.keys()}},

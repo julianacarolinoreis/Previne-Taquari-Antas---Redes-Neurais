@@ -1,4 +1,5 @@
 import csv
+import hashlib
 import json
 import tempfile
 import unittest
@@ -9,6 +10,18 @@ from scripts import build_basin_station_forecast as feed
 
 
 class BasinStationForecastTests(unittest.TestCase):
+    def write_provenance(self, path, captured_at):
+        with path.open(encoding="utf-8", newline="") as handle:
+            rows = list(csv.DictReader(handle))
+        cells = {}
+        for row in rows:
+            for column, value in row.items():
+                if column.startswith('chuva_') and value not in (None, ''):
+                    cells.setdefault(column, {})[row['COD_SEQUENCIAL']] = captured_at.isoformat()
+        Path(str(path) + '.provenance.json').write_text(json.dumps({
+            'schema_version': 1, 'csv_sha256': hashlib.sha256(path.read_bytes()).hexdigest(), 'cells': cells,
+        }), encoding='utf-8')
+
     def observed_samples(self, samples, now):
         """Exercise the public CSV loader using local interval-start labels."""
         with tempfile.TemporaryDirectory() as directory:
@@ -18,7 +31,42 @@ class BasinStationForecastTests(unittest.TestCase):
                 writer.writeheader()
                 for local_time, value in samples:
                     writer.writerow({"COD_SEQUENCIAL": local_time, "chuva_86472600": value})
+            self.write_provenance(path, now)
             return feed.load_observed_rain(path, now=now)["86472600"]
+
+    def test_retained_partial_cell_does_not_close_without_a_new_source_consultation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'rain.csv'
+            path.write_text('COD_SEQUENCIAL,chuva_86472600\n202609301200,2.5\n202609301300,0\n', encoding='utf-8')
+            self.write_provenance(path, datetime(2026, 9, 30, 16, 30, tzinfo=timezone.utc))
+            original = path.read_bytes()
+            for now in (datetime(2026, 9, 30, 16, 59, tzinfo=timezone.utc), datetime(2026, 9, 30, 17, 10, tzinfo=timezone.utc)):
+                result = feed.load_observed_rain(path, now=now)['86472600']
+                self.assertTrue(result['rows'][-1]['partial'])
+                self.assertEqual(result['windows']['1h']['mm'], 2.5)
+                self.assertEqual(result['last_closed_interval_end_utc'], '2026-09-30T16:00Z')
+                self.assertEqual(result['rows'][-1]['confirmation'], 'captured_during_interval')
+            self.assertEqual(path.read_bytes(), original)
+            self.write_provenance(path, datetime(2026, 9, 30, 17, 5, tzinfo=timezone.utc))
+            result = feed.load_observed_rain(path, now=datetime(2026, 9, 30, 17, 10, tzinfo=timezone.utc))['86472600']
+            self.assertFalse(result['rows'][-1]['partial'])
+            self.assertEqual(result['windows']['1h']['mm'], 0)
+            self.assertTrue(result['windows']['1h']['complete'])
+
+    def test_legacy_or_mismatched_provenance_cannot_claim_confirmed_coverage(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'rain.csv'
+            path.write_text('COD_SEQUENCIAL,chuva_86472600\n202609301200,2.5\n', encoding='utf-8')
+            now = datetime(2026, 9, 30, 17, 10, tzinfo=timezone.utc)
+            result = feed.load_observed_rain(path, now=now)['86472600']
+            self.assertEqual(result['windows']['1h']['mm'], 2.5)
+            self.assertFalse(result['windows']['1h']['complete'])
+            self.assertEqual(result['windows']['1h']['unconfirmed_points'], 1)
+            self.write_provenance(path, now)
+            path.write_text(path.read_text() + '202609301300,1\n', encoding='utf-8')
+            result = feed.load_observed_rain(path, now=now)['86472600']
+            self.assertFalse(result['windows']['1h']['complete'])
+            self.assertEqual(result['rows'][-1]['confirmation'], 'unknown')
 
     def test_current_hour_zero_is_partial_and_excluded_until_exact_close(self):
         samples = [("202609301200", 2.5), ("202609301300", 0)]
@@ -153,7 +201,7 @@ class BasinStationForecastTests(unittest.TestCase):
         self.assertIn("coluna legada", feed.observed_rain_source("02851044"))
         self.assertIn("rede não identificada", feed.observed_rain_source("unknown"))
 
-    def test_complete_72h_window_discloses_age_when_snapshot_has_newer_gaps(self):
+    def test_legacy_72h_window_discloses_age_and_unconfirmed_coverage_with_newer_gaps(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "rain.csv"
             with path.open("w", encoding="utf-8", newline="") as handle:
@@ -177,7 +225,8 @@ class BasinStationForecastTests(unittest.TestCase):
             )["86472600"]
 
         window = result["windows"]["72h"]
-        self.assertTrue(window["complete"])
+        self.assertFalse(window["complete"])
+        self.assertEqual(window["unconfirmed_points"], 72)
         self.assertEqual(window["valid_points"], 72)
         self.assertEqual(window["start_utc"], "2026-09-20T04:00Z")
         self.assertEqual(window["end_utc"], "2026-09-23T04:00Z")
@@ -355,6 +404,13 @@ class BasinStationForecastTests(unittest.TestCase):
                     "nivel_previsto_cm": 310,
                     "modelo": "RNA-8H",
                 },
+                "8h_indisponivel": {
+                    "horizonte_h": 8,
+                    "hora_alvo": "2026-09-20T19:00:00",
+                    "nivel_previsto_cm": 999,
+                    "status": "indisponivel: base atrasada; aguardando inputs completos",
+                    "modelo": "RNA-8H-STALE",
+                },
             },
         }
 
@@ -368,6 +424,27 @@ class BasinStationForecastTests(unittest.TestCase):
         self.assertEqual(result["forecasts"][1]["cm"], 310.0)
         self.assertTrue(result["forecast_applicable"])
         self.assertEqual(result["forecast_status"], "available")
+
+    def test_implausible_vertical_value_is_not_river_stage(self):
+        result = feed.normalize_level_measurement(
+            {
+                "state": "available",
+                "current_cm": 24907,
+                "observed_at_utc": "2026-10-01T13:00Z",
+                "quality": "NORMAL",
+            }
+        )
+        self.assertEqual(result["state"], "suspect_scale")
+        self.assertIsNone(result["current_cm"])
+        self.assertEqual(result["raw_current_cm"], 24907.0)
+        self.assertEqual(result["measurement_classification"], "cota_or_incompatible_scale")
+        self.assertEqual(result["quality"], "SUSPECT_SCALE")
+
+        negative = feed.normalize_level_measurement(
+            {"state": "available", "current_cm": -332}
+        )
+        self.assertIsNone(negative["current_cm"])
+        self.assertEqual(negative["raw_current_cm"], -332.0)
 
     def test_level_station_without_rna_is_explicitly_not_applicable(self):
         raw = {
@@ -534,6 +611,120 @@ class BasinStationForecastTests(unittest.TestCase):
         self.assertTrue(level["forecast_applicable"])
         self.assertEqual(level["forecast_status"], "unavailable")
         self.assertEqual(result["scope"]["level_station_count"], 0)
+
+    def test_compact_status_preserves_observed_interval_and_confirmation(self):
+        now = datetime(2026, 9, 30, 17, 10, tzinfo=timezone.utc)
+        observed = self.observed_samples([('202609301300', 0)], now)
+        compact = feed._compact_station_status({'observed_rain': observed}, generated_at=now)['observed_rain']
+        self.assertEqual(compact['timestamp_role'], 'interval_start')
+        self.assertEqual(compact['last_closed_interval_end_utc'], '2026-09-30T17:00Z')
+        self.assertEqual(compact['closed_interval_age_minutes'], 10)
+        self.assertEqual(compact['windows']['1h']['start_utc'], '2026-09-30T16:00Z')
+        self.assertEqual(compact['windows']['1h']['end_utc'], '2026-09-30T17:00Z')
+        self.assertEqual(compact['windows']['1h']['unconfirmed_points'], 0)
+
+
+    def test_status_snapshot_keeps_compact_station_contract(self):
+        generated = datetime(2026, 10, 1, 13, 0, tzinfo=timezone.utc)
+        models = {}
+        for spec in feed.MODEL_SPECS:
+            models[spec["id"]] = {
+                "precipitation_windows": {
+                    f"{hours}h": [float(hours), float(hours) + 1.0]
+                    for hours in feed.PRECIPITATION_WINDOW_HOURS
+                }
+            }
+        station = {
+            "id": "ANA:86125500",
+            "code": "86125500",
+            "name": "PCH JARARACA BARRAMENTO",
+            "network": "ANA",
+            "latitude": -28.9381,
+            "longitude": -51.4656,
+            "source_networks": ["ANA/HidroWeb", "SGB/SACE"],
+            "source_roles": ["inventário ANA/HidroWeb", "hidrotelemetria SGB/SACE"],
+            "source_observations": [],
+            "observed_rain": {
+                "state": "unavailable",
+                "source": "ANA/INMET/CEMADEN · chuvas_horarias.csv",
+                "unit": "mm",
+                "windows": {},
+            },
+            "level": feed.normalize_level_measurement({
+                "state": "available",
+                "current_cm": 24907,
+                "observed_at_utc": "2026-10-01T12:55Z",
+                "forecast_applicable": False,
+                "forecast_status": "not_applicable",
+                "forecasts": [],
+            }),
+            "forecast": {
+                "state": "available",
+                "times": ["2026-10-01T12:00Z", "2026-10-01T15:00Z"],
+                "fetched_at_utc": "2026-10-01T13:00Z",
+                "models": models,
+            },
+        }
+        status = feed._status_snapshot({
+            "generated_at_utc": "2026-10-01T13:00Z",
+            "scope": {"station_count": 1, "forecast_station_count": 1},
+            "stations": [station],
+        })
+        self.assertEqual(status["schema_version"], 2)
+        self.assertEqual(len(status["stations"]), 1)
+        compact = status["stations"][0]
+        self.assertIsNone(compact["level"]["current_cm"])
+        self.assertEqual(compact["level"]["raw_current_cm"], 24907.0)
+        self.assertEqual(
+            compact["level"]["measurement_classification"],
+            "cota_or_incompatible_scale",
+        )
+        self.assertTrue(compact["forecast"]["models"]["ecmwf_ifs025"]["available"])
+        self.assertEqual(
+            compact["forecast"]["models"]["ecmwf_ifs025"]["precipitation_state"],
+            "complete",
+        )
+        self.assertEqual(
+            compact["forecast"]["models"]["ecmwf_ifs025"]["precipitation_valid_window_count"],
+            len(feed.PRECIPITATION_WINDOW_HOURS),
+        )
+        self.assertEqual(
+            compact["forecast"]["models"]["ecmwf_ifs025"]["precipitation_windows_mm"]["24h"],
+            25.0,
+        )
+        station['forecast']['times'] = ['2026-09-30T12:00Z', '2026-09-30T15:00Z']
+        expired = feed._compact_station_status(station, generated_at=generated)['forecast']['models']['ecmwf_ifs025']
+        self.assertEqual(expired['precipitation_state'], 'unavailable')
+        self.assertTrue(all(value is None for value in expired['precipitation_windows_mm'].values()))
+
+    def test_dashboard_contract_includes_g040_health_and_no_current_filter(self):
+        html = (feed.ROOT / "dashboard_bacia.html").read_text(encoding="utf-8")
+        js = (feed.ROOT / "assets/js/bacia_dashboard.js").read_text(encoding="utf-8")
+        self.assertIn('id="basin-network-summary"', html)
+        self.assertIn('data-network-filter="no-current"', html)
+        self.assertIn('data-network-filter="no-time"', html)
+        self.assertIn('id="basin-upg-filter"', html)
+        self.assertIn('id="basin-upg-health"', html)
+        self.assertIn('id="basin-gap-diagnostics"', html)
+        self.assertIn('id="basin-station-search"', html)
+        self.assertIn('id="basin-clear-filters"', html)
+        self.assertIn("basin_station_status_latest.json", js)
+        self.assertIn("state.networkFilter === 'no-current'", js)
+        self.assertIn("state.networkFilter === 'no-time'", js)
+        self.assertIn("state.networkUpg", js)
+        self.assertIn("function renderUpgHealth()", js)
+        self.assertIn("function renderGapDiagnostics()", js)
+        self.assertIn("function networkVariableCoverage()", js)
+        self.assertIn("variable === 'flow'", js)
+        self.assertIn("MAIORES ATRASOS COM HORÁRIO", js)
+        self.assertIn("Previsão meteorológica multi-modelo", js)
+        self.assertIn("valor vertical bruto bloqueado como nível", js)
+        self.assertIn("function findNetworkStation(query)", js)
+        self.assertIn("function clearNetworkFilters()", js)
+        self.assertIn("function networkForecastCoverageSummary(status)", js)
+        self.assertIn("precipitation_state", js)
+        self.assertIn("RASTREABILIDADE DA ESTAÇÃO", js)
+        self.assertIn("measurement_classification", js)
 
 
 if __name__ == "__main__":

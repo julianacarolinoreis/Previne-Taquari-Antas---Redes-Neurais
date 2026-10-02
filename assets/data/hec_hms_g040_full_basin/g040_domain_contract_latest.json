@@ -1,0 +1,40 @@
+{
+  "schema_version": "g040_spatial_domain_contract_v1",
+  "generated_at_utc": "2026-10-02T09:54:22.668164Z",
+  "research_only": true,
+  "source": "assets/data/estudo_bacia_taquari_antas/sub_bacias_q040_enquadramento.geojson",
+  "source_feature_count": 32,
+  "hydrologic_mask": {
+    "path": "assets/data/hec_hms_g040_full_basin/g040_basin_mask.geojson",
+    "crs": "EPSG:4326",
+    "bounds_wgs84": [
+      -52.637991983999946,
+      -29.94612455918327,
+      -49.92611542499998,
+      -28.17820589721396
+    ],
+    "area_km2_geometry": 26415.448,
+    "rule": "all hydrologic area integration must be clipped to this geometry"
+  },
+  "meteorological_acquisition": {
+    "path": "assets/data/hec_hms_g040_full_basin/g040_download_buffer.geojson",
+    "buffer_km": 50.0,
+    "metric_crs_used_for_buffer": "EPSG:31982",
+    "bounds_wgs84": [
+      -53.15092825034877,
+      -30.396827664092697,
+      -49.41303007825022,
+      -27.72719013288954
+    ],
+    "rule": "download/search gauges and NWP over basin+buffer; clip hydrologic computation back to basin"
+  },
+  "station_policy": {
+    "inside_basin": "eligible for hydrologic observation/assimilation/calibration by variable/QC",
+    "inside_buffer_outside_basin": "eligible only for meteorological spatialization/context; never hydrologic contributing area",
+    "outside_buffer": "excluded from default meteorological acquisition"
+  },
+  "grid_policy": {
+    "legacy_600_cell_rectangle": "retained for compatibility only",
+    "new_rule": "every gridded field must carry inside_basin and inside_download_buffer masks; basin statistics use inside_basin cells/area weights only"
+  }
+}

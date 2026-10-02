@@ -1,0 +1,242 @@
+Basin: Mucum Dual Observed Boundary
+     Description: observed LJJ + observed Carreiro boundaries, residual rain-runoff only
+     Last Modified Date: 29 September 2026
+     Last Modified Time: 19:25:00
+     Version: 4.13
+     Filepath Separator: /
+     Unit System: Metric
+     Missing Flow To Zero: No
+     Enable Flow Ratio: No
+     Compute Local Flow At Junctions: No
+     Unregulated Output Required: No
+
+     Enable Sediment Routing: No
+End:
+
+Source: LJJ_SOURCE
+     Last Modified Date: 2 October 2026
+     Last Modified Time: 09:08:01
+     Canvas X: 0.0
+     Canvas Y: 0.0
+     Area: 12918.656
+     Downstream: R_LJJ_CARR
+
+     Flow Method: GAGE_FLOW
+     Flow Gage: Q_LJJ_LIVE
+     End Flow Method:
+End:
+
+Reach: R_LJJ_CARR
+     Last Modified Date: 2 October 2026
+     Last Modified Time: 09:08:01
+     Canvas X: 0.0
+     Canvas Y: 0.0
+     Downstream: J_CARR
+
+     Route: Muskingum
+     Initial Variable: Combined Inflow
+     Muskingum K: 1.730
+     Muskingum x: 0.200
+     Muskingum Steps: 1
+     Channel Loss: None
+End:
+
+Source: CARR_SOURCE
+     Last Modified Date: 2 October 2026
+     Last Modified Time: 09:08:01
+     Canvas X: 0.0
+     Canvas Y: 0.0
+     Area: 2564.190
+     Downstream: J_CARR
+
+     Flow Method: GAGE_FLOW
+     Flow Gage: Q_CARR_LIVE
+     End Flow Method:
+End:
+
+Junction: J_CARR
+     Last Modified Date: 2 October 2026
+     Last Modified Time: 09:08:01
+     Canvas X: 0.0
+     Canvas Y: 0.0
+     Downstream: R_CARR_STZ
+End:
+
+Reach: R_CARR_STZ
+     Last Modified Date: 2 October 2026
+     Last Modified Time: 09:08:01
+     Canvas X: 0.0
+     Canvas Y: 0.0
+     Downstream: J_STZ
+
+     Route: Muskingum
+     Initial Variable: Combined Inflow
+     Muskingum K: 1.730
+     Muskingum x: 0.200
+     Muskingum Steps: 1
+     Channel Loss: None
+End:
+
+Subbasin: STZ_RES
+     Last Modified Date: 2 October 2026
+     Last Modified Time: 09:08:01
+     Canvas X: 0.0
+     Canvas Y: 0.0
+     Area: 292.340
+     Downstream: J_STZ
+
+     Discretization: None
+     File: dual.sqlite
+
+     Canopy: None
+     Allow Simultaneous Precip Et: No
+     Plant Uptake Method: None
+
+     Surface: None
+
+     LossRate: Initial+Constant
+     Percent Impervious Area: 0.0
+     Initial Loss: 1.500
+     Constant Loss Rate: 2.000
+
+     Transform: Clark
+     Clark Method: Specified
+     Time of Concentration: 20.000
+     Storage Coefficient: 25.000
+     Time Area Method: Default
+
+     Baseflow: Recession
+     Recession Factor: 0.99500
+     Initial Flow/Area Ratio: 0.005000
+     Threshold Flow to Peak Ratio: 0.1
+End:
+
+Junction: J_STZ
+     Last Modified Date: 2 October 2026
+     Last Modified Time: 09:08:01
+     Canvas X: 0.0
+     Canvas Y: 0.0
+     Downstream: R_STZ_MUCUM
+End:
+
+Reach: R_STZ_MUCUM
+     Last Modified Date: 2 October 2026
+     Last Modified Time: 09:08:01
+     Canvas X: 0.0
+     Canvas Y: 0.0
+     Downstream: MUCUM
+
+     Route: Muskingum
+     Initial Variable: Combined Inflow
+     Muskingum K: 1.230
+     Muskingum x: 0.200
+     Muskingum Steps: 1
+     Channel Loss: None
+End:
+
+Subbasin: MUC_INC
+     Last Modified Date: 2 October 2026
+     Last Modified Time: 09:08:01
+     Canvas X: 0.0
+     Canvas Y: 0.0
+     Area: 190.021
+     Downstream: MUCUM
+
+     Discretization: None
+     File: dual.sqlite
+
+     Canopy: None
+     Allow Simultaneous Precip Et: No
+     Plant Uptake Method: None
+
+     Surface: None
+
+     LossRate: Initial+Constant
+     Percent Impervious Area: 0.0
+     Initial Loss: 1.500
+     Constant Loss Rate: 2.000
+
+     Transform: Clark
+     Clark Method: Specified
+     Time of Concentration: 20.000
+     Storage Coefficient: 25.000
+     Time Area Method: Default
+
+     Baseflow: Recession
+     Recession Factor: 0.99500
+     Initial Flow/Area Ratio: 0.005000
+     Threshold Flow to Peak Ratio: 0.1
+End:
+
+Junction: MUCUM
+     Last Modified Date: 2 October 2026
+     Last Modified Time: 09:08:01
+     Canvas X: 0.0
+     Canvas Y: 0.0
+     Computation Point: Yes
+End:
+
+Basin Layer Properties:
+     Element Layer:
+          Name: Icons
+          Layer shown: Yes
+     End Layer:
+End:
+
+Basin Spatial Properties:
+End:
+
+Basin Schematic Properties:
+     Last View N: NaN
+     Last View S: NaN
+     Last View W: NaN
+     Last View E: NaN
+     Maximum View N: NaN
+     Maximum View S: NaN
+     Maximum View W: NaN
+     Maximum View E: NaN
+     Extent Method: Elements
+     Buffer: 0
+     Draw Icons: Yes
+     Draw Icon Labels: Name
+     Draw Map Objects: No
+     Draw Gridlines: No
+     Draw Flow Direction: No
+     Draw HillShade Layer: Yes
+     Draw Elevation Layer: Yes
+     Elevation Layer Color Palette: Gray Scale
+     Ignore Elevation Color Ramp Scale: No
+     Use Interpolated Color Ramp for Elevation Layer: Yes
+     Color Ramp Opacity Level for Elevation Layer: 33.0
+     Fix Element Locations: No
+     Fix Hydrologic Order: No
+End:
+
+Computation Point: MUCUM
+     Parameter Set: 1
+     End Parameter Set:
+     Parameter Set: 2
+     End Parameter Set:
+     Parameter Set: 3
+     End Parameter Set:
+     Parameter Set: 4
+     End Parameter Set:
+     Parameter Set: 5
+     End Parameter Set:
+
+     Graph Definition: 
+     End Graph Definition: 
+
+     Graph Definition: 
+     End Graph Definition: 
+
+     Graph Definition: 
+     End Graph Definition: 
+
+     Graph Definition: 
+     End Graph Definition: 
+
+     Graph Definition: 
+     End Graph Definition: 
+
+End Computation Point: 

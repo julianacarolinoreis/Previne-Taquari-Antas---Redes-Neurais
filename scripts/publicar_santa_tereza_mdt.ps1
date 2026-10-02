@@ -30,6 +30,7 @@ foreach ($name in $requiredRasters) {
 
 $trackedOutputs = @(
     "santa_tereza_previsao_inundacao.html",
+    "santa_tereza_inundacao.html",
     "assets/data/santa_tereza_inundacao/contornos_mancha.json",
     "assets/data/santa_tereza_inundacao/contornos_extravasamento.json",
     "assets/data/santa_tereza_inundacao/hand_lidar_5m_diagnostic.json"
@@ -71,6 +72,10 @@ Write-Host "2/6 Regenerando HAND + MDT LiDAR + agua conectada..." -ForegroundCol
 if ($LASTEXITCODE -ne 0) {
     throw "Gerador de Santa Tereza falhou. Nada sera publicado."
 }
+& python "codigo_python/01_previsao_ao_vivo/atualizar_hand_previsao_santa_tereza.py"
+if ($LASTEXITCODE -ne 0) {
+    throw "Falha ao sincronizar o HAND LiDAR da pagina ao vivo com a pagina historica."
+}
 
 Write-Host "3/6 Validando diagnostico..." -ForegroundColor Cyan
 $diagPath = "assets/data/santa_tereza_inundacao/hand_lidar_5m_diagnostic.json"
@@ -100,8 +105,8 @@ if ([string]$d.terreno_roteamento_fill -notmatch "FILL_CLIP_MOSAICO_LIDAR_RS\.ti
 if ([string]$d.hydraulic_hand_method -notmatch "raw-LiDAR barrier") {
     throw "Limiar hidraulico por barreira no LiDAR bruto nao confirmado."
 }
-if ($d.water_connectivity_filter -notmatch "connected-to-main-river") {
-    throw "Filtro de conectividade da agua nao confirmado."
+if (([string]$d.water_connectivity_filter -notmatch "main-river") -or ([string]$d.water_connectivity_filter -notmatch "raw LiDAR")) {
+    throw "Filtro de conectividade da agua nao confirmou D8/barreira no LiDAR bruto ate o rio principal."
 }
 if ([int]$d.contornos_features -lt 251) {
     throw "Contornos insuficientes: $($d.contornos_features). Esperado: pelo menos 251 (0 a 25 m em passos de 0,1 m)."
@@ -126,8 +131,8 @@ if ($page -match "altitude_terreno_10m_refinado\.json|mdt_santa_tereza_10m_refin
 if ($page -notmatch "value===255\?null:value") {
     throw "Contrato NoData 255 nao encontrado na pagina."
 }
-if ($page -notmatch "contornos_mancha\.json") {
-    throw "A pagina nao esta usando a mancha total HAND."
+if ($page -notmatch "CONTORNOS_URL='assets/data/santa_tereza_inundacao/contornos_extravasamento\.json'") {
+    throw "A pagina ao vivo nao esta usando o contorno de extravasamento derivado do HAND LiDAR."
 }
 if ($page -notmatch "stageToSpatialHand\(cm,zeroCm=HAND_ZERO_DEFAULT_CM\)") {
     throw "A pagina nao confirmou a espacializacao pelo zero de 1,60 m."
