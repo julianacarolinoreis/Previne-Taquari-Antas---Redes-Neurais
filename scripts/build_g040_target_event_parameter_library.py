@@ -19,6 +19,7 @@ from typing import Any
 ROOT=Path(__file__).resolve().parents[1]
 BASE=ROOT/"assets/data/hec_hms_g040_full_basin"
 CAL=BASE/"g040_e1_multievent_calibration_latest.json"
+REFINED=BASE/"g040_target_event_refinement_latest.json"
 FORCING=BASE/"historical_calibration_forcing"
 MUCUM=ROOT/"assets/data/estudo_bacia_taquari_antas/modelo_mucum_eventwise_v1_fechado_latest.json"
 OUT=BASE/"g040_target_event_parameter_library_latest.json"
@@ -125,6 +126,8 @@ def fingerprint(event_id:str)->dict[str,Any]|None:
 
 def main()->int:
     cal=load(CAL)
+    refined=load(REFINED) if REFINED.exists() else {}
+    refined_by={(str(x.get("target_code")),str(x.get("event_id"))):x for x in (refined.get("selected") or []) if x.get("target_code") and x.get("event_id")}
     rows=cal.get("ranked_candidates") or []
     events=sorted({e.get("event_id") for r in rows for e in (r.get("events") or []) if e.get("event_id")})
     fps={eid:fingerprint(eid) for eid in events}
@@ -147,10 +150,38 @@ def main()->int:
             if not choices:continue
             choices.sort(key=lambda x:(0 if x["checkpoint_gate_pass"] else 1,x["penalty"]))
             best=choices[0]
+            source="initial_multievent_candidate_pool"
+            fit_role="target_event_diagnostic_candidate"
+
+            rr=refined_by.get((code,eid))
+            if rr and isinstance(rr.get("best"),dict):
+                rb=rr["best"]
+                rm=rb.get("metrics") or {}
+                rp=penalty(rm)
+                if rp is not None:
+                    refined_choice={
+                      "candidate_id":rb.get("candidate_id"),
+                      "parameters":rb.get("parameters"),
+                      "metrics":rm,
+                      "checkpoint_gate_pass":bool(rb.get("gate_pass")),
+                      "penalty":float(rb.get("target_loss") if rb.get("target_loss") is not None else rp),
+                    }
+                    # Refinement was target-specific by construction. Prefer it
+                    # when it passes the gate or improves target-specific fit.
+                    if (
+                        refined_choice["checkpoint_gate_pass"]
+                        or not best["checkpoint_gate_pass"]
+                        or refined_choice["penalty"] < best["penalty"]
+                    ):
+                        best=refined_choice
+                        source="target_event_refinement"
+                        fit_role="target_event_refined_donor"
+
             target_event.append({
               "target_code":code,"target_name":name,"event_id":eid,
               "model_family":"hec_hms_4_13_bho6_e1",
-              "fit_role":"target_event_diagnostic_candidate",
+              "fit_role":fit_role,
+              "selection_source":source,
               **best,
               "promotion_allowed":False,
               "leakage_warning":"selected using the full historical event; must not be interpreted as pseudo-operational forecast skill"
@@ -198,6 +229,7 @@ def main()->int:
         "targets_with_hec_eventwise_candidates":sorted({x["target_code"] for x in target_event}),
         "events_with_full_basin_fingerprints":sorted(fps),
         "mucum_existing_eventwise_events":[x["event_id"] for x in legacy],
+        "refined_target_event_rows_used":sum(x.get("selection_source")=="target_event_refinement" for x in target_event),
       }
     }
     OUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
