@@ -71,6 +71,7 @@ def fingerprint(event_id:str)->dict[str,Any]|None:
     comps=rain.get("components") or []
     if not comps:return None
     totals={}
+    areas={}
     area_total=0.0
     times=None
     weighted=None
@@ -80,6 +81,7 @@ def fingerprint(event_id:str)->dict[str,Any]|None:
         vals=[None if r.get("mm") is None else float(r["mm"]) for r in (c.get("series") or [])]
         good=[v for v in vals if v is not None]
         totals[cid]=sum(good) if good else None
+        areas[cid]=area
         if area<=0: continue
         if times is None:
             times=[r.get("time_local") for r in c.get("series") or []]
@@ -92,8 +94,9 @@ def fingerprint(event_id:str)->dict[str,Any]|None:
     basin=[]
     if weighted is not None:
         basin=[weighted[i]/weights[i] for i in range(len(weighted)) if weights[i]>0]
-    s=sum(v for v in totals.values() if v is not None)
-    spatial={k:(None if v is None or s<=0 else v/s) for k,v in totals.items()}
+    contrib={k:(None if v is None else float(v)*float(areas.get(k) or 0.0)) for k,v in totals.items()}
+    s=sum(v for v in contrib.values() if v is not None)
+    spatial={k:(None if v is None or s<=0 else v/s) for k,v in contrib.items()}
     controls={}
     for c in hydro.get("controls") or []:
         rows=[r for r in (c.get("recent_rows") or []) if r.get("flow_m3s") is not None]
@@ -107,6 +110,8 @@ def fingerprint(event_id:str)->dict[str,Any]|None:
       "event_id":event_id,
       "rain":{
         "basin_total_mm":sum(basin) if basin else None,
+        "first_24h_mm":sum(basin[:24]) if basin else None,
+        "first_48h_mm":sum(basin[:48]) if basin else None,
         "max_6h_mm":rolling_max(basin,6),
         "max_12h_mm":rolling_max(basin,12),
         "max_24h_mm":rolling_max(basin,24),
