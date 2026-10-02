@@ -2,8 +2,10 @@
   'use strict';
 
   var FEED = 'assets/data/research_basin_screening_latest.json';
+  var AUTO_TRAIN_LOCAL = 'assets/data/ai_lab/auto_training_latest.json';
+  var AUTO_TRAIN_RAW = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/auto_training_latest.json';
   var BRAZIL_BOUNDS = [[-34.8,-74.2],[5.7,-34.0]];
-  var state = { feed:null, map:null, markers:[], stationIndex:[], selected:null };
+  var state = { feed:null, autoTraining:null, map:null, markers:[], stationIndex:[], selected:null };
 
   function el(id){ return document.getElementById(id); }
   function text(id,value){ var node=el(id); if(node) node.textContent=value; }
@@ -110,6 +112,7 @@
     setPill(el('station-freshness'),classifyFreshness(current));
     renderSupervisor(s);
     renderModels(s);
+    updateTrainingRequest();
   }
   function renderSupervisor(station){
     var current=station.current || {};
@@ -184,6 +187,66 @@
       body.appendChild(tr);
     });
   }
+
+  function escapeHtml(value){
+    return String(value === null || value === undefined ? '' : value).replace(/[&<>"']/g,function(ch){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+    });
+  }
+  function updateTrainingRequest(){
+    var point=state.selected ? state.selected.name : 'ponto não selecionado';
+    var horizon=el('horizon-select') ? el('horizon-select').value : '—';
+    var variable=el('variable-select') && el('variable-select').value === 'vazao' ? 'vazão' : 'nível';
+    text('training-request',point+' · '+variable+' +'+horizon+' h');
+  }
+  function renderAutoTraining(data){
+    state.autoTraining=data;
+    setPill(el('auto-training-status'),{label:'concluído',cls:'good'});
+    text('training-experiment',data.label || data.experiment_id || '—');
+    text('training-target',(data.station && data.station.code ? 'Estação '+data.station.code+' · ' : '')+(data.target || 'alvo')+' · +'+fmtNumber(data.horizon_hours,0)+' h');
+    text('training-rows',fmtNumber(data.data_audit && data.data_audit.finite_rows,0));
+    text('training-features',fmtNumber(data.data_audit && data.data_audit.feature_count,0)+' entradas auditadas');
+    text('training-folds',fmtNumber((data.folds || []).length,0));
+    text('training-shadow-count',fmtNumber((data.shadow_candidates || []).length,0));
+    text('training-generated',fmtTime(data.generated_at_utc));
+    text('training-message','Rodada concluída. O leaderboard é evidência de pesquisa; candidatos aprovados seguem apenas para modo sombra.');
+    var body=el('training-table-body');
+    var rows=(data.leaderboard || []).slice(0,12);
+    if(!rows.length){
+      body.innerHTML='<tr><td colspan="8" class="empty-cell">A rodada não publicou modelos.</td></tr>';
+      return;
+    }
+    body.innerHTML=rows.map(function(row){
+      var gate=row.shadow_eligible ? '<span class="training-gate pass">sombra</span>' : '<span class="training-gate hold">reter</span>';
+      return '<tr'+(row.shadow_eligible?' class="shadow-pass"':'')+'>'+
+        '<td>'+escapeHtml(row.rank)+'</td>'+
+        '<td><strong>'+escapeHtml(row.model)+'</strong></td>'+
+        '<td>'+fmtNumber(row.median_mae_cm,2)+' cm</td>'+
+        '<td>'+fmtNumber(row.median_rmse_cm,2)+' cm</td>'+
+        '<td>'+fmtNumber(row.median_nse,3)+'</td>'+
+        '<td>'+fmtNumber(row.median_peak_abs_error_cm,2)+' cm</td>'+
+        '<td>'+fmtNumber(row.median_peak_lag_abs_h,1)+' h</td>'+
+        '<td>'+gate+'</td></tr>';
+    }).join('');
+  }
+  async function loadAutoTraining(){
+    setPill(el('auto-training-status'),{label:'consultando',cls:'neutral'});
+    var sources=[AUTO_TRAIN_RAW,AUTO_TRAIN_LOCAL];
+    var lastError=null;
+    for(var i=0;i<sources.length;i++){
+      try{
+        var response=await fetch(sources[i],{cache:'no-store'});
+        if(!response.ok) throw new Error('HTTP '+response.status);
+        var data=await response.json();
+        renderAutoTraining(data);
+        return;
+      }catch(err){ lastError=err; }
+    }
+    setPill(el('auto-training-status'),{label:'fila/sem resultado',cls:'warn'});
+    text('training-message','O motor já está configurado, mas ainda não há um resultado publicado desta rodada. Abra a fila do GitHub para acompanhar a execução.');
+    if(lastError) console.warn('AI Lab auto training:',lastError);
+  }
+
   function searchStation(){
     var q=String(el('station-search').value||'').trim().toLowerCase();
     if(!q){ toast('Digite o nome ou código de uma estação conectada.'); return; }
@@ -222,21 +285,26 @@
     el('refresh-feed').addEventListener('click',loadFeed);
     el('station-search-button').addEventListener('click',searchStation);
     el('station-search').addEventListener('keydown',function(ev){ if(ev.key==='Enter') searchStation(); });
-    el('horizon-select').addEventListener('change',function(){ if(state.selected) renderModels(state.selected.raw); });
+    el('horizon-select').addEventListener('change',function(){ if(state.selected) renderModels(state.selected.raw); updateTrainingRequest(); });
     el('variable-select').addEventListener('change',function(){
       var value=el('variable-select').value;
       if(value==='vazao') toast('A estrutura para vazão já está prevista; este feed piloto publicado está orientado principalmente a nível.');
+      updateTrainingRequest();
     });
     el('new-station').addEventListener('click',function(){
       toast('Próximo módulo: conector nacional de estações + descoberta automática de dados. A interface já está preparada para receber esse cadastro.');
     });
     el('new-training').addEventListener('click',function(){
-      toast('Próximo módulo: treinamento automático com auditoria de dados, busca de arquiteturas, validação por eventos e operação em sombra.');
+      var section=el('auto-training');
+      if(section) section.scrollIntoView({behavior:'smooth',block:'start'});
+      toast('O treinamento automático já está ativo. A seção mostra a última rodada publicada e o link para executar uma nova fila.');
     });
   }
   document.addEventListener('DOMContentLoaded',function(){
     initMap();
     wire();
     loadFeed();
+    loadAutoTraining();
+    updateTrainingRequest();
   });
 })();
