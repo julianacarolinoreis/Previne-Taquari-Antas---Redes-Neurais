@@ -444,7 +444,7 @@ def build_control(a,b):
      Start Time: {fmt_time(la)}
      End Date: {fmt_date(lb)}
      End Time: {fmt_time(lb)}
-     Time Interval: 60
+     Time Interval: {COMPUTE_INTERVAL_MIN}
 End:
 """
 
@@ -573,7 +573,7 @@ paths=list(dss.getCatalogedPathnames())
 fo=open(r"{(project_dir/'hec_output_values.csv').as_posix()}","wb")
 w=csv.writer(fo); w.writerow(["element","time_value","q_m3s","pathname"])
 for path in paths:
-    if "/FLOW/" not in path or "/1Hour/RUN:Hindcast/" not in path: continue
+    if "/FLOW/" not in path or "/RUN:Hindcast/" not in path: continue
     s=dss.get(path); parts=path.split("/"); element=parts[2] if len(parts)>2 else ""
     for i in range(s.numberValues):
         v=float(s.values[i])
@@ -591,6 +591,16 @@ def read_output_csv(path):
             by.setdefault(r["element"],[]).append(float(r["q_m3s"]))
     return by
 
+def hourly_simulation_values(values, hourly_count):
+    """Sample fixed-interval HEC output on the exact hourly grid used by observations."""
+    stride=60//COMPUTE_INTERVAL_MIN
+    if stride*COMPUTE_INTERVAL_MIN != 60:
+        raise RuntimeError("compute interval must divide 60 minutes for hourly scoring")
+    # HEC output includes the simulation start value. Sampling every stride keeps
+    # t0, t0+1h, ... on the same axis as target_hourly().
+    sampled=list(values[::stride])
+    return sampled[:hourly_count]
+
 def _corr(a,b):
     if len(a)<2: return None
     ma=sum(a)/len(a); mb=sum(b)/len(b)
@@ -607,7 +617,8 @@ def score_outputs(out_by,hydro,times):
     result={}
     for code in MAIN_CHECKPOINTS:
         element="J_"+code
-        sim=out_by.get(element) or []
+        raw_sim=out_by.get(element) or []
+        sim=hourly_simulation_values(raw_sim,len(times))
         obsmap=target_hourly(hydro,code,times)
         pairs=[]
         for i,t in enumerate(times[:len(sim)]):
@@ -737,7 +748,12 @@ def main():
       "parameters":{"cn":args.cn,"lag_min":args.lag_min,"baseflow":"None",
         "k_group_h":{"g1":args.k_g1,"g2":args.k_g2,"g3":args.k_g3,"g4":args.k_g4},
         "x":args.x,
-        "reach_k_h":{name:route_k(l,g,args) for name,up,down,l,g in REACHES}},
+        "compute_interval_min":COMPUTE_INTERVAL_MIN,
+        "reach_k_h":{name:route_k(l,g,args) for name,up,down,l,g in REACHES},
+        "muskingum_subreaches":{
+          name:muskingum_steps(route_k(l,g,args),args.x)
+          for name,up,down,l,g in REACHES
+        }},
       "scores":scores,
       "limitations":["event-specific E1 candidate; multi-event selection is performed by the calibration orchestrator","baseflow method not documented in recovered original report",
         "global CN and lag are temporary calibration parameterization, not 145-subbasin transfer",
