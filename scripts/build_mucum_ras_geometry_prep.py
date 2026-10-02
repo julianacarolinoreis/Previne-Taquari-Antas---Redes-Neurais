@@ -454,6 +454,8 @@ def main():
             "measured_channel_source": None if not sgb_lst else "SGB LST Muçum 2011-2023 / Figura 6",
             "measured_channel_section_offset_m": None if not sgb_lst else 70,
             "measured_bed_min_2023_gauge_cm": None if not sgb_lst else -385,
+            "measured_bed_min_2022_gauge_cm": None if not sgb_lst else -495,
+            "measured_section_width_2022_m": None if not sgb_lst else 353.3,
             "measured_bed_min_2020_gauge_cm": None if not sgb_lst else -533,
             "channel_bed_source": "SGB_MEASURED_LST_EVIDENCE_PROFILE_NOT_YET_DIGITIZED" if sgb_lst else "MISSING_AUDITED_BATHYMETRY",
             "hydraulic_use": "NOT_COMPUTE_READY",
