@@ -37,6 +37,7 @@ SOURCE_INVENTORY = ROOT / "assets/data/g040_hydro_stack/project_source_inventory
 OUT = ROOT / "assets/data/g040_hydro_stack/mucum_ras_prep"
 SGB_LST = OUT / "mucum_sgb_lst_evidence_latest.json"
 ALL_SECTION_EVIDENCE = OUT / "all_sections_hydraulic_evidence_latest.json"
+LEGACY_PROFILE = OUT / "legacy_hms_representative_8point_profile.csv"
 
 WGS84 = "EPSG:4326"
 UTM22S = "EPSG:31982"
@@ -584,6 +585,9 @@ def main():
             "measured_s09_cross_section_evidence_found": SGB_LST.exists(),
             "measured_s09_full_numeric_profile_recovered": False,
             "all_sections_evidence_registry_loaded": bool(evidence_registry),
+            "legacy_hec_representative_profile_numeric_recovered": LEGACY_PROFILE.exists(),
+            "legacy_hec_representative_profile_station_mapping_recovered": False,
+            "legacy_hec_representative_profile_usable_for_section_assignment": False,
             "all_sections_compute_ready_channel": bool(evidence_registry) and all(bool((evidence_by_section.get(sid) or {}).get("compute_ready_channel")) for sid in [f"S{i:02d}" for i in range(1,10)]),
             "bridges_and_contractions_audited": False,
             "manning_calibrated": False,
