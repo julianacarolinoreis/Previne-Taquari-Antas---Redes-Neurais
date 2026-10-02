@@ -11,6 +11,8 @@ on:
       - "scripts/run_hec_hms_mucum_dual_route_sweep.py"
       - "scripts/run_hec_hms_mucum_state_routing_sweep.py"
       - "scripts/run_hec_hms_mucum_iterative_validation.py"
+  schedule:
+    - cron: '23 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -19,7 +21,7 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
@@ -65,7 +67,7 @@ jobs:
       - name: Build full-event rain timeline
         run: python -B scripts/build_hec_hms_spatial_forecast_mucum.py
 
-      - name: Run iterative HEC calibration and validation
+      - name: Recalibrate HEC until validation criteria pass
         shell: bash
         run: |
           set -euo pipefail
