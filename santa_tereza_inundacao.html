@@ -242,7 +242,7 @@ function loadHand(){return new Promise(res=>{
     const c=document.createElement('canvas'); c.width=COLS;c.height=ROWS; const x=c.getContext('2d'); x.drawImage(img,0,0);
     const d=x.getImageData(0,0,COLS,ROWS).data;
     handArr=new Uint8Array(COLS*ROWS);
-    for(let i=0;i<COLS*ROWS;i++) handArr[i]=d[i*4]===255?250:d[i*4];
+    for(let i=0;i<COLS*ROWS;i++) handArr[i]=d[i*4];
     res();
   };
   img.onerror=()=>{handArr=null;res();};
@@ -284,9 +284,23 @@ function loadElevation(){return fetch(ELEVATION_URL).then(r=>r.json()).then(meta
 
 function stageToHand(cm){if(cm==null||cm==='')return null;const nivel=Number(cm);return Number.isFinite(nivel)?Math.max(0,(nivel-HAND_ZERO_CM)/100):null;}
 function handAt(lat,lon){ // decimetros no ponto, ou null
+  if(!handArr) return null;
   const fx=Math.floor((lon-HAND.W)/(HAND.E-HAND.W)*COLS), fy=Math.floor((HAND.N-lat)/(HAND.N-HAND.S)*ROWS);
   if(fx<0||fx>=COLS||fy<0||fy>=ROWS) return null;
-  return handArr[fy*COLS+fx];
+  const value=handArr[fy*COLS+fx];
+  return value===255?null:value;
+}
+function pointFloodStatus(pointDm,levelCm){
+  if(pointDm==null||!Number.isFinite(Number(pointDm))) return '<span>sem cobertura HAND no ponto</span>';
+  const spatialHand=stageToHand(levelCm);
+  if(spatialHand==null) return '<span>indisponível</span>';
+  const maximum=Number(HAND.max_hand_m);
+  if(!Number.isFinite(maximum)||spatialHand>maximum+1e-10) return '<span>sem cobertura HAND no intervalo</span>';
+  if(HAND_SATURATED!==null&&pointDm===HAND_SATURATED) return '<span>limiar HAND ≥ '+nf1.format(HAND_SATURATED/10)+' m; fora da faixa quantitativa do proxy</span>';
+  const difference=spatialHand-Number(pointDm)/10;
+  return difference>0.03
+    ? '<b class="pf">'+nf1.format(difference*100)+' cm acima do limiar do proxy</b>'
+    : 'sem inundação estimada neste proxy';
 }
 function elevationAt(lat,lon){
   if(!elevationMeta||!elevationArr) return null;
@@ -482,20 +496,21 @@ async function init(){
       await ensureHand();
       const altitude=elevationAt(e.latlng.lat,e.latlng.lng);
       const hd=handAt(e.latlng.lat,e.latlng.lng);
-      if(altitude==null&&(!curS||hd==null)) return;
       let html='<div class="pt-pop"><b>Neste ponto</b>';
       if(altitude!=null) html+='<br><b>Altitude do terreno (MDT): '+nf1.format(altitude)+' m</b>';
-      if(curS&&hd!=null){
-        const pointHand=hd/10, ev=EVENTS[curEv];
+      if(hd==null) html+='<br><b>HAND no ponto: sem cobertura HAND no ponto</b>';
+      if(hd!=null){
+        const pointHand=hd/10;
         if(HAND_SATURATED!==null&&hd>=HAND_SATURATED){
           html+='<br><b>HAND no ponto: ≥ '+nf1.format(HAND_SATURATED/10)+' m</b> · fora da faixa quantitativa do proxy.';
         }else{
-          const dNow=stageToHand(curS[1])-pointHand, dFore=curS[3]!=null?stageToHand(curS[3])-pointHand:null;
-          const fmt=d=>d>0.03?('<b class="pf">'+nf1.format(d*100)+' cm</b>'):'seco';
-          const hz=ev.horizonte==='—'?'':' (+'+ev.horizonte+')';
-          html+='<br>Agora: '+(dNow>0.03?nf1.format(dNow*100)+' cm de água':'sem inundação estimada');
-          if(dFore!=null) html+='<br>RNA'+hz+': '+fmt(dFore);
+          html+='<br><b>HAND no ponto: '+nf1.format(pointHand)+' m</b>';
         }
+      }
+      if(curS){
+        const ev=EVENTS[curEv], hz=ev.horizonte==='—'?'':' (+'+ev.horizonte+')';
+        html+='<br>Agora: '+pointFloodStatus(hd,curS[1]);
+        if(curS[3]!=null) html+='<br>RNA'+hz+': '+pointFloodStatus(hd,curS[3]);
       }
       html+='<br><small>'+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5)+'</small></div>';
       L.popup({closeButton:true}).setLatLng(e.latlng).setContent(html).openOn(map);

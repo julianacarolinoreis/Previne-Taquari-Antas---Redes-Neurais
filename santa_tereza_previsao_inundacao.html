@@ -721,9 +721,11 @@ function stageToSpatialHand(cm,zeroCm=HAND_ZERO_DEFAULT_CM){
 }
 function pointFloodStatus(point,levelCm,zeroCm){
   if(levelCm==null || !Number.isFinite(Number(levelCm))) return '<span>indisponível</span>';
+  if(point==null) return '<span>sem cobertura HAND no ponto</span>';
+  const spatialHand=stageToSpatialHand(levelCm,zeroCm), maximum=Number(HAND.max_hand_m);
+  if(!Number.isFinite(maximum)||spatialHand>maximum+1e-10) return '<span>sem cobertura HAND no intervalo</span>';
   if(point&&point.saturated) return '<span>limiar hidráulico ≥ '+nf1.format(Number(HAND.max_hand_m||25))+' m; fora da faixa quantitativa do proxy</span>';
   const pointHand=typeof point==='number'?point:point.dm/10;
-  const spatialHand=stageToSpatialHand(levelCm,zeroCm);
   const depth=spatialHand-pointHand;
   return depth>0.03
     ? '<b class="pf">SIM · '+nf1.format(depth*100)+' cm acima do limiar hidráulico</b>'
@@ -1435,15 +1437,16 @@ async function init(){
     map.on('click', async e=>{
       await ensureHand();
       const hd=handAt(e.latlng.lat,e.latlng.lng), elev=elevationAt(e.latlng.lat,e.latlng.lng);
-      if(hd==null&&elev==null) return;
-
       const floodSimple=(row)=>{
-        if(!row||!row.ready||!hd) return 'Indisponível';
+        if(!row||!row.ready) return 'Indisponível';
+        if(!hd) return 'sem cobertura HAND no ponto';
         const forecast=firstNumber(row.D&&row.D.nivel_previsto_cm);
         if(forecast==null) return 'Indisponível';
         const pointHand=hd.dm/10;
         const rowZero=handZeroCm(row.D||activeLiveData()||liveData);
         const spatialHand=stageToSpatialHand(forecast,rowZero);
+        const maximum=Number(HAND.max_hand_m);
+        if(!Number.isFinite(maximum)||spatialHand>maximum+1e-10) return 'sem cobertura HAND no intervalo';
         // O valor 25 m é o teto do payload web, não necessariamente o HAND
         // exato do ponto. Se a previsão está abaixo desse piso, sabemos que
         // NÃO alcança o ponto. Acima dele, o produto atual não permite dizer SIM.
@@ -1462,7 +1465,7 @@ async function init(){
       const pointHandM=hd?hd.dm/10:null;
       const gaugeNeededM=pointHandM==null?null:pointHandM+popupZeroM;
       const handTxt=pointHandM==null
-        ?'indisponível'
+        ?'sem cobertura HAND no ponto'
         :(hd.saturated?'≥ '+nf1.format(pointHandM)+' m <span style="font-weight:400;color:#6b7280">(limite do produto)</span>':nf1.format(pointHandM)+' m');
       const gaugeTxt=gaugeNeededM==null
         ?'indisponível'

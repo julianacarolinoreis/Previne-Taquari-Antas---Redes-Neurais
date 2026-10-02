@@ -23,7 +23,11 @@ PAGES = ("santa_tereza_previsao_inundacao.html", "santa_tereza_inundacao.html")
 
 
 def function_code(text: str, name: str) -> str:
-    ending = r"[\s\S]*?contornos=null;\}\);}" if name == "loadContornos" else r"[^\n]*?\{[\s\S]*?^\}"
+    first_line = re.search(r"^function " + name + r"\([^\n]*", text, re.M)
+    if first_line and first_line.group(0).rstrip().endswith("}"):
+        return first_line.group(0)
+    endings = {"loadContornos": r"[\s\S]*?contornos=null;\}\);}", "loadHand": r"[\s\S]*?^\}\);\}"}
+    ending = endings.get(name, r"[^\n]*?\{[\s\S]*?^\}")
     match = re.search(r"^function " + name + r"\(" + ending, text, re.M)
     if not match:
         raise AssertionError(f"real function not found: {name}")
@@ -60,6 +64,67 @@ class FieldWebTests(unittest.TestCase):
         result = subprocess.run([node, "-e", code], capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
+
+    def test_actual_raster_loader_lookup_and_popup_distinguish_nodata_saturation_and_range(self):
+        for page in PAGES:
+            with self.subTest(page=page):
+                text = (ROOT / page).read_text(encoding="utf-8")
+                names = ["loadHand", "ensureHand", "handAt", "pointFloodStatus"]
+                names += ["stageToSpatialHand", "handZeroCm"] if page == PAGES[0] else ["stageToHand"]
+                functions = "\n".join(function_code(text, name) for name in names)
+                match = re.search(r"map\.on\('click', (async e=>\{[\s\S]*?)\n    \}\);", text)
+                self.assertIsNotNone(match, "real map-click callback must be exercised")
+                callback = match.group(1) + "\n    }"
+                code = """
+const vm=require('node:vm');
+const rgba=Uint8Array.from([0,0,0,255,250,250,250,255,255,255,255,255]);
+let context,html='';
+const decodedImage=class{set src(value){this.onload();}};
+context={COLS:3,ROWS:1,HAND:{W:0,E:3,N:1,S:0,max_hand_m:25,saturated_value:250,hand_png_b64:'fixture'},
+ HAND_ZERO_CM:160,HAND_ZERO_DEFAULT_CM:160,HAND_SATURATED:250,bankfull:160,
+ handArr:null,handLoadPromise:null,curS:null,curEv:'fixture',EVENTS:{fixture:{horizonte:'2h'}},
+ nf1:new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}),
+ Image:decodedImage,document:{createElement:()=>({getContext:()=>({drawImage(){},getImageData:()=>({data:rgba})})})},
+ elevationAt:()=>null,map:{},liveData:{hand_zero_cm:160},activeLiveData:()=>({hand_zero_cm:160}),
+ firstNumber:value=>value==null?null:Number(value),
+ mapForecastHorizons:()=>['2h','4h','8h'].map(key=>({key,ready:true,D:{nivel_previsto_cm:context.currentLevel,hand_zero_cm:160}})),
+ L:{popup:()=>({setLatLng(){return this;},setContent(value){html=value;return this;},openOn(){return this;}})}};
+vm.createContext(context);vm.runInContext(FUNCTIONS,context);
+const click=vm.runInContext('('+CALLBACK+')',context);
+(async()=>{
+ await context.loadHand();
+ const decoded=Array.from(context.handArr);
+ const points=[0.5,1.5,2.5].map(lon=>context.handAt(0.5,lon));
+ const cases=[];
+ for(const level of [160,2660,2661,3000,null]){
+   context.currentLevel=level;context.curS=['fixture',level,null,level];
+   const popups=[];
+   for(const lon of [0.5,1.5,2.5]){await click({latlng:{lat:0.5,lng:lon}});popups.push(html);}
+   const quantitative=IS_FORECAST?context.pointFloodStatus(points[0],level,160):context.pointFloodStatus(points[0],level);
+   cases.push({level,popups,quantitative});
+ }
+ console.log(JSON.stringify({decoded,points,cases}));
+})().catch(e=>{console.error(e);process.exitCode=1;});
+""".replace("FUNCTIONS", json.dumps(functions)).replace("CALLBACK", json.dumps(callback)).replace("IS_FORECAST", str(page == PAGES[0]).lower())
+                result = self.node(code)
+                self.assertEqual(result["decoded"], [0, 250, 255])
+                self.assertEqual(result["points"][:2], [{"dm": 0, "saturated": False}, {"dm": 250, "saturated": True}] if page == PAGES[0] else [0, 250])
+                self.assertIsNone(result["points"][2])
+                for case in result["cases"]:
+                    self.assertIn("sem cobertura HAND no ponto", case["popups"][2])
+                    self.assertNotIn("≥ 25", case["popups"][2])
+                    self.assertNotIn("cm acima", case["popups"][2])
+                    if case["level"] in (2661, 3000):
+                        self.assertIn("sem cobertura HAND no intervalo", case["quantitative"])
+                        for popup in case["popups"][:2]:
+                            self.assertIn("sem cobertura HAND no intervalo", popup)
+                            self.assertNotIn("cm acima", popup)
+                            self.assertNotIn(">SIM<", popup)
+                    elif case["level"] == 2660:
+                        self.assertIn("2.500,0 cm", case["quantitative"])
+                        self.assertNotIn("sem cobertura HAND no intervalo", case["popups"][0])
+                    elif case["level"] is None:
+                        self.assertIn("indisponível", case["quantitative"])
 
     def test_actual_html_functions_use_upper_level_without_clamp_and_keep_all_rings(self):
         for page in PAGES:
