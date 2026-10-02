@@ -29,6 +29,9 @@ HYDRO=BASE/"whole_basin_live_hydro_controls_latest.json"
 SCENARIOS=BASE/"whole_basin_boundary_scenarios_latest.json"
 OUTROOT=BASE/"g040_e1_hindcast"
 BRT=timezone(timedelta(hours=-3))
+# Fixed across calibration candidates so ranking is not contaminated by changing numerical resolution.
+# 3 min satisfies HEC-HMS SCS UH guidance dt <= 0.29*lag even at the current minimum lag bound (~15.85 min).
+COMPUTE_INTERVAL_MIN=3
 
 MAIN_CHECKPOINTS=["86510000","86720000","86743000","86879000","86879300","86895000"]
 SOURCE_PRIMARY="86472000"
@@ -236,14 +239,49 @@ def subbasin_block(name,area,downstream,cn,lag_min):
 End:
 """
 
+def muskingum_steps(k_h,x,dt_min=COMPUTE_INTERVAL_MIN):
+    """HEC-HMS initial estimate: number of subreaches ~= K / dt.
+
+    The fixed compute interval is used for every calibration candidate.
+    We round to the nearest integer and then verify that the effective
+    subreach K remains in the non-negative coefficient region:
+        2*K_sub*X <= dt <= 2*K_sub*(1-X)
+    If rounding falls outside that region, search nearby integer counts.
+    """
+    dt_h=float(dt_min)/60.0
+    k_h=float(k_h); x=float(x)
+    if not (k_h>0 and 0.0<=x<=0.5):
+        raise RuntimeError(f"invalid Muskingum parameters K={k_h}, X={x}")
+    initial=max(1,int(round(k_h/dt_h)))
+    candidates=range(max(1,initial-6),initial+7)
+    stable=[]
+    for n in candidates:
+        k_sub=k_h/n
+        lo=2.0*k_sub*x
+        hi=2.0*k_sub*(1.0-x)
+        if lo-1e-12 <= dt_h <= hi+1e-12:
+            stable.append((abs(k_sub-dt_h),n))
+    if stable:
+        return min(stable)[1]
+    # Broaden the deterministic search before failing.
+    max_n=max(2, int(math.ceil(k_h/max(dt_h,1e-9)*4.0)))
+    for n in range(1,max_n+1):
+        k_sub=k_h/n
+        if 2.0*k_sub*x-1e-12 <= dt_h <= 2.0*k_sub*(1.0-x)+1e-12:
+            return n
+    raise RuntimeError(
+        f"no stable Muskingum subreach count for K={k_h:.6f}h X={x:.6f} dt={dt_min}min"
+    )
+
 def reach_block(name,downstream,k,x):
+    steps=muskingum_steps(k,x)
     return f"""Reach: {name}
      Downstream: {downstream}
      Route: Muskingum
      Initial Variable: Combined Inflow
      Muskingum K: {k:.6f}
      Muskingum x: {x:.6f}
-     Muskingum Steps: 1
+     Muskingum Steps: {steps}
      Channel Loss: None
 End:
 """
@@ -406,7 +444,7 @@ def build_control(a,b):
      Start Time: {fmt_time(la)}
      End Date: {fmt_date(lb)}
      End Time: {fmt_time(lb)}
-     Time Interval: 60
+     Time Interval: {COMPUTE_INTERVAL_MIN}
 End:
 """
 
@@ -535,7 +573,7 @@ paths=list(dss.getCatalogedPathnames())
 fo=open(r"{(project_dir/'hec_output_values.csv').as_posix()}","wb")
 w=csv.writer(fo); w.writerow(["element","time_value","q_m3s","pathname"])
 for path in paths:
-    if "/FLOW/" not in path or "/1Hour/RUN:Hindcast/" not in path: continue
+    if "/FLOW/" not in path or "/RUN:Hindcast/" not in path: continue
     s=dss.get(path); parts=path.split("/"); element=parts[2] if len(parts)>2 else ""
     for i in range(s.numberValues):
         v=float(s.values[i])
@@ -553,6 +591,16 @@ def read_output_csv(path):
             by.setdefault(r["element"],[]).append(float(r["q_m3s"]))
     return by
 
+def hourly_simulation_values(values, hourly_count):
+    """Sample fixed-interval HEC output on the exact hourly grid used by observations."""
+    stride=60//COMPUTE_INTERVAL_MIN
+    if stride*COMPUTE_INTERVAL_MIN != 60:
+        raise RuntimeError("compute interval must divide 60 minutes for hourly scoring")
+    # HEC output includes the simulation start value. Sampling every stride keeps
+    # t0, t0+1h, ... on the same axis as target_hourly().
+    sampled=list(values[::stride])
+    return sampled[:hourly_count]
+
 def _corr(a,b):
     if len(a)<2: return None
     ma=sum(a)/len(a); mb=sum(b)/len(b)
@@ -569,7 +617,8 @@ def score_outputs(out_by,hydro,times):
     result={}
     for code in MAIN_CHECKPOINTS:
         element="J_"+code
-        sim=out_by.get(element) or []
+        raw_sim=out_by.get(element) or []
+        sim=hourly_simulation_values(raw_sim,len(times))
         obsmap=target_hourly(hydro,code,times)
         pairs=[]
         for i,t in enumerate(times[:len(sim)]):
@@ -699,7 +748,12 @@ def main():
       "parameters":{"cn":args.cn,"lag_min":args.lag_min,"baseflow":"None",
         "k_group_h":{"g1":args.k_g1,"g2":args.k_g2,"g3":args.k_g3,"g4":args.k_g4},
         "x":args.x,
-        "reach_k_h":{name:route_k(l,g,args) for name,up,down,l,g in REACHES}},
+        "compute_interval_min":COMPUTE_INTERVAL_MIN,
+        "reach_k_h":{name:route_k(l,g,args) for name,up,down,l,g in REACHES},
+        "muskingum_subreaches":{
+          name:muskingum_steps(route_k(l,g,args),args.x)
+          for name,up,down,l,g in REACHES
+        }},
       "scores":scores,
       "limitations":["event-specific E1 candidate; multi-event selection is performed by the calibration orchestrator","baseflow method not documented in recovered original report",
         "global CN and lag are temporary calibration parameterization, not 145-subbasin transfer",

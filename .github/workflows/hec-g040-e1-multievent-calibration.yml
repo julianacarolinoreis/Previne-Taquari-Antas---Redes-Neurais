@@ -46,7 +46,9 @@ jobs:
         run: pip install --disable-pip-version-check numpy shapely pyproj
 
       - name: Contract tests
-        run: python -B scripts/test_g040_multievent_calibration_contract.py
+        run: |
+          python -B scripts/test_g040_multievent_calibration_contract.py
+          python -B scripts/test_g040_e1_numerical_stability.py
 
       - name: Cache HEC-HMS 4.13
         if: github.event_name != 'pull_request'
