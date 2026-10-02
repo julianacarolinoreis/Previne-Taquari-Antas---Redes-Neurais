@@ -1435,9 +1435,21 @@ async function init(){
         return '<div style="display:flex;justify-content:space-between;gap:18px;padding:5px 0;border-top:1px solid #edf1ee"><span>Água em +'+key.replace('h',' h')+'</span><b style="'+statusClass(value)+'">'+value+'</b></div>';
       }).join('');
 
+      const popupZeroM=handZeroCm(activeLiveData()||liveData)/100;
+      const pointHandM=hd?hd.dm/10:null;
+      const gaugeNeededM=pointHandM==null?null:pointHandM+popupZeroM;
+      const handTxt=pointHandM==null
+        ?'indisponível'
+        :(hd.saturated?'≥ '+nf1.format(pointHandM)+' m':nf1.format(pointHandM)+' m');
+      const gaugeTxt=gaugeNeededM==null
+        ?'indisponível'
+        :(hd.saturated?'≥ '+nf1.format(gaugeNeededM)+' m':'≈ '+nf1.format(gaugeNeededM)+' m');
+
       let html='<div class="pt-pop" style="min-width:220px;line-height:1.35">';
       html+='<b>Neste ponto</b>';
       html+='<div style="margin-top:7px"><b>MDT:</b> '+(elev!=null?nf1.format(elev)+' m':'indisponível')+'</div>';
+      html+='<div><b>HAND:</b> '+handTxt+'</div>';
+      html+='<div><b>Régua para a água chegar aqui:</b> '+gaugeTxt+'</div>';
       html+='<div><b>Latitude:</b> '+e.latlng.lat.toFixed(5)+'</div>';
       html+='<div><b>Longitude:</b> '+e.latlng.lng.toFixed(5)+'</div>';
       html+='<div style="margin-top:8px">'+rows+'</div>';
