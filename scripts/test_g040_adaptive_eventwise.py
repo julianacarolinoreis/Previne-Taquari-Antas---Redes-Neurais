@@ -30,6 +30,14 @@ class TestAdaptiveEventwise(unittest.TestCase):
         for t in j["targets"]:
             self.assertFalse(t["hard_parameter_pick"])
             self.assertIn("fallback",t)
+            self.assertIn("confidence_before_data_quality_cap",t)
+        rain=j["live_fingerprint"]["rain"]
+        self.assertIn("freshness",rain)
+        self.assertIn("forcing_age_hours",rain["freshness"])
+        self.assertIn("latest_observed_rain_utc",rain["freshness"])
+        self.assertTrue(
+            rain["forecast_24h_basin_mm"] is None or rain["forecast_24h_basin_mm"] >= 0
+        )
         self.assertTrue(j["governance"]["pseudo_operational_validation_required"])
 
 if __name__=="__main__":
