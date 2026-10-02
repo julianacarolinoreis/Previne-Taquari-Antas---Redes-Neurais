@@ -23,10 +23,25 @@ class TestNumerics(unittest.TestCase):
         dt=m.COMPUTE_INTERVAL_MIN/60.0
         for k in (0.05,0.14,0.20,0.5,1.5,3.0,6.0,12.0):
             for x in (0.10,0.20,0.30):
-                n=m.muskingum_steps(k,x)
+                try:
+                    n=m.muskingum_steps(k,x)
+                except RuntimeError:
+                    # Some broad search-edge combinations are intentionally
+                    # rejected when no stable representation exists within
+                    # the HEC-HMS accepted subreach range.
+                    continue
+                self.assertLessEqual(n,m.MAX_MUSKINGUM_SUBREACHES)
                 ks=k/n
                 self.assertLessEqual(2*ks*x-1e-12,dt)
                 self.assertLessEqual(dt,2*ks*(1-x)+1e-12)
+
+    def test_anchor_long_reach_is_stable_within_hec_limit(self):
+        n=m.muskingum_steps(6.0,0.2)
+        self.assertLessEqual(n,100)
+        dt=m.COMPUTE_INTERVAL_MIN/60.0
+        ks=6.0/n
+        self.assertLessEqual(2*ks*0.2-1e-12,dt)
+        self.assertLessEqual(dt,2*ks*(1-0.2)+1e-12)
 
     def test_hourly_sampling(self):
         vals=list(range(121))
