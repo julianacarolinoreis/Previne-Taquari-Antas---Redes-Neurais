@@ -216,17 +216,31 @@ def locate_sections(audit, route1, route2, river_named):
     _, s06 = point_on_route(route2, station_point("86472600"))
     _, s09 = point_on_route(route2, station_point("86510000"))
 
-    # Identify the Carreiro branch from BHO6 names and project its closest
-    # geometric contact to the audited Antas->Santa Tereza route.
-    carreiro = [g for txt, g, _ in river_named if "carreiro" in txt]
-    if carreiro:
-        branch = unary_union(carreiro)
-        on_main, _ = nearest_points(route1, branch)
-        confluence = route1.project(on_main)
-        confluence_distance_m = on_main.distance(branch)
+    # Use the already audited BHO6 mainstem-join coordinate for Carreiro.
+    # Do not infer the confluence from river-name proximity: similarly named
+    # features elsewhere in the basin can be tens of kilometres away.
+    confluence_source = "fallback"
+    confluence_distance_m = None
+    carreiro_feature_count = 0
+    if CONFLUENCES.exists():
+        cj = load_json(CONFLUENCES)
+        matches = [
+            x for x in (cj.get("fozes_principais") or [])
+            if str(x.get("family_code") or "") == "7866"
+            or "carreiro" in norm_text(x.get("label"))
+        ]
+        if matches and matches[0].get("lonlat"):
+            lon, lat = matches[0]["lonlat"]
+            cp = transform(TO_UTM, Point(float(lon), float(lat)))
+            on_main, _ = nearest_points(route1, cp)
+            confluence = route1.project(on_main)
+            confluence_distance_m = float(on_main.distance(cp))
+            confluence_source = "subbacias_e_fozes_latest.json:BHO6_7866"
+            carreiro_feature_count = 1
+        else:
+            confluence = route1.length * 0.65
     else:
         confluence = route1.length * 0.65
-        confluence_distance_m = None
 
     s08 = None
     mucum_drone = TERRAIN[0]["path"]
