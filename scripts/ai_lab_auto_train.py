@@ -122,9 +122,13 @@ def load_rows(config: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str], 
         })
     rows.sort(key=lambda r: (r["timestamp"], r["event"]))
     duplicate_keys = len(rows) - len({(r["event"], r["timestamp"]) for r in rows})
+    source_hash = sha256(source)
+    expected_hash = config.get("expected_source_sha256")
+    if expected_hash and source_hash.lower() != str(expected_hash).lower():
+        raise RuntimeError("hash da fonte divergiu do contrato do experimento")
     audit = {
         "source_path": config["source_path"],
-        "source_sha256": sha256(source),
+        "source_sha256": source_hash,
         "sheet": sheet.title,
         "feature_count": len(features),
         "feature_names": features,
@@ -318,7 +322,8 @@ def run_experiment(config: dict[str, Any]) -> dict[str, Any]:
         "data_audit": audit,
         "folds": fold_manifest,
         "leaderboard": leaderboard,
-        "shadow_candidates": [r for r in leaderboard if r["shadow_eligible"]][:3],
+        "shadow_candidates": [r for r in leaderboard if r["shadow_eligible"]],
+        "shadow_queue_top3": [r for r in leaderboard if r["shadow_eligible"]][:3],
         "fold_metrics": per_fold,
     }
 
