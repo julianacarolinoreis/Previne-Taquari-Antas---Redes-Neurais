@@ -55,7 +55,19 @@ jobs:
             echo "No AI Lab result changes."
           else
             git commit -m "Update AI Lab automatic training results"
-            git push
+            # Outros robôs e edições da interface também escrevem em main.
+            # Rebaseia o pequeno commit de resultados sobre a ponta mais nova
+            # para não perder uma rodada válida por non-fast-forward.
+            for attempt in 1 2 3; do
+              git fetch origin main
+              if git rebase origin/main && git push origin HEAD:main; then
+                exit 0
+              fi
+              git rebase --abort || true
+              sleep 3
+            done
+            echo "Falha ao publicar o leaderboard após 3 tentativas." >&2
+            exit 1
           fi
 
       - uses: actions/upload-artifact@v4
