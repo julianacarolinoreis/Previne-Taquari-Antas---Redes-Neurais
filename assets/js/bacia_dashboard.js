@@ -1168,17 +1168,13 @@
       return;
     }
 
-    const coords = rings.flat();
-    const lons = coords.map((p) => Number(p[0])).filter(Number.isFinite);
-    const lats = coords.map((p) => Number(p[1])).filter(Number.isFinite);
-    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-    const cosLat = Math.cos(((minLat + maxLat) / 2) * Math.PI / 180);
-    const xs = lons.map((lon) => lon * cosLat);
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const gridWest = -52.8, gridEast = -49.8, gridSouth = -30.0, gridNorth = -28.0;
+    const cosLat = Math.cos(((gridSouth + gridNorth) / 2) * Math.PI / 180);
+    const minX = gridWest * cosLat, maxX = gridEast * cosLat;
     const width = 760, height = 470, pad = 24;
     const project = (lon, lat) => [
       pad + ((lon * cosLat - minX) / Math.max(.000001, maxX - minX)) * (width - pad * 2),
-      pad + ((maxLat - lat) / Math.max(.000001, maxLat - minLat)) * (height - pad * 2)
+      pad + ((gridNorth - lat) / Math.max(.000001, gridNorth - gridSouth)) * (height - pad * 2)
     ];
     const ringPath = rings.map((ring) => {
       const step = Math.max(1, Math.ceil(ring.length / 1400));
@@ -1208,13 +1204,14 @@
     const timeText = data.start && data.end ? when(data.start) + ' → ' + when(data.end) + ' BRT' : 'horário não publicado';
     host.innerHTML =
       '<svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Mapa de chuva acumulada da G040, ' + esc(label) + ', ' + state.rainMapHours + ' horas">' +
-        '<defs><pattern id="rain-missing" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#eef1ef"></rect><line x1="0" y1="0" x2="0" y2="8" stroke="#c6cfca" stroke-width="2"></line></pattern><clipPath id="rain-basin-clip"><path d="' + ringPath + '" clip-rule="evenodd"></path></clipPath><linearGradient id="rain-scale" x1="0%" x2="100%"><stop offset="0%" stop-color="hsl(205 25% 96%)"></stop><stop offset="100%" stop-color="hsl(205 78% 38%)"></stop></linearGradient></defs>' +
-        '<g clip-path="url(#rain-basin-clip)">' + cellRects + '</g>' +
-        '<path class="rain-basin-outline" d="' + ringPath + '" fill="none" fill-rule="evenodd"></path>' +
+        '<defs><pattern id="rain-missing" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#eef1ef"></rect><line x1="0" y1="0" x2="0" y2="8" stroke="#c6cfca" stroke-width="2"></line></pattern><linearGradient id="rain-scale" x1="0%" x2="100%"><stop offset="0%" stop-color="hsl(205 25% 96%)"></stop><stop offset="100%" stop-color="hsl(205 78% 38%)"></stop></linearGradient></defs>' +
+        '<g class="rain-grid-field">' + cellRects + '</g>' +
+        '<path class="rain-basin-outline" d="' + ringPath + '" fill="rgba(255,255,255,.04)" fill-rule="evenodd"></path>' +
+        '<text class="rain-domain-note" x="' + pad + '" y="' + (pad - 7) + '">grade bacia + buffer · contorno = G040</text>' +
         '<g class="rain-map-scale"><rect x="' + (width - 212) + '" y="' + (height - 26) + '" width="150" height="9" rx="4.5" fill="url(#rain-scale)"></rect><text x="' + (width - 218) + '" y="' + (height - 17) + '" text-anchor="end">0</text><text x="' + (width - 56) + '" y="' + (height - 17) + '">' + esc(fmt(maxValue, 0)) + ' mm</text></g>' +
       '</svg>';
 
-    if (status) status.textContent = label + ' · ' + state.rainMapHours + ' h · ' + timeText;
+    if (status) status.textContent = label + ' · ' + state.rainMapHours + ' h · grade bacia+buffer · ' + timeText;
     if (summary) summary.innerHTML =
       '<div><span>Máximo de célula</span><strong>' + (valid.length ? fmt(maxValue, 1) + ' mm' : '—') + '</strong></div>' +
       '<div><span>P90 das células</span><strong>' + (p90 == null ? '—' : fmt(p90, 1) + ' mm') + '</strong></div>' +
