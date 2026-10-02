@@ -159,6 +159,11 @@ a{color:var(--green);text-decoration:none}.wrap{max-width:1380px;margin:auto;pad
         <div class="pills" id="modelParams" style="margin-top:10px"></div>
       </article>
     </div>
+    <article class="card" id="mucumValidation" style="margin-top:14px">
+      <h3 class="panel-title">Checkpoint Muçum · validação da rodada atual</h3>
+      <div class="callout" id="mucumValidationState"><h3>Carregando</h3><p>—</p></div>
+      <div class="pills" id="mucumValidationMetrics" style="margin-top:10px"></div>
+    </article>
   </section>
 
   <section class="section" id="calibracao">
@@ -208,6 +213,7 @@ const PATHS={
  cal:"../hec_hms_g040_full_basin/g040_e1_multievent_calibration_latest.json",
  adaptive:"../hec_hms_g040_full_basin/g040_adaptive_scenario_latest.json",
  arch:"../hec_hms_g040_full_basin/full_basin_architecture_latest.json",
+ dual:"hec_hms_dual_boundary_mucum_latest.json",
  basin:"../hec_hms_g040_full_basin/g040_basin_mask.geojson",
  network:"../hec_hms_g040_full_basin/whole_basin_bho6_network.geojson",
  ugs:"ugs_g040.geojson"
@@ -228,10 +234,10 @@ function qText(c){return c&&c.latest_flow_m3s!=null?fmt(c.latest_flow_m3s,0)+" m
 function ageText(c){return c&&c.age_minutes!=null?fmt(c.age_minutes,0)+" min":"—"}
 
 (async function boot(){
- const names=["branch","hydro","rain","cal","adaptive","arch"];
+ const names=["branch","hydro","rain","cal","adaptive","arch","dual"];
  const results=await Promise.all(names.map(async n=>{try{return [n,await get(PATHS[n]),null]}catch(e){return[n,null,String(e)]}}));
  const D={},ERR={};results.forEach(x=>{D[x[0]]=x[1];ERR[x[0]]=x[2]});
- const branch=D.branch||{},hydro=D.hydro||{},rain=D.rain||{},cal=D.cal||{},adaptive=D.adaptive||{},arch=D.arch||{};
+ const branch=D.branch||{},hydro=D.hydro||{},rain=D.rain||{},cal=D.cal||{},adaptive=D.adaptive||{},arch=D.arch||{},dual=D.dual||{};
 
  const area=((arch.scope||{}).official_area_km2)||((branch.scope||{}).official_area_km2);
  $("mArea").textContent=fmt(area,0);
@@ -341,6 +347,29 @@ function ageText(c){return c&&c.age_minutes!=null?fmt(c.age_minutes,0)+" min":"�
  $("modelState").innerHTML="<h3>"+safe(statusText(cal.status))+"</h3><p>O candidato "+safe(best.candidate_id||"—")+" foi o melhor da busca multi-evento, mas o pacote atual marca <strong>promotion_allowed = "+safe(String(!!cal.promotion_allowed))+"</strong>. Isso mantém a previsão de bacia inteira em pesquisa até validação independente dos parâmetros congelados.</p>";
  $("modelParams").innerHTML=Object.entries(pars).map(([k,v])=>"<span class='pill'>"+safe(k)+" <b>"+fmt(v,3)+"</b></span>").join("");
 
+ // Current Muçum checkpoint validation. This is a checkpoint inside the G040,
+ // not the spatial domain of the platform.
+ const ov=(dual.operational_validation||{}),cur=(dual.current||{}),f6=(dual.recent_fit_6h||{}),f12=(dual.recent_fit_12h||{}),pk=(dual.peak||{});
+ const ok=dual.publishable===true && ov.status==="VALIDATED";
+ if(dual.generated_at_utc){
+   $("mucumValidationState").className="callout "+(ok?"goodbox":"");
+   $("mucumValidationState").innerHTML="<h3>"+(ok?"RODADA VALIDADA":"RECALIBRAÇÃO EM ANDAMENTO")+"</h3><p>"+
+     (ok
+       ?"O HEC-HMS fechou o estado recente de Muçum sem deslocamento visual: observado <strong>"+fmt(cur.observed_stage_cm,2)+" cm</strong>, HEC <strong>"+fmt(cur.model_stage_cm,2)+" cm</strong>, erro <strong>"+fmt(cur.stage_error_cm,2)+" cm</strong>. A validação foi concluída em "+safe(when(dual.generated_at_utc))+"."
+       :"O checkpoint ainda está sendo ajustado. O painel mantém os critérios visíveis e não troca um erro de estado por simples deslocamento da curva.")+
+     "</p>";
+   $("mucumValidationMetrics").innerHTML=
+     "<span class='pill'>NSE 6 h <b>"+fmt(f6.nse,3)+"</b></span>"+
+     "<span class='pill'>NSE 12 h <b>"+fmt(f12.nse,3)+"</b></span>"+
+     "<span class='pill'>RMSE 6 h <b>"+fmt(f6.raw_rmse_cm,2)+" cm</b></span>"+
+     "<span class='pill'>erro t0 <b>"+fmt(cur.stage_error_cm,2)+" cm</b></span>"+
+     "<span class='pill'>pico HEC <b>"+fmt(pk.stage_cm/100,2)+" m</b></span>"+
+     "<span class='pill'>pico local <b>"+safe(pk.time_local||"—")+"</b></span>";
+ } else {
+   $("mucumValidationState").innerHTML="<h3>Sem pacote atual</h3><p>O checkpoint Muçum não publicou uma validação corrente.</p>";
+   $("mucumValidationMetrics").innerHTML="";
+ }
+
  // Calibration.
  $("calSummary").innerHTML="<span class='pill'>candidato <b>"+safe(best.candidate_id||"—")+"</b></span><span class='pill'>eventos contribuintes <b>"+fmt(best.contributing_event_count,0)+"</b></span><span class='pill'>checkpoints válidos <b>"+fmt(best.valid_checkpoint_event_count,0)+"</b></span><span class='pill'>passes <b>"+fmt(best.checkpoint_gate_pass_count,0)+"</b></span><span class='pill'>penalidade média <b>"+fmt(best.mean_multi_metric_penalty,3)+"</b></span>";
  const cr=[];(best.events||[]).forEach(ev=>Object.entries(ev.scores||{}).forEach(([code,s])=>{if((s||{}).pairs>0)cr.push({event:ev.event_id,code,name:nameMap.get(code)||code,s})}));
@@ -360,7 +389,8 @@ function ageText(c){return c&&c.age_minutes!=null?fmt(c.age_minutes,0)+" min":"�
    ["Chuva observada + IFS",rain.generated_at_utc,rain.status],
    ["Calibração multi-evento",cal.generated_at_utc,cal.status],
    ["Seleção adaptativa",adaptive.generated_at_utc,(adaptive.governance||{}).pseudo_operational_validation_required?"validação pseudo-operacional requerida":"—"],
-   ["Arquitetura 145 sub-bacias",arch.generated_at_utc,arch.status]
+   ["Arquitetura 145 sub-bacias",arch.generated_at_utc,arch.status],
+   ["Checkpoint Muçum · rodada atual",dual.generated_at_utc,(dual.operational_validation||{}).status||dual.status]
  ];
  $("sourceRows").innerHTML=sourceMeta.map(r=>"<tr><td><b>"+safe(r[0])+"</b></td><td>"+safe(when(r[1]))+"</td><td>"+safe(statusText(r[2]))+"</td></tr>").join("");
  setTimeout(()=>map.invalidateSize(),150);
