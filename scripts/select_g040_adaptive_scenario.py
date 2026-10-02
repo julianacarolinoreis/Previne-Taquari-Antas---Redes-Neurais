@@ -59,7 +59,7 @@ def live_rain_fingerprint(rain):
             if v is None or a<=0: continue
             num+=float(v)*a; den+=a
         return num/den if den else None
-    raw={cid:(x.get("fc48") or 0.0) for cid,x in comp.items()}
+    raw={cid:(x.get("fc48") or 0.0)*(x.get("area") or 0.0) for cid,x in comp.items()}
     s=sum(raw.values())
     frac={cid:(v/s if s>0 else 0.0) for cid,v in raw.items()}
     return {
