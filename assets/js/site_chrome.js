@@ -20,6 +20,7 @@
     '<div class="site-nav-links">' +
       '<a href="' + prefix + 'projeto.html#situacao-agora">Situação agora</a>' +
       '<a href="' + prefix + 'dashboard_bacia.html"' + cur('bacia') + '>Bacia</a>' +
+      '<a href="' + prefix + 'ai_lab_brasil.html"' + cur('ailab') + '>AI Lab</a>' +
       '<a href="' + prefix + 'pesquisas/estudo-caso-territorio.html">Território</a>' +
       '<a href="' + prefix + 'pesquisas.html"' + cur('acervo') + '>Pesquisa</a>' +
       '<a href="' + prefix + 'projeto.html"' + cur('projeto') + '>Projeto</a>' +
