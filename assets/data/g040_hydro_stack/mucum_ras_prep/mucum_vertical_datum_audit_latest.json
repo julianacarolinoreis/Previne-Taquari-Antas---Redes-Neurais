@@ -1,0 +1,59 @@
+{
+  "schema_version": "mucum_vertical_datum_audit_v1",
+  "generated_at_utc": "2026-10-02T18:22:43.751Z",
+  "research_only": true,
+  "station": "86510000",
+  "station_name": "Muçum",
+  "conclusion": "GAUGE_RELATIVE_DATUM_USABLE_ABSOLUTE_DATUM_NOT_RECONCILED",
+  "evidence": {
+    "gauge_zero_history": {
+      "status": "stable_relative_datum_supported",
+      "detail": "SGB 2022 report states no record was found of a change in the position of the gauge zero (no 100 cm or other offset added historically).",
+      "source": "SGB Projeto de regionalização de vazões / análise de frequência de cotas, Muçum 86510000 (2022)"
+    },
+    "measured_sections": {
+      "lst_2022": {
+        "date": "2022-07-22",
+        "pi_pf_width_m": 353.3,
+        "min_stage_cm": -495,
+        "datum": "gauge_relative"
+      },
+      "lst_2020": {
+        "date": "2020-01-20",
+        "min_stage_cm": -533,
+        "datum": "gauge_relative"
+      },
+      "lst_2023": {
+        "date": "2023-03-23",
+        "offset_from_gauge_section_m": 70,
+        "min_stage_cm": -385,
+        "datum": "gauge_relative"
+      }
+    },
+    "ana_inventory_altitude": {
+      "reported_m": 240,
+      "status": "DO_NOT_USE_AS_GAUGE_ZERO",
+      "reason": "The field is station inventory metadata; no RN/nivelamento relationship tying this number to gauge zero and the project MDT vertical reference has been recovered."
+    },
+    "absolute_rn": {
+      "recovered": false,
+      "required_source": "SGB/ANA station descriptive sheet, RN leveling record or equivalent surveyed relationship between gauge zero and a known vertical datum"
+    }
+  },
+  "allowed": [
+    "Compare SGB LSTs with each other in gauge-relative coordinates.",
+    "Use gauge-relative section geometry for shape/depth constraints after numeric vertices are recovered.",
+    "Use current Muçum rating curve in gauge-stage coordinates within its documented validity."
+  ],
+  "forbidden": [
+    "Do not add 240 m to gauge readings.",
+    "Do not subtract MDT elevation from gauge stage before RN/datum reconciliation.",
+    "Do not merge flood-mark elevations, MDT terrain and gauge-relative LST as if they shared a vertical datum.",
+    "Do not publish HEC-RAS absolute water-surface elevations from the pilot until vertical reference is reconciled."
+  ],
+  "next_action": [
+    "Recover numeric vertices of SGB LST 22/07/2022 or original survey file.",
+    "Recover RN/nivelamento from SGB/ANA descriptive station records.",
+    "Then transform S09 measured section to project vertical datum and splice only bank/floodplain terrain outside the measured channel."
+  ]
+}
