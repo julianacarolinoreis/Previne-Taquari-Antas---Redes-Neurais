@@ -20,7 +20,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"scripts"))
 
-from build_hec_hms_spatial_forecast_mucum import BRT, fmt_hec_date, fmt_hec_time, dpart
+from build_hec_hms_spatial_forecast_mucum import BRT, fmt_hec_date, fmt_hec_time, dpart, stage_to_q
 from run_hec_twin_mucum_forward_5d import q_to_stage_cm, mucum_curve_segments, load_areas, params_from_library_row
 from run_hec_twin_stz_mucum_calibrate import run_network, muskingum
 from run_mucum_06z_upstream_assimilated import solve_dn_ratio
@@ -279,8 +279,15 @@ def sb_text(name,area,downstream,il,cl,tc,storage,rec,ratio):
 End:
 """
 
-def basin_text(params):
+def basin_text(params, mucum_initial_q_m3s=None):
     dn=params.dn
+    if mucum_initial_q_m3s is None:
+        final_reach_initial = "     Initial Variable: Combined Inflow"
+    else:
+        final_reach_initial = (
+            "     Initial Variable: Discharge\n"
+            f"     Initial Discharge: {float(mucum_initial_q_m3s):.3f}"
+        )
     return f"""Basin: Mucum Dual Observed Boundary
      Description: observed LJJ + observed Carreiro boundaries, residual rain-runoff only
      Last Modified Date: 29 September 2026
@@ -343,7 +350,7 @@ End:
 Reach: R_STZ_MUCUM
      Downstream: MUCUM
      Route: Muskingum
-     Initial Variable: Combined Inflow
+{final_reach_initial}
      Muskingum K: {K3:.3f}
      Muskingum x: {X:.3f}
      Muskingum Steps: 1
@@ -567,11 +574,32 @@ def main():
         k1=params.k1,k2=params.k2,k3=params.k3,x=params.x,
     )
 
+    # Initialize the final routing reach with observed Muçum discharge at the
+    # beginning of the warm-up window. HEC-HMS explicitly supports a specified
+    # reach discharge initial condition when observed streamflow is available at
+    # the reach outlet. This corrects routing storage/state inside HEC itself;
+    # it is not a post-simulation vertical shift.
+    segs=mucum_curve_segments()
+    live_stage_rows=[]
+    for rr0 in live.get("serie_observada_ana") or []:
+        try:
+            live_stage_rows.append((datetime.fromisoformat(rr0["hora"]),float(rr0["nivel_cm"])))
+        except Exception:
+            pass
+    live_stage_rows.sort()
+    mucum_initial_stage_cm=None
+    mucum_initial_q_m3s=None
+    if live_stage_rows:
+        mucum_initial_stage_cm=observed_at_hour(live_stage_rows,warm_start)
+        qic=stage_to_q(float(mucum_initial_stage_cm),segs)
+        if qic.get("ok"):
+            mucum_initial_q_m3s=float(qic["q_m3s"])
+
     PROJ.mkdir(parents=True,exist_ok=True)
     start=times[0].replace(tzinfo=BRT); end=times[-1].replace(tzinfo=BRT)
     (PROJ/"mucum_dual_boundary.hms").write_text(project_text(),encoding="utf-8")
     (PROJ/"mucum_dual_boundary.run").write_text(run_text(),encoding="utf-8")
-    (PROJ/"dual.basin").write_text(basin_text(params),encoding="utf-8")
+    (PROJ/"dual.basin").write_text(basin_text(params,mucum_initial_q_m3s),encoding="utf-8")
     (PROJ/"residual.met").write_text(met_text(),encoding="utf-8")
     (PROJ/"dual.control").write_text(control_text(start,end),encoding="utf-8")
     (PROJ/"mucum_dual_boundary.gage").write_text(gage_text(start,end),encoding="utf-8")
@@ -585,7 +613,6 @@ def main():
     vals=[float(x["q_m3s"]) for x in rr if x["element"]=="MUCUM"]
     vals=vals[-len(times):]
     if len(vals)!=len(times): raise RuntimeError(f"MUCUM output {len(vals)} != {len(times)}")
-    segs=mucum_curve_segments()
     stages=[q_to_stage_cm(q,segs)["stage_cm"] for q in vals]
 
     obs_n=float(live["telemetria_ultima_nivel_cm"])
@@ -670,6 +697,9 @@ def main():
         "routing":{"k1_h":K1,"k2_h":K2,"k3_h":K3,"x":X},
         "live_calibration_controls":{
           "warmup_h":WARMUP_H,"memory_tau_h":MEMORY_TAU_H,
+          "final_reach_initial_condition":"observed_discharge_at_warmup_start" if mucum_initial_q_m3s is not None else "combined_inflow_fallback",
+          "final_reach_initial_stage_cm":None if mucum_initial_stage_cm is None else round(mucum_initial_stage_cm,2),
+          "final_reach_initial_q_m3s":None if mucum_initial_q_m3s is None else round(mucum_initial_q_m3s,3),
           "dn_initial_loss_scale":DN_INITIAL_LOSS_SCALE,
           "dn_constant_loss_scale":DN_CONSTANT_LOSS_SCALE,
           "dn_tc_scale":DN_TC_SCALE,
