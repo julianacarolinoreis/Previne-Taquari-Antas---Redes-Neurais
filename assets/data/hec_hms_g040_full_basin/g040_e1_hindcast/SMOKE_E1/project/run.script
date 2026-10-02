@@ -69,7 +69,7 @@ paths=list(dss.getCatalogedPathnames())
 fo=open(r"/home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/assets/data/hec_hms_g040_full_basin/g040_e1_hindcast/SMOKE_E1/project/hec_output_values.csv","wb")
 w=csv.writer(fo); w.writerow(["element","time_value","q_m3s","pathname"])
 for path in paths:
-    if "/FLOW/" not in path or "/1Hour/RUN:Hindcast/" not in path: continue
+    if "/FLOW/" not in path or "/RUN:Hindcast/" not in path: continue
     s=dss.get(path); parts=path.split("/"); element=parts[2] if len(parts)>2 else ""
     for i in range(s.numberValues):
         v=float(s.values[i])
