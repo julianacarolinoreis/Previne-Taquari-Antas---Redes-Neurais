@@ -1,0 +1,66 @@
+name: PREVINE AI Lab - treinamento automatico
+
+on:
+  workflow_dispatch:
+    inputs:
+      experiment:
+        description: "ID do experimento em assets/data/ai_lab/experiments.json"
+        required: false
+        default: "stz_2h_auto_v1"
+  push:
+    branches: [main]
+    paths:
+      - "assets/data/ai_lab/experiments.json"
+      - "scripts/ai_lab_auto_train.py"
+      - ".github/workflows/ai-lab-auto-train.yml"
+  schedule:
+    - cron: "17 6 * * 1"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: previne-ai-lab-auto-train
+  cancel-in-progress: false
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install training runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy openpyxl scikit-learn xgboost
+
+      - name: Run leakage-safe auto training
+        run: |
+          EXPERIMENT="${{ github.event.inputs.experiment || 'stz_2h_auto_v1' }}"
+          python -B scripts/ai_lab_auto_train.py --experiment "$EXPERIMENT"
+
+      - name: Publish auditable leaderboard
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/data/ai_lab/auto_training_latest.json assets/data/ai_lab/auto_training_leaderboard.csv
+          if git diff --cached --quiet; then
+            echo "No AI Lab result changes."
+          else
+            git commit -m "Update AI Lab automatic training results"
+            git push
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: previne-ai-lab-training
+          path: |
+            assets/data/ai_lab/auto_training_latest.json
+            assets/data/ai_lab/auto_training_leaderboard.csv
