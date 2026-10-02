@@ -29,6 +29,7 @@ HYDRO=BASE/"whole_basin_live_hydro_controls_latest.json"
 SCENARIOS=BASE/"whole_basin_boundary_scenarios_latest.json"
 OUTROOT=BASE/"g040_e1_hindcast"
 BRT=timezone(timedelta(hours=-3))
+DSS_EPOCH=datetime(1899,12,31)
 # Fixed across calibration candidates so ranking is not contaminated by changing numerical resolution.
 # 3 min satisfies HEC-HMS SCS UH guidance dt <= 0.29*lag even at the current minimum lag bound (~15.85 min).
 COMPUTE_INTERVAL_MIN=3
@@ -578,22 +579,26 @@ Exit(1)
 """,encoding="utf-8")
     return script
 
+def dss_time_to_utc(value):
+    """HEC-DSS regular-series time is minutes since 1899-12-31 in project local time."""
+    local_dt=DSS_EPOCH+timedelta(minutes=int(float(value)))
+    return local_dt.replace(tzinfo=BRT).astimezone(timezone.utc)
+
 def read_output_csv(path):
+    # Catalog order is not temporal order and monthly DSS blocks can arrive in
+    # either order. Preserve the real DSS timestamp, deduplicate boundaries,
+    # then sort explicitly.
     by={}
     with path.open(encoding="utf-8",newline="") as fh:
         for r in csv.DictReader(fh):
-            by.setdefault(r["element"],[]).append(float(r["q_m3s"]))
-    return by
-
-def hourly_simulation_values(values, hourly_count):
-    """Sample fixed-interval HEC output on the exact hourly grid used by observations."""
-    stride=60//COMPUTE_INTERVAL_MIN
-    if stride*COMPUTE_INTERVAL_MIN != 60:
-        raise RuntimeError("compute interval must divide 60 minutes for hourly scoring")
-    # HEC output includes the simulation start value. Sampling every stride keeps
-    # t0, t0+1h, ... on the same axis as target_hourly().
-    sampled=list(values[::stride])
-    return sampled[:hourly_count]
+            element=r["element"]
+            t=dss_time_to_utc(r["time_value"])
+            q=float(r["q_m3s"])
+            by.setdefault(element,{})[t]=q
+    return {
+        element:sorted(values.items(),key=lambda x:x[0])
+        for element,values in by.items()
+    }
 
 def _corr(a,b):
     if len(a)<2: return None
@@ -611,14 +616,15 @@ def score_outputs(out_by,hydro,times):
     result={}
     for code in MAIN_CHECKPOINTS:
         element="J_"+code
-        raw_sim=out_by.get(element) or []
-        sim=hourly_simulation_values(raw_sim,len(times))
+        sim_rows=out_by.get(element) or []
+        simmap={t:q for t,q in sim_rows}
         obsmap=target_hourly(hydro,code,times)
         pairs=[]
-        for i,t in enumerate(times[:len(sim)]):
+        for t in times:
             qo=obsmap.get(t)
-            if qo is not None and math.isfinite(sim[i]):
-                pairs.append((t,float(qo),float(sim[i])))
+            qs=simmap.get(t)
+            if qo is not None and qs is not None and math.isfinite(qs):
+                pairs.append((t,float(qo),float(qs)))
         if len(pairs)<4:
             result[code]={"pairs":len(pairs),"status":"insufficient_observed_Q"}
             continue
