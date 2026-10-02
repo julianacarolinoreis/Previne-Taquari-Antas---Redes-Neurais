@@ -1,0 +1,74 @@
+{
+  "schema_version": "mucum_bathymetry_coverage_audit_v1",
+  "generated_at_utc": "2026-10-02T18:14:11.211Z",
+  "research_only": true,
+  "target_domain": "Santa Tereza (86472600) -> Muçum (86510000)",
+  "target_status": "NO_AUDITED_CHANNEL_BATHYMETRY_FOUND_FOR_PILOT",
+  "findings": [
+    {
+      "source_id": "bathymetry_dnit_2024",
+      "status": "AVAILABLE_DOWNSTREAM_NOT_PILOT",
+      "coverage": "ponte BR-386 entre Lajeado/Estrela -> barragem de Bom Retiro do Sul",
+      "pilot_overlap": false,
+      "evidence": "IPH-UFRGS/SGB/UNIVATES technical note states DNIT March 2024 bathymetry was used in the BR-386 to Bom Retiro do Sul reach.",
+      "source_url": "https://admin.planoriogrande.rs.gov.br/upload/arquivos/202507/08181343-iph-nota-tecnica-assoreamento-versao-3.pdf"
+    },
+    {
+      "source_id": "bathymetry_dnit_2025",
+      "status": "AVAILABLE_DOWNSTREAM_NOT_PILOT",
+      "coverage": "ponte BR-386 entre Lajeado/Estrela -> barragem de Bom Retiro do Sul",
+      "pilot_overlap": false,
+      "evidence": "Same technical note states DNIT Feb/Mar 2025 bathymetry covers the comparison reach downstream of Muçum.",
+      "source_url": "https://admin.planoriogrande.rs.gov.br/upload/arquivos/202507/08181343-iph-nota-tecnica-assoreamento-versao-3.pdf"
+    },
+    {
+      "source_id": "agrosig_2016",
+      "status": "PARTIAL_DOWNSTREAM_NOT_PILOT",
+      "coverage": "Encantado -> Bom Retiro do Sul; 35 cross-sections",
+      "pilot_overlap": false,
+      "evidence": "Technical note describes AGROSIG 2016 as 35 cross-sections between Encantado and Bom Retiro do Sul.",
+      "source_url": "https://admin.planoriogrande.rs.gov.br/upload/arquivos/202507/08181343-iph-nota-tecnica-assoreamento-versao-3.pdf"
+    },
+    {
+      "source_id": "ana_station_86472600_inventory",
+      "status": "NO_ABSOLUTE_ALTITUDE_IN_PUBLIC_INVENTORY",
+      "station": "86472600",
+      "inventory_altitude": null,
+      "implication": "Cannot derive station gauge-zero elevation from HidroInventario alone."
+    },
+    {
+      "source_id": "ana_rating_curve_86510000",
+      "status": "RATING_CURVE_AVAILABLE_GAUGE_DATUM_MISSING",
+      "station": "86510000",
+      "valid_from": "2024-01-01",
+      "valid_to": "2026-12-31",
+      "segment_count_current": 3,
+      "implication": "Q(h) is usable in gauge-stage coordinates, but absolute water-surface elevation still needs RN/nivelamento/gauge-zero elevation."
+    }
+  ],
+  "current_geometry": {
+    "terrain_cross_sections": "assets/data/g040_hydro_stack/mucum_ras_prep/cross_sections.geojson",
+    "terrain_profiles": "assets/data/g040_hydro_stack/mucum_ras_prep/cross_section_profiles.csv",
+    "status": "terrain_only_not_channel_bed"
+  },
+  "hydraulic_gates": {
+    "pilot_bathymetry_found": false,
+    "station_86472600_absolute_gauge_zero": false,
+    "station_86510000_absolute_gauge_zero": false,
+    "vertical_datum_reconciled": false,
+    "channel_geometry_compute_ready": false
+  },
+  "next_sources_ranked": [
+    "SGB/CPRM station descriptive sheet / RN leveling for 86510000 Muçum",
+    "SGB/CPRM station descriptive sheet / RN leveling for 86472600 Santa Tereza",
+    "ANA HidroWeb station ZIPs: discharge measurements, descriptive/nivelamento files and any cross-section/profile records",
+    "CERAN / hydropower environmental-hydraulic surveys upstream on Rio das Antas/Taquari",
+    "UFRGS/UNIVATES project archives with measured cross-sections upstream of Encantado",
+    "new field bathymetric survey for S06-S09 if no historical channel geometry is recovered"
+  ],
+  "forbidden_substitutions": [
+    "Do not use DNIT 2024/2025 BR-386->Bom Retiro bathymetry as Santa Tereza-Muçum geometry.",
+    "Do not treat drone/ANADEM terrain elevations as submerged channel bed.",
+    "Do not convert gauge stage to absolute elevation without RN/nivelamento or an independently reconciled station datum."
+  ]
+}
