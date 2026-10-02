@@ -1,0 +1,275 @@
+{
+  "schema_version": "stz_mucum_all_sections_hydraulic_evidence_v1",
+  "generated_at_utc": "2026-10-02T18:27:36.721Z",
+  "research_only": true,
+  "domain": "Linha José Júlio -> confluência Carreiro -> Santa Tereza -> Muçum",
+  "policy": {
+    "measured_channel": "Measured LST/cross-section/profile may constrain channel geometry.",
+    "rating_curve": "Rating curve constrains Q-stage but does not define a cross-section by itself.",
+    "flood_mark": "Flood marks constrain stage/elevation only after datum is reconciled.",
+    "terrain": "MDT/drone/ANADEM constrains banks/floodplain; never substitute for submerged channel bed.",
+    "no_invention": "No unmeasured thalweg, bank station or absolute gauge-zero is synthesized."
+  },
+  "public_sources": [
+    {
+      "id": "sgb_taquari_2014",
+      "title": "Relatório Sistema de Alerta da Bacia do Rio Taquari",
+      "url": "https://rigeo.sgb.gov.br/bitstream/doc/24596/1/sistema%20de%20alerta_taquari_2014.pdf",
+      "supports": [
+        "historical rating curves",
+        "Linha José Júlio preliminary rating relation",
+        "Passo Carreiro rating-curve history"
+      ]
+    },
+    {
+      "id": "sgb_mucum_frequency_2022",
+      "title": "Análise de frequência de cotas - Muçum 86510000",
+      "url": "https://rigeo.sgb.gov.br/bitstreams/665b8bfa-d4fe-4cca-8720-694fdc7964d2/download",
+      "supports": [
+        "Muçum measured LST 22/07/2022",
+        "historical measured sections",
+        "gauge-relative section evidence"
+      ]
+    },
+    {
+      "id": "hidroapp_86500000",
+      "title": "HidroAPP - Passo Carreiro 86500000",
+      "url": "https://www.labhidro.ufsc.br/hidroapp/hidroapp_data/DADOS/86500000/86500000.html",
+      "supports": [
+        "latest available measured cross-section at Passo Carreiro",
+        "rating curve and hydraulic geometry based on ANA/HidroWeb through 2023"
+      ]
+    },
+    {
+      "id": "sgb_floodmarks_2024",
+      "title": "SGB - levantamento de marcas da cheia 2024",
+      "url": "https://rigeo.sgb.gov.br/bitstreams/fc1b8a76-deae-4913-96de-3b25cd3f9845/download",
+      "supports": [
+        "Linha José Júlio peak marks",
+        "Santa Tereza peak marks",
+        "Muçum peak marks"
+      ]
+    }
+  ],
+  "sections": [
+    {
+      "section_id": "S01",
+      "location": "Linha José Júlio / 86472000",
+      "terrain_role": "banks_and_floodplain",
+      "measured_channel_profile": false,
+      "measured_channel_profile_status": "NOT_RECOVERED",
+      "rating_curve": true,
+      "rating_curve_status": "CURRENT_PROJECT_CURVE_AVAILABLE",
+      "rating_curve_project_source": "assets/data/estudo_bacia_taquari_antas/curva_chave_86472600/curva_chave_hunt_86472600_latest.json -> neighbors_official_curves_NOT_for_STZ.86472000",
+      "current_curve_validity": "2024-05-02 to 2026-12-31",
+      "current_curve_segments": 2,
+      "historical_evidence": {
+        "relation_2014": "Q = 0.39 * (h_cm - 248.75)^1.32, 400-1800 cm",
+        "relation_status": "PRELIMINARY_HISTORICAL_DO_NOT_REPLACE_CURRENT_CURVE",
+        "note": "CPRM 2014 explicitly said it required validation after cross-section survey and discharge measurements."
+      },
+      "flood_stage_constraints": [
+        {
+          "event": "2023-09",
+          "stage_m": 27.76,
+          "kind": "levelled_flood_mark"
+        },
+        {
+          "event": "2024-05",
+          "stage_m": 25.82,
+          "kind": "levelled_flood_mark"
+        }
+      ],
+      "absolute_vertical_datum_reconciled": false,
+      "channel_geometry_use": "RATING_CURVE_AND_STAGE_CONSTRAINT_ONLY",
+      "compute_ready_channel": false
+    },
+    {
+      "section_id": "S02",
+      "location": "mainstem Antas representative section before Carreiro",
+      "terrain_role": "banks_and_floodplain",
+      "measured_channel_profile": false,
+      "rating_curve": false,
+      "flood_stage_constraints": [],
+      "absolute_vertical_datum_reconciled": false,
+      "channel_geometry_use": "TERRAIN_ONLY_NO_BED",
+      "compute_ready_channel": false
+    },
+    {
+      "section_id": "S03",
+      "location": "mainstem ~200 m upstream of Carreiro confluence",
+      "terrain_role": "banks_and_floodplain",
+      "measured_channel_profile": false,
+      "rating_curve": false,
+      "lateral_branch_evidence": {
+        "station": "86500000",
+        "name": "Passo Carreiro",
+        "relation_to_section": "tributary evidence only; must NOT replace mainstem S03 geometry",
+        "measured_profile_available": true,
+        "source": "HidroAPP/ANA-HidroWeb",
+        "source_updated_through": "2023-05-27"
+      },
+      "absolute_vertical_datum_reconciled": false,
+      "channel_geometry_use": "MAINSTEM_TERRAIN_ONLY_BRANCH_PROFILE_AS_LATERAL_CONSTRAINT",
+      "compute_ready_channel": false
+    },
+    {
+      "section_id": "S04",
+      "location": "mainstem ~200 m downstream of Carreiro confluence",
+      "terrain_role": "banks_and_floodplain",
+      "measured_channel_profile": false,
+      "rating_curve": false,
+      "lateral_branch_evidence": {
+        "station": "86500000",
+        "name": "Passo Carreiro",
+        "measured_profile_available": true,
+        "rating_curve_available": true,
+        "historical_curve_periods": [
+          "1939-2010",
+          "2010-2013"
+        ],
+        "source": "HidroAPP + SGB Taquari 2014",
+        "note": "Useful for Carreiro lateral inflow/channel characterization, not a substitute for post-confluence mainstem section."
+      },
+      "absolute_vertical_datum_reconciled": false,
+      "channel_geometry_use": "MAINSTEM_TERRAIN_ONLY_WITH_MEASURED_TRIBUTARY_CONSTRAINT",
+      "compute_ready_channel": false
+    },
+    {
+      "section_id": "S05",
+      "location": "approach to Santa Tereza",
+      "terrain_role": "high_resolution_banks_and_floodplain",
+      "measured_channel_profile": false,
+      "rating_curve": false,
+      "flood_stage_constraints": [],
+      "absolute_vertical_datum_reconciled": false,
+      "channel_geometry_use": "DRONE_TERRAIN_ONLY_NO_SUBMERGED_BED",
+      "compute_ready_channel": false
+    },
+    {
+      "section_id": "S06",
+      "location": "Santa Tereza / 86472600",
+      "terrain_role": "banks_and_floodplain",
+      "measured_channel_profile": false,
+      "rating_curve": false,
+      "rating_curve_status": "OFFICIAL_PUBLIC_CURVE_NOT_RECOVERED",
+      "station_inventory_discharge_flag": true,
+      "station_public_altitude": null,
+      "flood_stage_constraints": [
+        {
+          "event": "2023-09",
+          "stage_m": 24.04,
+          "kind": "levelled_flood_mark"
+        },
+        {
+          "event": "2024-05",
+          "stage_m": 22.42,
+          "kind": "levelled_flood_mark"
+        }
+      ],
+      "absolute_vertical_datum_reconciled": false,
+      "channel_geometry_use": "OBSERVED_STAGE_AND_FLOOD_MARK_CONSTRAINT_ONLY",
+      "compute_ready_channel": false
+    },
+    {
+      "section_id": "S07",
+      "location": "mid-reach Santa Tereza-Muçum",
+      "terrain_role": "banks_and_floodplain",
+      "measured_channel_profile": false,
+      "rating_curve": false,
+      "flood_stage_constraints": [],
+      "absolute_vertical_datum_reconciled": false,
+      "channel_geometry_use": "TERRAIN_ONLY_NO_BED",
+      "compute_ready_channel": false
+    },
+    {
+      "section_id": "S08",
+      "location": "entry to high-resolution Muçum terrain domain",
+      "terrain_role": "high_resolution_banks_and_floodplain",
+      "measured_channel_profile": false,
+      "rating_curve": false,
+      "flood_stage_constraints": [],
+      "known_issue": "Drone MDT has poor/no submerged-channel coverage close to centerline; do not interpret terrain minimum as thalweg.",
+      "absolute_vertical_datum_reconciled": false,
+      "channel_geometry_use": "DRONE_TERRAIN_ONLY_NO_SUBMERGED_BED",
+      "compute_ready_channel": false
+    },
+    {
+      "section_id": "S09",
+      "location": "Muçum / 86510000",
+      "terrain_role": "high_resolution_banks_and_floodplain",
+      "measured_channel_profile": true,
+      "measured_channel_profile_status": "SGB_MEASURED_EVIDENCE_MULTIPLE_EPOCHS",
+      "measured_sections": [
+        {
+          "date": "2008-08-05",
+          "offset": "~1 km upstream",
+          "numeric_vertices_recovered": false
+        },
+        {
+          "date": "2009-06-29",
+          "offset": "~700 m upstream",
+          "numeric_vertices_recovered": false
+        },
+        {
+          "date": "2010-08-17",
+          "offset": "~700 m upstream",
+          "numeric_vertices_recovered": false
+        },
+        {
+          "date": "2020-01-20",
+          "min_bed_stage_cm": -533,
+          "numeric_vertices_recovered": false
+        },
+        {
+          "date": "2022-07-22",
+          "offset": "gauge section",
+          "width_m": 353.3,
+          "min_bed_stage_cm": -495,
+          "numeric_vertices_recovered": false
+        },
+        {
+          "date": "2023-03-23",
+          "offset": "70 m downstream",
+          "min_bed_stage_cm": -385,
+          "numeric_vertices_recovered": false
+        }
+      ],
+      "rating_curve": true,
+      "rating_curve_status": "CURRENT_PROJECT_CURVE_AVAILABLE",
+      "rating_curve_validity": "2024-01-01 to 2026-12-31",
+      "rating_curve_segments": 3,
+      "flood_stage_constraints": [
+        {
+          "event": "2023-09",
+          "stage_m": 26.11,
+          "kind": "levelled_or_read_flood_stage"
+        },
+        {
+          "event": "2024-05",
+          "stage_m": 26,
+          "kind": "read_at_gauge_section"
+        }
+      ],
+      "gauge_relative_datum_consistent": true,
+      "absolute_vertical_datum_reconciled": false,
+      "channel_geometry_use": "MEASURED_CHANNEL_EVIDENCE_PENDING_NUMERIC_VERTICES_AND_RN",
+      "compute_ready_channel": false
+    }
+  ],
+  "overall": {
+    "sections_total": 9,
+    "sections_with_measured_channel_profile": 1,
+    "sections_with_measured_tributary_profile_constraint": 2,
+    "station_sections_with_rating_curve": 2,
+    "station_sections_with_flood_stage_constraints": 3,
+    "sections_compute_ready_channel": 0,
+    "hec_ras_compute_ready": false,
+    "blockers": [
+      "Recover numeric vertices of measured Muçum LSTs.",
+      "Recover station RN/nivelamento/gauge-zero relationship for Muçum and Santa Tereza; preferably Linha José Júlio too.",
+      "Recover or survey mainstem bed geometry for S01-S08, especially S03-S08.",
+      "Add structures/bridges and calibrate Manning after geometry is vertically reconciled."
+    ]
+  }
+}
