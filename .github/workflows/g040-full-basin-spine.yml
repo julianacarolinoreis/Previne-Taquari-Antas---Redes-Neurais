@@ -16,6 +16,7 @@ on:
       - "assets/data/hec_hms_g040_full_basin/whole_basin_rain_forcing_latest.json"
       - "assets/data/hec_hms_g040_full_basin/whole_basin_live_hydro_controls_latest.json"
       - "assets/data/g040_hydro_stack/master_readiness_latest.json"
+      - "assets/data/basin_station_status_latest.json"
   pull_request:
     paths:
       - "config/g040_full_basin_operational_contract_v1.json"
@@ -74,11 +75,39 @@ jobs:
           git config user.name "previne-g040-spine-bot"
           git config user.email "previne-g040-spine-bot@users.noreply.github.com"
           BASE="assets/data/hec_hms_g040_full_basin"
-          git add --             "$BASE/g040_basin_mask.geojson"             "$BASE/g040_download_buffer.geojson"             "$BASE/g040_domain_contract_latest.json"             "$BASE/g040_ecmwf_buffer_grid_latest.json"             "$BASE/g040_ecmwf_buffer_hourly.csv"             "$BASE/g040_basin_snapshot_latest.json"             "$BASE/g040_basin_controls_latest.csv" \
-            "$BASE/g040_basin_network_latest.csv"
-          if git diff --cached --quiet; then
-            exit 0
-          fi
-          git commit -m "bot: update G040 full-basin domain and meteorological field [skip ci]"
-          git pull --rebase origin main
-          git push origin HEAD:main
+
+          cp "$BASE/g040_basin_mask.geojson" /tmp/
+          cp "$BASE/g040_download_buffer.geojson" /tmp/
+          cp "$BASE/g040_domain_contract_latest.json" /tmp/
+          cp "$BASE/g040_ecmwf_buffer_grid_latest.json" /tmp/
+          cp "$BASE/g040_ecmwf_buffer_hourly.csv" /tmp/
+          cp "$BASE/g040_basin_snapshot_latest.json" /tmp/
+          cp "$BASE/g040_basin_controls_latest.csv" /tmp/
+          cp "$BASE/g040_basin_network_latest.csv" /tmp/
+
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+
+            cp /tmp/g040_basin_mask.geojson "$BASE/"
+            cp /tmp/g040_download_buffer.geojson "$BASE/"
+            cp /tmp/g040_domain_contract_latest.json "$BASE/"
+            cp /tmp/g040_ecmwf_buffer_grid_latest.json "$BASE/"
+            cp /tmp/g040_ecmwf_buffer_hourly.csv "$BASE/"
+            cp /tmp/g040_basin_snapshot_latest.json "$BASE/"
+            cp /tmp/g040_basin_controls_latest.csv "$BASE/"
+            cp /tmp/g040_basin_network_latest.csv "$BASE/"
+
+            git add --               "$BASE/g040_basin_mask.geojson"               "$BASE/g040_download_buffer.geojson"               "$BASE/g040_domain_contract_latest.json"               "$BASE/g040_ecmwf_buffer_grid_latest.json"               "$BASE/g040_ecmwf_buffer_hourly.csv"               "$BASE/g040_basin_snapshot_latest.json"               "$BASE/g040_basin_controls_latest.csv"               "$BASE/g040_basin_network_latest.csv"
+
+            if git diff --cached --quiet; then
+              exit 0
+            fi
+
+            git commit -m "bot: update G040 full-basin domain and meteorological field [skip ci]"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+          exit 1
