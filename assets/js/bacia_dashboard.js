@@ -445,30 +445,7 @@
     state.networkUpg = 'all';
     state.networkVariable = 'all';
     state.networkModel = 'all';
-    root.querySelectorAll('[data-rain-map-mode]').forEach((button) => {
-    button.addEventListener('click', () => {
-      state.rainMapMode = button.dataset.rainMapMode || 'forecast';
-      root.querySelectorAll('[data-rain-map-mode]').forEach((b) => {
-        const active = b === button;
-        b.classList.toggle('is-active', active);
-        b.setAttribute('aria-pressed', active ? 'true' : 'false');
-      });
-      renderRainSpatialMap();
-    });
-  });
-  root.querySelectorAll('[data-rain-map-hours]').forEach((button) => {
-    button.addEventListener('click', () => {
-      state.rainMapHours = Number(button.dataset.rainMapHours) || 72;
-      root.querySelectorAll('[data-rain-map-hours]').forEach((b) => {
-        const active = b === button;
-        b.classList.toggle('is-active', active);
-        b.setAttribute('aria-pressed', active ? 'true' : 'false');
-      });
-      renderRainSpatialMap();
-    });
-  });
-
-  root.querySelectorAll('[data-network-filter]').forEach((button) => {
+    root.querySelectorAll('[data-network-filter]').forEach((button) => {
       const active = button.dataset.networkFilter === 'all';
       button.classList.toggle('is-active', active);
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
@@ -1771,6 +1748,29 @@
       render();
     });
   });
+  root.querySelectorAll('[data-rain-map-mode]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.rainMapMode = button.dataset.rainMapMode || 'forecast';
+      root.querySelectorAll('[data-rain-map-mode]').forEach((b) => {
+        const active = b === button;
+        b.classList.toggle('is-active', active);
+        b.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+      renderRainSpatialMap();
+    });
+  });
+  root.querySelectorAll('[data-rain-map-hours]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.rainMapHours = Number(button.dataset.rainMapHours) || 72;
+      root.querySelectorAll('[data-rain-map-hours]').forEach((b) => {
+        const active = b === button;
+        b.classList.toggle('is-active', active);
+        b.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+      renderRainSpatialMap();
+    });
+  });
+
   root.querySelectorAll('[data-network-filter]').forEach((button) => {
     button.addEventListener('click', () => {
       state.networkFilter = button.dataset.networkFilter || 'all';
