@@ -11,6 +11,14 @@ on:
       - "assets/data/mucum_inundacao/mdt/**"
       - "assets/data/santa_tereza_inundacao/mdt/**"
       - "assets/data/g040_hydro_stack/project_source_inventory_latest.json"
+      - "assets/data/g040_hydro_stack/mucum_ras_prep/all_sections_hydraulic_evidence_latest.json"
+      - "assets/data/g040_hydro_stack/mucum_ras_prep/mucum_sgb_lst_evidence_latest.json"
+      - "assets/data/g040_hydro_stack/mucum_ras_prep/mucum_vertical_datum_audit_latest.json"
+      - "assets/data/g040_hydro_stack/mucum_ras_prep/legacy_hec_cross_section_recovery_latest.json"
+
+concurrency:
+  group: mucum-ras-geometry-prep
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -41,13 +49,30 @@ jobs:
 
       - name: Commit generated research artifacts
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/data/g040_hydro_stack/mucum_ras_prep
-          if git diff --cached --quiet; then
-            echo "No generated changes."
-            exit 0
-          fi
-          git commit -m "Build Muçum hydraulic geometry prep"
-          git pull --rebase origin main
-          git push origin HEAD:main
+
+          # Other research workflows also write to main. Avoid rebase conflicts on
+          # generated JSON by always regenerating from the newest main before push.
+          for attempt in 1 2 3 4; do
+            echo "Publish attempt $attempt"
+            git fetch origin main
+            git reset --hard origin/main
+            python scripts/build_mucum_ras_geometry_prep.py
+            git add assets/data/g040_hydro_stack/mucum_ras_prep
+
+            if git diff --cached --quiet; then
+              echo "No generated changes."
+              exit 0
+            fi
+
+            git commit -m "Build Muçum hydraulic geometry prep"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Main advanced during publish; regenerating from latest main."
+          done
+
+          echo "Could not publish generated artifacts after 4 attempts."
+          exit 1

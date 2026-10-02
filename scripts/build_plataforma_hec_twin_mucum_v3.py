@@ -373,7 +373,9 @@ def _local_series_to_utc(times):
 
 
 def _dual_model_nodes(feed: dict, dual: dict, times_utc: list[str]) -> dict:
-    lookup = {str(n.get("code")): n for n in (feed.get("hydro_nodes") or [])}
+    hydro_nodes = feed.get("hydro_nodes") or {}
+    node_rows = hydro_nodes.get("nodes") if isinstance(hydro_nodes, dict) else hydro_nodes
+    lookup = {str(n.get("code")): n for n in (node_rows or []) if isinstance(n, dict) and n.get("code")}
     specs = [
         ("86472000", "Linha José Júlio · fronteira observada", dual.get("q_ljj_boundary_m3s") or [], "observed_upstream_boundary"),
         ("86500000", "Passo Carreiro · fronteira observada", dual.get("q_carreiro_boundary_m3s") or [], "observed_tributary_boundary"),
@@ -533,6 +535,39 @@ def build_feed_v3() -> dict:
     feed["status"] = "hec_hms_spatial_ready" if (OUT / "hec_hms_spatial_forecast_mucum_latest.json").exists() else "spatial_rain_ready_hydrology_integration_pending"
     feed["spatial_rain"] = sr
     feed["hydro_nodes"] = build_hydro_nodes(feed)
+
+    # Hydraulic evidence contract travels with the hydrologic forecast, but it
+    # does not turn the terrain-only sections into a compute-ready HEC-RAS model.
+    hydraulic = base.load_json(ROOT / "assets/data/g040_hydro_stack/mucum_ras_prep/mucum_hydraulic_geometry_prep_latest.json") or {}
+    feed["hydraulic_geometry"] = {
+        "available": bool(hydraulic),
+        "generated_at_utc": hydraulic.get("generated_at_utc"),
+        "status": hydraulic.get("status"),
+        "domain": hydraulic.get("domain"),
+        "network": hydraulic.get("network"),
+        "sections": [
+            {
+                "section_id": s.get("section_id"),
+                "purpose": s.get("purpose"),
+                "terrain_source": s.get("terrain_source"),
+                "nominal_resolution_m": s.get("nominal_resolution_m"),
+                "measured_channel_evidence": s.get("measured_channel_evidence"),
+                "channel_bed_source": s.get("channel_bed_source"),
+                "evidence_rating_curve": s.get("evidence_rating_curve"),
+                "evidence_absolute_vertical_datum_reconciled": s.get("evidence_absolute_vertical_datum_reconciled"),
+                "evidence_channel_geometry_use": s.get("evidence_channel_geometry_use"),
+                "evidence_compute_ready_channel": s.get("evidence_compute_ready_channel"),
+            }
+            for s in (hydraulic.get("sections") or [])
+        ],
+        "gates": hydraulic.get("gates") or {},
+        "next_compute_rule": hydraulic.get("next_compute_rule"),
+        "research_only": True,
+        "note_pt": (
+            "As seções S01–S09 acompanham a rodada HEC como restrições geométricas e de evidência. "
+            "MDT/ANADEM/fotogrametria representam margens e planície; não substituem o leito submerso onde não há batimetria auditada."
+        ),
+    }
 
     # Prefer the real HEC-HMS 4.13 spatial run. Fall back to the Python twin
     # only when the HEC spatial artifact is unavailable.

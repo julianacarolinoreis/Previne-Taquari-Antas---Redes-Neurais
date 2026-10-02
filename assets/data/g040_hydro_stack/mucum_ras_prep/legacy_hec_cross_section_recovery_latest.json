@@ -1,0 +1,123 @@
+{
+  "schema_version": "legacy_hec_cross_section_recovery_v1",
+  "generated_at_utc": "2026-10-02T18:47:13.964Z",
+  "research_only": true,
+  "source_report": {
+    "title": "Calibragem_HMS",
+    "document_url": "https://docs.google.com/document/d/1yDKlr6nnKlqK5mZ1I9NLcOgWnrfBd_1CBrGHsQQBOhQ/edit?usp=drivesdk",
+    "responsible": "Monique Lopes",
+    "report_date": "2026-07"
+  },
+  "confirmed_from_report": {
+    "hec_hms_version_family": "4.13",
+    "basin_subbasins": 145,
+    "reaches": 72,
+    "routing": "Muskingum-Cunge",
+    "cross_section_geometry": "8-point cross sections",
+    "cross_section_source": "HidroWeb",
+    "manning_n": {
+      "main_channel": 0.04,
+      "lateral_1": 0.12,
+      "lateral_2": 0.3
+    },
+    "mucum_control": {
+      "station": "86510000",
+      "reach": "Rio 53"
+    },
+    "estrela_control": {
+      "station": "86879300",
+      "reach": "Rio 64"
+    }
+  },
+  "recovery_search": {
+    "github_native_project_found": false,
+    "google_drive_native_project_found": false,
+    "gmail_zip_candidates_found": true,
+    "gmail_zip_candidates": [
+      "pacote_hec_hms_4_13_pronto_taquari_antas_ecmwf_20260929T1500Z.zip",
+      "HMS_DSS_corrigido_20260926_20261003.zip"
+    ],
+    "gmail_zip_direct_extraction_supported_by_connector": false,
+    "note": "The report proves that 8-point HidroWeb-derived sections existed in the earlier HMS workflow, but the original numeric section vertices/native .basin project have not yet been recovered from currently readable connected sources.",
+    "latest_findings": [
+      "The 2026-09-29 HEC-HMS ZIP was inspected from its MIME/ZIP central directory; it contains rainfall/DSS/NetCDF/audit artifacts and no native .basin/.hms geometry project.",
+      "Google Drive folder 07_HEC_HMS contains precipitation CSV/NetCDF forcing folders, not the original native HEC-HMS project.",
+      "Drive folder 'Perfis Transversais' contains raw profile 86720000_2023_03_30 (Encantado), confirming the ANA/CPRM raw section format.",
+      "No Drive filename match was found for 86472000, 86472600, 86500000 or 86510000 in the currently accessible indexed files."
+    ],
+    "native_project_geometry_recovered": false,
+    "representative_8point_numeric_profile_recovered": true,
+    "representative_8point_station_mapping_recovered": false
+  },
+  "use_policy": {
+    "manning_values": "Use as legacy sensitivity priors only, not as calibrated HEC-RAS roughness.",
+    "cross_section_claim": "Do not assign the old 8-point profile to S01-S09 until the source profile/reach mapping is recovered.",
+    "value": "Strong evidence that measured/HidroWeb geometry exists or existed and should be recovered before new field survey."
+  },
+  "next_recovery_targets": [
+    "Original HEC-HMS .basin/.hms project or export containing the 72 reach routing sections",
+    "HidroWeb cross-section downloads used to build the eight-point sections",
+    "Any spreadsheet/table used to reduce the original HidroWeb sections to eight points",
+    "Archive/package copies outside the currently indexable Drive/Gmail attachment interfaces"
+  ],
+  "recovered_representative_profile": {
+    "source": "Calibragem_HMS, Figura 6",
+    "description": "Perfil transversal representativo obtido a partir dos dados do HidroWeb e inserido no modelo HEC-HMS",
+    "points_file": "assets/data/g040_hydro_stack/mucum_ras_prep/legacy_hms_representative_8point_profile.csv",
+    "points": [
+      {
+        "station_m": 0,
+        "elevation_m": 10.84
+      },
+      {
+        "station_m": 27.8,
+        "elevation_m": 1.28
+      },
+      {
+        "station_m": 34.8,
+        "elevation_m": 2.32
+      },
+      {
+        "station_m": 41.8,
+        "elevation_m": 0
+      },
+      {
+        "station_m": 48.8,
+        "elevation_m": 1.55
+      },
+      {
+        "station_m": 83.8,
+        "elevation_m": 4.2
+      },
+      {
+        "station_m": 99.6,
+        "elevation_m": 9.04
+      },
+      {
+        "station_m": 129.3,
+        "elevation_m": 13.04
+      }
+    ],
+    "span_m": 129.3,
+    "min_profile_elevation_m": 0,
+    "max_profile_elevation_m": 13.04,
+    "station_or_reach_mapping": "NOT_IDENTIFIED_IN_REPORT",
+    "status": "NUMERIC_PROFILE_RECOVERED_MAPPING_BLOCKED",
+    "do_not_assign_to_s01_s09_without_mapping": true
+  },
+  "raw_hidroweb_format_evidence": {
+    "drive_file": "86720000_2023_03_30",
+    "station": "86720000 ENCANTADO",
+    "river": "RIO TAQUARI",
+    "survey_date": "2023-03-30",
+    "operator": "CPRM",
+    "section_type": "Régua",
+    "pi_pf_distance_m": 426.4,
+    "x_min_m": -26,
+    "x_max_m": 400.42,
+    "y_min_cm": -171,
+    "y_max_cm": 2860,
+    "geographic_role": "DOWNSTREAM_REFERENCE_OUTSIDE_S01_S09_PILOT",
+    "note": "Confirms the raw ANA/CPRM/HidroWeb section export format and can be parsed by scripts/parse_hidroweb_cross_section.py; it must not be substituted for a pilot-section profile."
+  }
+}

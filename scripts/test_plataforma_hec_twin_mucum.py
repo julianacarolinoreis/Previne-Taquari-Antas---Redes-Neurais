@@ -112,11 +112,11 @@ class PlataformaHecTwinTests(unittest.TestCase):
             / "estudo_bacia_taquari_antas"
             / "plataforma_hec_twin_mucum.html"
         ).read_text(encoding="utf-8")
-        self.assertIn("pointInspector", html)
-        self.assertIn("showInspector", html)
-        self.assertIn("bacia Taquari–Antas (G040)", html)
-        self.assertIn("Rede G040", html)
-        self.assertIn("loadFozes", html)
+        self.assertIn('id="map"', html)
+        self.assertIn("selectNode", html)
+        self.assertIn("Bacia Taquari–Antas · G040", html)
+        self.assertIn("Rede hidrológica da bacia", html)
+        self.assertIn("Rede BHO6", html)
         self.assertEqual(
             self.feed["spatial"].get("fozes_geojson"),
             "fozes_principais_bho6.geojson",
@@ -226,16 +226,16 @@ class PlataformaHecTwinTests(unittest.TestCase):
             / "plataforma_hec_twin_mucum.html"
         ).read_text(encoding="utf-8")
         self.assertIn("Bacia Taquari–Antas", html)
-        self.assertIn("Inventário por UG", html)
-        self.assertIn("renderUgInventory", html)
-        self.assertIn("ugInventory", html)
-        self.assertLess(html.find("basinMapSection"), html.find("corridorCard"))
-        self.assertLess(html.find("basinMetrics"), html.find("productMetrics"))
+        self.assertIn("Sete UGs dentro do mesmo sistema", html)
+        self.assertIn('id="ugGrid"', html)
+        self.assertIn("Object.entries(units)", html)
+        self.assertLess(html.find('id="rede"'), html.find('id="modelo"'))
+        self.assertLess(html.find("Área oficial G040"), html.find("Checkpoint Muçum"))
         self.assertIn("Guaporé", html)
         self.assertIn("Forqueta", html)
         hero = html[html.find("<header") : html.find("</header>")]
         self.assertIn("G040", hero)
-        self.assertTrue("26.430" in hero or "26,430" in hero or "26430" in hero)
+        self.assertIn("bacia inteira", hero.lower())
 
 
 if __name__ == "__main__":
