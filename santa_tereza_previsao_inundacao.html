@@ -1458,7 +1458,7 @@ async function init(){
       const statusClass=value=>value==='SIM'?'color:#b42318':(value==='NÃO'?'color:#087f5b':'color:#6b7280');
       const rows=['2h','4h','8h'].map(key=>{
         const value=floodSimple(horizons.get(key));
-        return '<div style="display:flex;justify-content:space-between;gap:18px;padding:5px 0;border-top:1px solid #edf1ee"><span>Água em +'+key.replace('h',' h')+'</span><b style="'+statusClass(value)+'">'+value+'</b></div>';
+        return '<div style="display:flex;justify-content:space-between;gap:18px;padding:5px 0;border-top:1px solid #edf1ee"><span>Proxy HAND em +'+key.replace('h',' h')+'</span><b style="'+statusClass(value)+'">'+value+'</b></div>';
       }).join('');
 
       const popupZeroM=handZeroCm(activeLiveData()||liveData)/100;
@@ -1473,12 +1473,14 @@ async function init(){
 
       let html='<div class="pt-pop" style="min-width:220px;line-height:1.35">';
       html+='<b>Neste ponto</b>';
+      html+='<div style="margin-top:4px;color:#6b7280">Comparação de pesquisa · proxy HAND</div>';
       html+='<div style="margin-top:7px"><b>MDT:</b> '+(elev!=null?nf1.format(elev)+' m':'indisponível')+'</div>';
       html+='<div><b>HAND:</b> '+handTxt+'</div>';
-      html+='<div><b>Régua para a água chegar aqui:</b> '+gaugeTxt+'</div>';
+      html+='<div><b>Limiar estimado da régua neste proxy:</b> '+gaugeTxt+'</div>';
       html+='<div><b>Latitude:</b> '+e.latlng.lat.toFixed(5)+'</div>';
       html+='<div><b>Longitude:</b> '+e.latlng.lng.toFixed(5)+'</div>';
       html+='<div style="margin-top:8px">'+rows+'</div>';
+      html+='<div style="margin-top:8px;font-size:11px;color:#6b7280">SIM/NÃO compara a régua prevista ao limiar do proxy HAND. Não confirma água observada, chegada física da água, segurança ou trafegabilidade. Não é alerta oficial.</div>';
       html+='</div>';
       L.popup({closeButton:true,maxWidth:280}).setLatLng(e.latlng).setContent(html).openOn(map);
     });

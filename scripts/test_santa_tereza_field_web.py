@@ -111,6 +111,17 @@ const click=vm.runInContext('('+CALLBACK+')',context);
                 self.assertEqual(result["points"][:2], [{"dm": 0, "saturated": False}, {"dm": 250, "saturated": True}] if page == PAGES[0] else [0, 250])
                 self.assertIsNone(result["points"][2])
                 for case in result["cases"]:
+                    for popup in case["popups"]:
+                        self.assertIn("Comparação de pesquisa · proxy HAND", popup)
+                        self.assertIn("água observada, chegada física da água, segurança ou trafegabilidade", popup)
+                        self.assertIn("Não é alerta oficial", popup)
+                        self.assertNotIn("Régua para a água chegar aqui", popup)
+                        self.assertNotIn("Água em +", popup)
+                        if page == PAGES[0]:
+                            self.assertIn("Limiar estimado da régua neste proxy", popup)
+                            self.assertIn("SIM/NÃO compara", popup)
+                            for horizon in ("2 h", "4 h", "8 h"):
+                                self.assertIn("Proxy HAND em +" + horizon, popup)
                     self.assertIn("sem cobertura HAND no ponto", case["popups"][2])
                     self.assertNotIn("≥ 25", case["popups"][2])
                     self.assertNotIn("cm acima", case["popups"][2])

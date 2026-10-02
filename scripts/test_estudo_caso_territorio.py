@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import json
+import os
+import threading
 import unittest
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import urlsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -117,6 +122,104 @@ def segment_hits_geometry(a, c, geom: dict) -> bool:
 
 
 class EstudoCasoTerritorioTests(unittest.TestCase):
+    def test_rendered_control_geometry_fits_320_390_768_1440(self) -> None:
+        """Real DOM/CSS/JS and local data; basemap tiles are not validated.
+
+        Leaflet 1.9.4 is the actual CDN dependency declared by the page. Missing
+        Playwright, Chromium or Leaflet fails this test rather than skipping QA.
+        """
+        try:
+            from playwright.sync_api import sync_playwright
+        except ImportError as error:
+            self.fail(f"QA renderizado requer playwright: {error}")
+
+        class QuietHandler(SimpleHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), partial(QuietHandler, directory=str(ROOT)))
+        server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+        server_thread.start()
+        candidates = [Path(os.environ["PREVINE_CHROME_PATH"])] if os.environ.get("PREVINE_CHROME_PATH") else []
+        candidates.extend([
+            Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Google/Chrome/Application/chrome.exe",
+            Path(os.environ.get("LocalAppData", "")) / "Google/Chrome/Application/chrome.exe",
+        ])
+        executable = next((str(path) for path in candidates if path.is_file()), None)
+        try:
+            with sync_playwright() as playwright:
+                options = {"headless": True}
+                if executable:
+                    options["executable_path"] = executable
+                try:
+                    browser = playwright.chromium.launch(**options)
+                except Exception as error:
+                    self.fail(f"QA renderizado requer Chrome/Chromium disponível: {error}")
+                try:
+                    for width in (320, 390, 768, 1440):
+                        page = browser.new_page(viewport={"width": width, "height": 900})
+                        errors = []
+                        page.on("pageerror", lambda error: errors.append(str(error)))
+
+                        def local_page_and_leaflet_only(route):
+                            url = route.request.url
+                            if (urlsplit(url).hostname == "127.0.0.1"
+                                    or url.startswith("https://unpkg.com/leaflet@1.9.4/dist/")):
+                                route.continue_()
+                            else:
+                                route.abort()  # no external tiles/telemetry in this layout check
+
+                        page.route("**/*", local_page_and_leaflet_only)
+                        try:
+                            page.goto(
+                                f"http://127.0.0.1:{server.server_port}/pesquisas/estudo-caso-territorio.html",
+                                wait_until="domcontentloaded", timeout=30000,
+                            )
+                            for city in ("santa_tereza", "mucum"):
+                                with self.subTest(width=width, city=city):
+                                    page.locator(f'.city-row [data-city="{city}"]').click()
+                                    page.wait_for_function(
+                                        "typeof L==='object' && document.querySelector('#load-status').textContent==='pronto'",
+                                        timeout=30000,
+                                    )
+                                    self.assertGreater(page.locator("#case-row button").count(), 0)
+                                    self.assertEqual(page.locator('#module-tabs [role="tab"]').count(), 5)
+                                    metrics = page.evaluate("""() => {
+                                        const dock=document.querySelector('.control-dock'), tabs=document.querySelector('#module-tabs');
+                                        const rect=element=>{const r=element.getBoundingClientRect();
+                                            return {left:r.left,right:r.right,width:r.width,client:element.clientWidth,scroll:element.scrollWidth};};
+                                        return {viewport:innerWidth,body:document.body.scrollWidth,
+                                            document:document.documentElement.scrollWidth,dock:rect(dock),tabs:rect(tabs),
+                                            fields:Array.from(dock.querySelectorAll('.control-field')).map(rect)};
+                                    }""")
+                                    print("TERRITORIO_LAYOUT " + json.dumps({"width": width, "city": city, **metrics}))
+                                    self.assertEqual(metrics["viewport"], width)
+                                    self.assertLessEqual(max(metrics["body"], metrics["document"]), width + 1, metrics)
+                                    self.assertLessEqual(metrics["dock"]["scroll"], metrics["dock"]["client"] + 1, metrics)
+                                    for field in metrics["fields"]:
+                                        self.assertGreater(field["width"], 0)
+                                        self.assertGreaterEqual(field["left"], metrics["dock"]["left"] - 1, metrics)
+                                        self.assertLessEqual(field["right"], metrics["dock"]["right"] + 1, metrics)
+                                    # Keyboard focus must reveal the last tab inside its own
+                                    # scroll container, not by widening or clipping the body.
+                                    last = page.locator('#module-tabs [role="tab"]').last
+                                    last.focus()
+                                    bounds = last.bounding_box()
+                                    tabs_bounds = page.locator("#module-tabs").bounding_box()
+                                    self.assertGreaterEqual(bounds["x"], tabs_bounds["x"] - 1)
+                                    self.assertLessEqual(bounds["x"] + bounds["width"],
+                                                         tabs_bounds["x"] + tabs_bounds["width"] + 1)
+                                    self.assertLessEqual(page.evaluate("document.body.scrollWidth"), width + 1)
+                                    self.assertEqual(errors, [], "erros de runtime no cockpit")
+                        finally:
+                            page.close()
+                finally:
+                    browser.close()
+        finally:
+            server.shutdown()
+            server.server_close()
+            server_thread.join(timeout=2)
+
     def test_page_and_assets_are_wired(self) -> None:
         html = PAGE.read_text(encoding="utf-8")
         js = JS.read_text(encoding="utf-8")

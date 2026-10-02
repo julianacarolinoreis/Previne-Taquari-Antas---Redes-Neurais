@@ -497,6 +497,7 @@ async function init(){
       const altitude=elevationAt(e.latlng.lat,e.latlng.lng);
       const hd=handAt(e.latlng.lat,e.latlng.lng);
       let html='<div class="pt-pop"><b>Neste ponto</b>';
+      html+='<br><small>Comparação de pesquisa · proxy HAND</small>';
       if(altitude!=null) html+='<br><b>Altitude do terreno (MDT): '+nf1.format(altitude)+' m</b>';
       if(hd==null) html+='<br><b>HAND no ponto: sem cobertura HAND no ponto</b>';
       if(hd!=null){
@@ -512,6 +513,7 @@ async function init(){
         html+='<br>Agora: '+pointFloodStatus(hd,curS[1]);
         if(curS[3]!=null) html+='<br>RNA'+hz+': '+pointFloodStatus(hd,curS[3]);
       }
+      html+='<br><small>O proxy não confirma água observada, chegada física da água, segurança ou trafegabilidade. Não é alerta oficial.</small>';
       html+='<br><small>'+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5)+'</small></div>';
       L.popup({closeButton:true}).setLatLng(e.latlng).setContent(html).openOn(map);
     });
