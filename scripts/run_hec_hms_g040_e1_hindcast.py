@@ -32,6 +32,10 @@ BRT=timezone(timedelta(hours=-3))
 # Fixed across calibration candidates so ranking is not contaminated by changing numerical resolution.
 # 3 min satisfies HEC-HMS SCS UH guidance dt <= 0.29*lag even at the current minimum lag bound (~15.85 min).
 COMPUTE_INTERVAL_MIN=3
+# HEC-HMS 4.13 rejects larger Muskingum subreach counts in the generated basin model.
+# Keep the numerical search inside the accepted range; candidates without a stable
+# solution inside this range are rejected instead of run with unstable routing.
+MAX_MUSKINGUM_SUBREACHES=100
 
 MAIN_CHECKPOINTS=["86510000","86720000","86743000","86879000","86879300","86895000"]
 SOURCE_PRIMARY="86472000"
@@ -240,38 +244,28 @@ End:
 """
 
 def muskingum_steps(k_h,x,dt_min=COMPUTE_INTERVAL_MIN):
-    """HEC-HMS initial estimate: number of subreaches ~= K / dt.
-
-    The fixed compute interval is used for every calibration candidate.
-    We round to the nearest integer and then verify that the effective
-    subreach K remains in the non-negative coefficient region:
-        2*K_sub*X <= dt <= 2*K_sub*(1-X)
-    If rounding falls outside that region, search nearby integer counts.
-    """
+    """Choose a stable HEC-HMS Muskingum subreach count within accepted limits."""
     dt_h=float(dt_min)/60.0
     k_h=float(k_h); x=float(x)
     if not (k_h>0 and 0.0<=x<=0.5):
         raise RuntimeError(f"invalid Muskingum parameters K={k_h}, X={x}")
-    initial=max(1,int(round(k_h/dt_h)))
-    candidates=range(max(1,initial-6),initial+7)
+
     stable=[]
-    for n in candidates:
+    for n in range(1,MAX_MUSKINGUM_SUBREACHES+1):
         k_sub=k_h/n
         lo=2.0*k_sub*x
         hi=2.0*k_sub*(1.0-x)
         if lo-1e-12 <= dt_h <= hi+1e-12:
-            stable.append((abs(k_sub-dt_h),n))
-    if stable:
-        return min(stable)[1]
-    # Broaden the deterministic search before failing.
-    max_n=max(2, int(math.ceil(k_h/max(dt_h,1e-9)*4.0)))
-    for n in range(1,max_n+1):
-        k_sub=k_h/n
-        if 2.0*k_sub*x-1e-12 <= dt_h <= 2.0*k_sub*(1.0-x)+1e-12:
-            return n
-    raise RuntimeError(
-        f"no stable Muskingum subreach count for K={k_h:.6f}h X={x:.6f} dt={dt_min}min"
-    )
+            # HEC guidance starts from n ~= K/dt. Among stable, accepted values,
+            # pick the one closest to that target without exceeding HMS limits.
+            stable.append((abs((k_h/dt_h)-n),n))
+    if not stable:
+        raise RuntimeError(
+            "candidate has no stable Muskingum representation within HEC-HMS "
+            f"subreach limit: K={k_h:.6f}h X={x:.6f} dt={dt_min}min "
+            f"max_subreaches={MAX_MUSKINGUM_SUBREACHES}"
+        )
+    return min(stable)[1]
 
 def reach_block(name,downstream,k,x):
     steps=muskingum_steps(k,x)
