@@ -3444,6 +3444,8 @@ function sincronizaURL(){
   u.searchParams.set("escala", escala);
   u.searchParams.set("escopo", escopo);
   u.searchParams.set("opacidade", Math.round(opacidade*100));
+  if (spatialMetric && spatialMetric !== "none") u.searchParams.set("spatial", spatialMetric); else u.searchParams.delete("spatial");
+  if (spatialFlood && spatialFlood !== "none") u.searchParams.set("flood", spatialFlood); else u.searchParams.delete("flood");
   if (munAtual) u.searchParams.set("municipio", munAtual.cod_mun); else u.searchParams.delete("municipio");
   if (selectionRect){
     const b=selectionRect.getBounds();
