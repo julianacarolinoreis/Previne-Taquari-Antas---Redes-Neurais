@@ -36,7 +36,7 @@ class TestG040FullBasinContract(unittest.TestCase):
     def test_snapshot_explicitly_has_no_single_endpoint(self):
         src = (ROOT / "scripts/build_g040_basin_snapshot.py").read_text(encoding="utf-8")
         self.assertIn('"single_endpoint": False', src)
-        self.assertIn("g040_basin_controls_latest.csv", src)
+        self.assertIn("g040_basin_controls_latest.csv", src)\n        self.assertIn("g040_basin_network_latest.csv", src)\n        self.assertIn("basin_station_status_latest.json", src)
 
 
 if __name__ == "__main__":
