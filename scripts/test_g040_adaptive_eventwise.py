@@ -22,6 +22,9 @@ class TestAdaptiveEventwise(unittest.TestCase):
         self.assertTrue(any(x["target_code"]=="86510000" and x["event_id"]=="E22_SEP2023" for x in rows))
         self.assertTrue(any(x["target_code"]=="86720000" and x["event_id"]=="E24_NOV2023" for x in rows))
         self.assertGreaterEqual(len(j["existing_mucum_eventwise_library"]),9)
+        if (BASE/"g040_target_event_refinement_latest.json").exists():
+            self.assertGreater(j["coverage"]["refined_target_event_rows_used"],0)
+            self.assertTrue(any(x.get("selection_source")=="target_event_refinement" for x in rows))
 
     def test_selector_keeps_fallback_and_never_hard_picks(self):
         subprocess.run([sys.executable,"-B",str(ROOT/"scripts/select_g040_adaptive_scenario.py")],check=True,cwd=ROOT)
