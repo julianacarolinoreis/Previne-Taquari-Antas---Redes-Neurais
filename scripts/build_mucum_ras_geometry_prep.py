@@ -265,7 +265,7 @@ def locate_sections(audit, route1, route2, river_named):
         ("S09", route2, s09, "controle Muçum"),
     ]
     return plan, {
-        "carreiro_named_features": len(carreiro),
+        "carreiro_named_features": carreiro_feature_count,\n        "carreiro_confluence_source": confluence_source,
         "carreiro_confluence_chainage_m": round(float(confluence), 2),
         "carreiro_to_main_nearest_distance_m": None if confluence_distance_m is None else round(float(confluence_distance_m), 2),
         "s08_rule": "first centerline point inside Muçum drone-MDT footprint; fallback 85% of reach if footprint unavailable",
