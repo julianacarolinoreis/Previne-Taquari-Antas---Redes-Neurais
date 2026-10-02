@@ -9,6 +9,61 @@ from scripts import build_basin_station_forecast as feed
 
 
 class BasinStationForecastTests(unittest.TestCase):
+    def observed_samples(self, samples, now):
+        """Exercise the public CSV loader using local interval-start labels."""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "rain.csv"
+            with path.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=["COD_SEQUENCIAL", "chuva_86472600"])
+                writer.writeheader()
+                for local_time, value in samples:
+                    writer.writerow({"COD_SEQUENCIAL": local_time, "chuva_86472600": value})
+            return feed.load_observed_rain(path, now=now)["86472600"]
+
+    def test_current_hour_zero_is_partial_and_excluded_until_exact_close(self):
+        samples = [("202609301200", 2.5), ("202609301300", 0)]
+        before = self.observed_samples(samples, datetime(2026, 9, 30, 16, 59, 59, tzinfo=timezone.utc))
+        closed = self.observed_samples(samples, datetime(2026, 9, 30, 17, 0, tzinfo=timezone.utc))
+        self.assertEqual(before["timestamp_role"], "interval_start")
+        self.assertEqual(before["last_observed_at_utc"], "2026-09-30T16:00Z")
+        self.assertEqual(before["last_closed_interval_end_utc"], "2026-09-30T16:00Z")
+        self.assertEqual(before["windows"]["1h"]["mm"], 2.5)
+        self.assertEqual(before["windows"]["1h"]["start_utc"], "2026-09-30T15:00Z")
+        self.assertTrue(before["rows"][-1]["partial"])
+        self.assertEqual(before["rows"][-1]["interval_end_utc"], "2026-09-30T17:00Z")
+        self.assertEqual(closed["windows"]["1h"]["mm"], 0)
+        self.assertTrue(closed["windows"]["1h"]["complete"])
+        self.assertEqual(closed["last_closed_interval_end_utc"], "2026-09-30T17:00Z")
+        self.assertEqual(closed["closed_interval_age_minutes"], 0)
+        self.assertFalse(closed["rows"][-1]["partial"])
+
+    def test_only_open_hour_does_not_create_a_complete_observed_window(self):
+        result = self.observed_samples([("202610010000", 0)], datetime(2026, 10, 1, 3, 30, tzinfo=timezone.utc))
+        self.assertEqual(result["state"], "available")
+        self.assertIsNone(result["last_closed_interval_end_utc"])
+        self.assertIsNone(result["closed_interval_age_minutes"])
+        for window in result["windows"].values():
+            self.assertIsNone(window["mm"])
+            self.assertIsNone(window["start_utc"])
+            self.assertIsNone(window["end_utc"])
+            self.assertFalse(window["complete"])
+
+    def test_closed_rain_interval_preserves_brt_day_rollover_and_internal_gap(self):
+        result = self.observed_samples(
+            [("202609302200", 1), ("202609302300", ""), ("202610010000", 3), ("202610010100", 90)],
+            datetime(2026, 10, 1, 4, 30, tzinfo=timezone.utc),
+        )
+        window = result["windows"]["3h"]
+        self.assertEqual(window["mm"], 4)
+        self.assertEqual(window["start_utc"], "2026-10-01T01:00Z")
+        self.assertEqual(window["end_utc"], "2026-10-01T04:00Z")
+        self.assertEqual(window["valid_points"], 2)
+        self.assertFalse(window["complete"])
+        self.assertEqual(result["closed_interval_age_minutes"], 30)
+        self.assertEqual(result["last_observed_at_utc"], "2026-10-01T04:00Z")
+        self.assertEqual(result["rows"][-1]["mm"], 90)
+        self.assertTrue(result["rows"][-1]["partial"])
+
     def test_invalid_coordinate_values_are_skipped_without_crashing(self):
         self.assertIsNone(
             feed.valid_coordinates(
@@ -124,10 +179,11 @@ class BasinStationForecastTests(unittest.TestCase):
         window = result["windows"]["72h"]
         self.assertTrue(window["complete"])
         self.assertEqual(window["valid_points"], 72)
-        self.assertEqual(window["start_utc"], "2026-09-20T03:00Z")
-        self.assertEqual(window["end_utc"], "2026-09-23T03:00Z")
+        self.assertEqual(window["start_utc"], "2026-09-20T04:00Z")
+        self.assertEqual(window["end_utc"], "2026-09-23T04:00Z")
         self.assertEqual(result["observed_age_minutes"], 300)
-        self.assertEqual(result["rows"][-5:], [
+        self.assertEqual(result["closed_interval_age_minutes"], 240)
+        self.assertEqual([{key: row[key] for key in ("time", "mm")} for row in result["rows"][-5:]], [
             {"time": "2026-09-23T04:00Z", "mm": None},
             {"time": "2026-09-23T05:00Z", "mm": None},
             {"time": "2026-09-23T06:00Z", "mm": None},
@@ -167,8 +223,8 @@ class BasinStationForecastTests(unittest.TestCase):
         self.assertEqual(windows["2h"]["expected_points"], 2)
         self.assertFalse(windows["2h"]["complete"])
         self.assertAlmostEqual(windows["2h"]["coverage_ratio"], 0.5, places=3)
-        self.assertEqual(windows["2h"]["start_utc"], "2026-09-20T00:00Z")
-        self.assertEqual(windows["2h"]["end_utc"], "2026-09-20T02:00Z")
+        self.assertEqual(windows["2h"]["start_utc"], "2026-09-20T01:00Z")
+        self.assertEqual(windows["2h"]["end_utc"], "2026-09-20T03:00Z")
 
     def test_observed_windows_use_exact_hour_count(self):
         latest = datetime(2026, 9, 20, 23, tzinfo=timezone.utc)
@@ -185,8 +241,8 @@ class BasinStationForecastTests(unittest.TestCase):
         self.assertEqual(windows["24h"]["valid_points"], 24)
         self.assertEqual(windows["24h"]["expected_points"], 24)
         self.assertTrue(windows["24h"]["complete"])
-        self.assertEqual(windows["24h"]["start_utc"], "2026-09-19T23:00Z")
-        self.assertEqual(windows["24h"]["end_utc"], "2026-09-20T23:00Z")
+        self.assertEqual(windows["24h"]["start_utc"], "2026-09-20T00:00Z")
+        self.assertEqual(windows["24h"]["end_utc"], "2026-09-21T00:00Z")
 
     def test_catalog_merges_flow_and_rain_records_by_network_and_code(self):
         with tempfile.TemporaryDirectory() as directory:

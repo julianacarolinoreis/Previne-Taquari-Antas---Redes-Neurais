@@ -1,8 +1,8 @@
 """Build the basin-wide station forecast feed used by the PREVINE map.
 
 The public page is static, so the map reads one reviewed JSON snapshot instead
-of making one weather request per browser visitor. The snapshot is rebuilt by
-GitHub Actions every five minutes when the public scheduler starts the run.
+of making one weather request per browser visitor. A chained GitHub Actions
+job targets five-minute cycles; runner queues and source latency can delay it.
 
 This is a research-screening surface. It keeps observed rain, forecast model
 output, river telemetry and experimental level forecasts in separate fields.
@@ -349,7 +349,12 @@ def load_observed_rain(
     now: datetime | None = None,
     hours: int = OBSERVED_HOURS,
 ) -> dict[str, dict[str, Any]]:
-    """Read only the observed series that the existing robot actually publishes."""
+    """Read start-labelled hourly rain; only closed hours enter totals.
+
+    The collector aligns ANA/CEMADEN and INMET to interval-start labels.
+    A current-hour numeric value can be partial, including an observed zero.
+    Retain that row for inspection, never count it as a completed hour.
+    """
 
     now = (now or datetime.now(UTC)).astimezone(UTC)
     records: dict[str, list[tuple[datetime, float | None]]] = {
@@ -362,11 +367,14 @@ def load_observed_rain(
                 "state": "unavailable",
                 "source": observed_rain_source(code),
                 "unit": "mm",
+                "timestamp_role": "interval_start",
                 "rows": [],
                 "available_points": 0,
                 "expected_points": 0,
                 "last_observed_at_utc": None,
                 "observed_age_minutes": None,
+                "last_closed_interval_end_utc": None,
+                "closed_interval_age_minutes": None,
                 "windows": _observed_window_stats(
                     [], latest_observed=None, windows=OBSERVED_WINDOW_HOURS
                 ),
@@ -398,7 +406,12 @@ def load_observed_rain(
     for code, rows in records.items():
         values = {timestamp: value for timestamp, value in rows}
         selected = [
-            {"time": iso_utc(timestamp), "mm": values.get(timestamp)}
+            {
+                "time": iso_utc(timestamp),
+                "mm": values.get(timestamp),
+                "interval_end_utc": iso_utc(timestamp + timedelta(hours=1)),
+                "partial": timestamp + timedelta(hours=1) > now,
+            }
             for timestamp in window
         ]
         known = [row["mm"] for row in selected if row["mm"] is not None]
@@ -406,23 +419,35 @@ def load_observed_rain(
             (timestamp for timestamp, value in rows if value is not None),
             default=None,
         )
+        latest_closed = max(
+            (
+                timestamp
+                for timestamp, value in rows
+                if value is not None and timestamp + timedelta(hours=1) <= now
+            ),
+            default=None,
+        )
+        closed_end = latest_closed + timedelta(hours=1) if latest_closed else None
         result[code] = {
             "state": "available" if known else "unavailable",
             "source": observed_rain_source(code),
             "unit": "mm",
+            "timestamp_role": "interval_start",
             "timezone": "America/Sao_Paulo",
             "rows": selected,
             "available_points": len(known),
             "expected_points": len(window),
             "last_observed_at_utc": iso_utc(latest_observed),
             "observed_age_minutes": round((now - latest_observed).total_seconds() / 60) if latest_observed else None,
+            "last_closed_interval_end_utc": iso_utc(closed_end),
+            "closed_interval_age_minutes": round((now - closed_end).total_seconds() / 60) if closed_end else None,
             "windows": _observed_window_stats(
                 rows,
-                latest_observed=latest_observed,
+                latest_observed=latest_closed,
                 windows=OBSERVED_WINDOW_HOURS,
             ),
             "message": (
-                "Série observada publicada pelo robô de chuva."
+                "Série observada com carimbo no início da hora; a hora em curso é parcial e não entra nos acumulados de horas fechadas."
                 if known
                 else "Não há série observada publicada para este código."
             ),
@@ -449,7 +474,11 @@ def _observed_window_stats(
     latest_observed: datetime | None,
     windows: tuple[int, ...],
 ) -> dict[str, dict[str, Any]]:
-    """Summarize trailing observed-rain windows without hiding gaps."""
+    """Summarize closed hours, anchored on their latest interval-start label.
+
+    The caller supplies the latest *closed* valid hour. Completeness refers
+    to hourly values, not to availability of every sub-hour sensor reading.
+    """
 
     if latest_observed is None:
         return {
@@ -472,11 +501,7 @@ def _observed_window_stats(
         # exactly 24 hourly intervals (and a 72 h window exactly 72).
         start = latest_observed - timedelta(hours=max(0, hours - 1))
         expected_points = hours
-        selected = [
-            value
-            for timestamp, value in by_time.items()
-            if start <= timestamp <= latest_observed
-        ]
+        selected = [by_time.get(start + timedelta(hours=offset)) for offset in range(hours)]
         valid = [value for value in selected if value is not None]
         coverage_ratio = len(valid) / expected_points
         result[f"{hours}h"] = {
@@ -485,10 +510,9 @@ def _observed_window_stats(
             "expected_points": expected_points,
             "coverage_ratio": round(coverage_ratio, 4),
             "complete": len(valid) == expected_points,
-            # A sample labelled 14:00 measures rain in 13:00–14:00.
-            # Publish the physical accumulation interval, not just its labels.
-            "start_utc": iso_utc(latest_observed - timedelta(hours=hours)),
-            "end_utc": iso_utc(latest_observed),
+            # A collector row labelled 14:00 represents 14:00–15:00.
+            "start_utc": iso_utc(start),
+            "end_utc": iso_utc(latest_observed + timedelta(hours=1)),
         }
     return result
 
@@ -999,11 +1023,14 @@ def build_feed(
                 "state": "unavailable",
                 "source": "chuva horária sem coluna associada · assets/data/chuvas_horarias.csv",
                 "unit": "mm",
+                "timestamp_role": "interval_start",
                 "rows": [],
                 "available_points": 0,
                 "expected_points": 0,
                 "last_observed_at_utc": None,
                 "observed_age_minutes": None,
+                "last_closed_interval_end_utc": None,
+                "closed_interval_age_minutes": None,
                 "windows": _observed_window_stats(
                     [], latest_observed=None, windows=OBSERVED_WINDOW_HOURS
                 ),
@@ -1067,7 +1094,8 @@ def build_feed(
         "next_cycle_utc": iso_utc(_next_cycle(now)),
         "refresh_contract": {
             "scheduled_every_minutes": 5,
-            "schedule_note": "GitHub Actions programado a cada cinco minutos; a execução pode sofrer atraso do agendador público.",
+            "next_cycle_is_nominal": True,
+            "schedule_note": "Meta nominal de cinco minutos, encadeada desde o início de cada rodada; next_cycle_utc é referência nominal, não hora garantida. Filas, duração da consulta e indisponibilidade das fontes podem causar atraso.",
         },
         "scope": {
             "basin": "Taquari–Antas · G040",
