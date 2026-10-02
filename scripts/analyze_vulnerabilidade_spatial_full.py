@@ -269,8 +269,48 @@ def export_lisa_geojson(gdf, lisa_rows, names):
     cols = ["setor", "cod_mun", "pop"] + VARIABLES + ["geometry"]
     x = gdf[cols].merge(lisa_rows, on=["setor", "cod_mun"], how="left")
     x["municipio"] = x["cod_mun"].map(names)
+    x["structural_ll_count"] = (
+        x["lisa_fdr_income"].eq("LL").astype(int)
+        + x["lisa_fdr_water"].eq("LL").astype(int)
+        + x["lisa_fdr_sewage"].eq("LL").astype(int)
+    )
+    x["elderly_hh_plus_structural"] = (
+        x["lisa_fdr_elderly"].eq("HH") & x["structural_ll_count"].ge(1)
+    ).astype(int)
+    x["child_hh_plus_structural"] = (
+        x["lisa_fdr_child"].eq("HH") & x["structural_ll_count"].ge(1)
+    ).astype(int)
     x = x.to_crs("EPSG:4326")
     x.to_file(OUT_DIR / "lisa_setores_bacia.geojson", driver="GeoJSON")
+
+    compact = {
+        "schema_version": 1,
+        "method": {
+            "weights": "KNN on projected centroids",
+            "main_k": K_MAIN,
+            "global_permutations": GLOBAL_PERMUTATIONS,
+            "local_permutations": LOCAL_PERMUTATIONS,
+            "fdr": "Benjamini-Hochberg alpha=0.05",
+        },
+        "sectors": {},
+    }
+    for _, r in x.drop(columns="geometry").iterrows():
+        compact["sectors"][str(r["setor"])] = {
+            "municipio": r["municipio"],
+            "cod_mun": str(r["cod_mun"]),
+            "pop": None if pd.isna(r["pop"]) else float(r["pop"]),
+            "structural_ll_count": int(r["structural_ll_count"]),
+            "elderly_hh_plus_structural": int(r["elderly_hh_plus_structural"]),
+            "child_hh_plus_structural": int(r["child_hh_plus_structural"]),
+            **{
+                f"lisa_fdr_{v}": (None if pd.isna(r[f"lisa_fdr_{v}"]) else str(r[f"lisa_fdr_{v}"]))
+                for v in VARIABLES
+            },
+        }
+    (OUT_DIR / "lisa_classificacao_setores.json").write_text(
+        json.dumps(compact, ensure_ascii=False, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
 
 def main():
     names = load_municipality_names()
