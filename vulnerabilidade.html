@@ -3614,6 +3614,10 @@ atualizaEscopoDados();
 // mapa principal: mostra o Brasil, mas com "holofote" no RS — tudo fora do
 // estado ganha um véu para destacar a região (o resto fica ~30% visível)
 map = L.map("map", {scrollWheelZoom:window.innerWidth > 900, minZoom:4, preferCanvas:true, zoomControl:false}).setView([-29.5,-53.5], 7);
+map.createPane("analisePerigo");
+map.getPane("analisePerigo").style.zIndex="430";
+map.createPane("analiseEspacial");
+map.getPane("analiseEspacial").style.zIndex="435";
 // Escolha explícita do detalhe local: ao aproximar, a pessoa decide entre
 // setores censitários e células de 200 m, sem trocar silenciosamente a unidade.
 function montaEscolhaZoom(){
