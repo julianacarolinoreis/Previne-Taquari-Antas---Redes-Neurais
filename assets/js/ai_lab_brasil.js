@@ -209,6 +209,21 @@
     text('training-folds',fmtNumber((data.folds || []).length,0));
     text('training-shadow-count',fmtNumber((data.shadow_candidates || []).length,0));
     text('training-generated',fmtTime(data.generated_at_utc));
+    var audit=data.data_audit || {};
+    var duplicateCount=Number(audit.duplicate_event_timestamp_rows || 0);
+    var skippedCount=Number(audit.skipped_rows || 0);
+    var featureCount=Number(audit.feature_count || 0);
+    var modelCount=(data.leaderboard || []).length;
+    var foldCount=(data.folds || []).length;
+    var eligibleCount=(data.leaderboard || []).filter(function(row){return row.shadow_eligible;}).length;
+    text('agent-data',duplicateCount===0 ? fmtNumber(audit.finite_rows,0)+' linhas · 0 duplicidades' : duplicateCount+' duplicidades bloqueantes');
+    text('agent-features',featureCount+' entradas · '+skippedCount+' linhas descartadas');
+    text('agent-train',modelCount+' famílias/configurações avaliadas');
+    text('agent-validation',foldCount+' dobras causais por evento');
+    text('agent-shadow',eligibleCount+' candidato(s) passaram aos gates básicos');
+    [['agent-data-dot',duplicateCount===0],['agent-features-dot',featureCount>0],['agent-train-dot',modelCount>1],['agent-validation-dot',foldCount>=3],['agent-shadow-dot',eligibleCount>0]].forEach(function(pair){
+      var dot=el(pair[0]); if(dot) dot.className=pair[1]?'agent-ok':'agent-warn';
+    });
     text('training-message','Rodada concluída. O leaderboard é evidência de pesquisa; candidatos aprovados seguem apenas para modo sombra.');
     var body=el('training-table-body');
     var rows=(data.leaderboard || []).slice(0,12);
