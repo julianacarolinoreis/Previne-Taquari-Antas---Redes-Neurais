@@ -6,7 +6,7 @@ Operational research logic:
 - 86500000 Passo Carreiro is a second native HEC Source/Flow Gage using observed Q history.
 - Future LJJ shape uses the current-cycle operational HEC increment, anchored to the last observed LJJ Q.
 - Future Carreiro shape uses the E28 calibrated branch response to spatial ECMWF/IFS, anchored to observed Carreiro Q.
-- Only the small residual areas Carreiro->STZ and STZ->Muçum are rainfall-runoff subbasins.
+- The Passo Carreiro observation covers 1,820 km²; the ~744 km² downstream Carreiro increment, plus STZ and Muçum residual areas, remain rainfall-runoff subbasins.
 - Routing uses the E28 eventwise values (K1=2.5 h, K2=2.5 h, K3=1 h, x=0.2).
 - Muçum observed stage/Q is validation only: no future peak is forced toward the RNAs.
 
@@ -24,6 +24,7 @@ from build_hec_hms_spatial_forecast_mucum import BRT, fmt_hec_date, fmt_hec_time
 from run_hec_twin_mucum_forward_5d import q_to_stage_cm, mucum_curve_segments, load_areas, params_from_library_row
 from run_hec_twin_stz_mucum_calibrate import run_network, muskingum
 from run_mucum_06z_upstream_assimilated import solve_dn_ratio
+from hec_twin_nested_v17 import NestedParams, ZoneParams
 
 OUT=ROOT/"assets/data/estudo_bacia_taquari_antas"
 OBS=OUT/"mucum_observed_multistation_latest.json"
@@ -38,7 +39,14 @@ RESULT=OUT/"hec_hms_dual_boundary_mucum_latest.json"
 SERIES=RT/"primary_series.csv"
 
 AREA_LJJ=12918.656
-AREA_CARR=2564.190
+# Passo Carreiro (86500000) drains ~1,820 km², while the full BHO6 Carreiro
+# contribution at the Taquari confluence is ~2,564.19 km². Treating the
+# observed gauge as the whole tributary silently removed ~744 km² from the
+# mass balance. Keep the observed part as a Source and model only the
+# downstream/unmeasured increment as rainfall-runoff.
+AREA_CARR_TOTAL=2564.190
+AREA_CARR_GAUGE=1820.000
+AREA_CARR_RES=max(0.0,AREA_CARR_TOTAL-AREA_CARR_GAUGE)
 AREA_STZ_RES=292.340
 AREA_MUC_INC=190.021
 K1=float(os.environ.get("DUAL_K1_H","2.5"))
@@ -46,6 +54,13 @@ K2=float(os.environ.get("DUAL_K2_H","2.5"))
 K3=float(os.environ.get("DUAL_K3_H","1.0"))
 X=float(os.environ.get("DUAL_X","0.2"))
 WARMUP_H=float(os.environ.get("DUAL_WARMUP_H","12"))
+MEMORY_TAU_H=float(os.environ.get("DUAL_MEMORY_TAU_H","3.0"))
+DN_INITIAL_LOSS_SCALE=float(os.environ.get("DUAL_DN_INITIAL_LOSS_SCALE","1.0"))
+DN_CONSTANT_LOSS_SCALE=float(os.environ.get("DUAL_DN_CONSTANT_LOSS_SCALE","1.0"))
+DN_TC_SCALE=float(os.environ.get("DUAL_DN_TC_SCALE","1.0"))
+DN_STORAGE_SCALE=float(os.environ.get("DUAL_DN_STORAGE_SCALE","1.0"))
+DN_RECESSION_SCALE=float(os.environ.get("DUAL_DN_RECESSION_SCALE","1.0"))
+DN_FLOW_RATIO_SCALE=float(os.environ.get("DUAL_DN_FLOW_RATIO_SCALE","1.0"))
 
 def loadj(p): return json.loads(Path(p).read_text(encoding="utf-8"))
 
@@ -189,7 +204,7 @@ def carreiro_future_model(obs_q0):
     branch=[max(0.0,float(a)-float(b)) for a,b in zip(net["at_carreiro"],routed)]
     return times,branch,meta
 
-def make_source(times, obs_rows, future_times, future_vals, label, state_slope_m3s_h=0.0, memory_tau_h=3.0):
+def make_source(times, obs_rows, future_times, future_vals, label, state_slope_m3s_h=0.0, memory_tau_h=3.0, model_increment_scale=1.0):
     last_t,last_q=obs_rows[-1]
     # Model change is used, never its absolute modeled Q.
     anchor_t=max(future_times[0], min(last_t, future_times[-1]))
@@ -206,7 +221,8 @@ def make_source(times, obs_rows, future_times, future_vals, label, state_slope_m
             # toward the rainfall-runoff forecast and is estimated from the complete
             # fresh gauge network in the same UPG.
             memory=float(state_slope_m3s_h)*h*math.exp(-h/max(float(memory_tau_h),0.25))
-            out.append(max(0.0,last_q+(m-anchor_model)+memory)); source.append(f"modeled_increment_plus_observed_network_memory_{label}")
+            model_increment=(m-anchor_model)*float(model_increment_scale)
+            out.append(max(0.0,last_q+model_increment+memory)); source.append(f"modeled_increment_plus_observed_network_memory_{label}")
     return out,{
         "station":label,
         "last_observed_local":last_t.isoformat(timespec="minutes"),
@@ -215,6 +231,7 @@ def make_source(times, obs_rows, future_times, future_vals, label, state_slope_m
         "model_anchor_q_m3s":round(anchor_model,3),
         "observed_network_state_slope_m3s_h":round(float(state_slope_m3s_h),3),
         "memory_tau_h":float(memory_tau_h),
+        "model_increment_scale":float(model_increment_scale),
     },source
 
 def recent_observed_lag_audit(obs, hours=24):
@@ -306,13 +323,14 @@ Reach: R_LJJ_CARR
 End:
 
 Source: CARR_SOURCE
-     Area: {AREA_CARR:.3f}
+     Area: {AREA_CARR_GAUGE:.3f}
      Downstream: J_CARR
      Flow Method: GAGE_FLOW
      Flow Gage: Q_CARR_LIVE
      End Flow Method:
 End:
 
+{sb_text("CARR_RES",AREA_CARR_RES,"J_CARR",dn.initial_loss,dn.constant_loss,dn.tc,dn.storage,dn.recession,dn.initial_flow_ratio)}
 Junction: J_CARR
      Downstream: R_CARR_STZ
 End:
@@ -367,6 +385,10 @@ End:
 
 Precip Method Parameters: Specified Average
      Allow Depth Override: Yes
+End:
+
+Subbasin: CARR_RES
+     Gage: RAIN_RESIDUAL
 End:
 
 Subbasin: STZ_RES
@@ -530,17 +552,39 @@ def main():
 
     q_ljj,laudit,lsource=make_source(
         times,lrows,lft,lfq,"86472000",
-        state_slope_m3s_h=float(antas_stats["state_slope_m3s_h"]),memory_tau_h=3.0
+        state_slope_m3s_h=float(antas_stats["state_slope_m3s_h"]),memory_tau_h=MEMORY_TAU_H
     )
     q_carr,caudit,csource=make_source(
         times,crows,cft,cfq,"86500000",
-        state_slope_m3s_h=float(carr_stats["state_slope_m3s_h"]),memory_tau_h=3.0
+        state_slope_m3s_h=float(carr_stats["state_slope_m3s_h"]),memory_tau_h=MEMORY_TAU_H,
+        model_increment_scale=(AREA_CARR_GAUGE/AREA_CARR_TOTAL)
     )
     rain=[float(r["rain_02851072_mm"]) for r in rows]
 
     row=next(r for r in lib["params_library_eventwise"] if r["event_id"]=="E28")
     params=params_from_library_row(row)
 
+    # Live-event residual calibration. These are true HEC-HMS basin parameters,
+    # not a visual shift of the resulting stage curve. The iterative controller
+    # may vary them when routing/warm-up alone cannot reproduce the observed
+    # 6 h / 12 h hydrograph.
+    dn0=params.dn
+    params=NestedParams(
+        up=params.up,
+        dn=ZoneParams(
+            initial_loss=max(0.0,dn0.initial_loss*DN_INITIAL_LOSS_SCALE),
+            constant_loss=max(0.0,dn0.constant_loss*DN_CONSTANT_LOSS_SCALE),
+            tc=max(0.5,dn0.tc*DN_TC_SCALE),
+            storage=max(0.5,dn0.storage*DN_STORAGE_SCALE),
+            recession=min(0.995,max(0.50,dn0.recession*DN_RECESSION_SCALE)),
+            initial_flow_ratio=max(0.0,dn0.initial_flow_ratio*DN_FLOW_RATIO_SCALE),
+        ),
+        k1=params.k1,k2=params.k2,k3=params.k3,x=params.x,
+    )
+
+    # Build HEC-HMS with the observed boundary areas and explicit ungauged
+    # Carreiro increment. Reach initialisation remains native/valid HEC syntax.
+    segs=mucum_curve_segments()
     PROJ.mkdir(parents=True,exist_ok=True)
     start=times[0].replace(tzinfo=BRT); end=times[-1].replace(tzinfo=BRT)
     (PROJ/"mucum_dual_boundary.hms").write_text(project_text(),encoding="utf-8")
@@ -559,7 +603,6 @@ def main():
     vals=[float(x["q_m3s"]) for x in rr if x["element"]=="MUCUM"]
     vals=vals[-len(times):]
     if len(vals)!=len(times): raise RuntimeError(f"MUCUM output {len(vals)} != {len(times)}")
-    segs=mucum_curve_segments()
     stages=[q_to_stage_cm(q,segs)["stage_cm"] for q in vals]
 
     obs_n=float(live["telemetria_ultima_nivel_cm"])
@@ -567,15 +610,34 @@ def main():
     model_now=interp(times,stages,obs_t)
     q_now=interp(times,vals,obs_t)
 
-    # Recent fit against the 15-min live Muçum series.
+    # Recent fit against the 15-min live Muçum series. Keep both 6 h and 12 h
+    # metrics because the platform must optimize a rejected candidate instead of
+    # simply stopping at the first failed validation.
     live_series=[]
     for r in live.get("serie_observada_ana") or []:
         try: live_series.append((datetime.fromisoformat(r["hora"]),float(r["nivel_cm"])))
         except Exception: pass
+
+    def fit_window(hours):
+        recent=[(t,n) for t,n in live_series if t<=obs_t and t>=obs_t-timedelta(hours=hours)]
+        pairs=[(interp(times,stages,t),n) for t,n in recent if times[0]<=t<=times[-1]]
+        if not pairs:
+            return {"n":0,"rmse_cm":None,"bias_cm":None,"nse":None}
+        errs=[m-o for m,o in pairs]
+        rmse=(sum(e*e for e in errs)/len(errs))**0.5
+        bias=sum(errs)/len(errs)
+        obs_vals=[o for _,o in pairs]
+        om=sum(obs_vals)/len(obs_vals)
+        den=sum((o-om)**2 for o in obs_vals)
+        nse=None if den<=1e-9 else 1.0-sum((m-o)**2 for m,o in pairs)/den
+        return {"n":len(pairs),"rmse_cm":rmse,"bias_cm":bias,"nse":nse}
+
+    fit6=fit_window(6)
+    fit12=fit_window(12)
+    rmse=fit6["rmse_cm"]
+    bias=fit6["bias_cm"]
     recent=[(t,n) for t,n in live_series if t<=obs_t and t>=obs_t-timedelta(hours=6)]
     errs=[interp(times,stages,t)-n for t,n in recent if times[0]<=t<=times[-1]]
-    rmse=(sum(e*e for e in errs)/len(errs))**0.5 if errs else None
-    bias=sum(errs)/len(errs) if errs else None
 
     # Current observed slope is a hard operational diagnostic: a candidate that
     # reaches the right level but is climbing much faster/slower is not accepted.
@@ -619,10 +681,21 @@ def main():
       "schema_version":"hec_hms_mucum_dual_observed_boundary_v1",
       "generated_at_utc":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
       "model":"HEC-HMS 4.13",
-      "method":"two observed discharge boundaries (LJJ 86472000 + Passo Carreiro 86500000) + residual rainfall-runoff + E28 routing",
+      "method":"two observed discharge boundaries (LJJ 86472000 + Passo Carreiro 86500000 over its 1820 km2 gauged area) + explicit 744 km2 ungauged Carreiro residual + STZ/Mucum residual rainfall-runoff + E28 routing",
       "topology":{
-        "areas_km2":{"LJJ_upstream":AREA_LJJ,"Carreiro":AREA_CARR,"STZ_residual":AREA_STZ_RES,"Mucum_increment":AREA_MUC_INC},
+        "areas_km2":{"LJJ_upstream":AREA_LJJ,"Carreiro_total":AREA_CARR_TOTAL,"Carreiro_gauged_86500000":AREA_CARR_GAUGE,"Carreiro_ungauged_residual":AREA_CARR_RES,"STZ_residual":AREA_STZ_RES,"Mucum_increment":AREA_MUC_INC},
         "routing":{"k1_h":K1,"k2_h":K2,"k3_h":K3,"x":X},
+        "live_calibration_controls":{
+          "warmup_h":WARMUP_H,"memory_tau_h":MEMORY_TAU_H,
+          "carreiro_gauge_fraction":round(AREA_CARR_GAUGE/AREA_CARR_TOTAL,6),
+          "carreiro_residual_area_km2":round(AREA_CARR_RES,3),
+          "dn_initial_loss_scale":DN_INITIAL_LOSS_SCALE,
+          "dn_constant_loss_scale":DN_CONSTANT_LOSS_SCALE,
+          "dn_tc_scale":DN_TC_SCALE,
+          "dn_storage_scale":DN_STORAGE_SCALE,
+          "dn_recession_scale":DN_RECESSION_SCALE,
+          "dn_flow_ratio_scale":DN_FLOW_RATIO_SCALE,
+        },
         "calibration_event":"E28","calibration_nse":row.get("nse"),"warmup_h":WARMUP_H,
       },
       "observed_network_audit":{
@@ -645,12 +718,16 @@ def main():
           "observed_slope_cm_h":None if observed_slope_cm_h is None else round(observed_slope_cm_h,2),
           "model_slope_cm_h":round(model_slope_cm_h,2),
           "slope_error_cm_h":None if slope_error_cm_h is None else round(slope_error_cm_h,2)},
-      "recent_fit_6h":{"n":len(errs),"raw_rmse_cm":None if rmse is None else round(rmse,2),
-          "raw_bias_cm":None if bias is None else round(bias,2),
+      "recent_fit_6h":{"n":fit6["n"],"raw_rmse_cm":None if fit6["rmse_cm"] is None else round(fit6["rmse_cm"],2),
+          "raw_bias_cm":None if fit6["bias_cm"] is None else round(fit6["bias_cm"],2),
+          "nse":None if fit6["nse"] is None else round(fit6["nse"],4),
           "conditioned_rmse_cm":None if adj_rmse is None else round(adj_rmse,2),
           "conditioned_bias_cm":None if adj_bias is None else round(adj_bias,2),
           "operational_state_mode":state_mode,
           "state_assimilation_applied":state_assimilation_applied},
+      "recent_fit_12h":{"n":fit12["n"],"raw_rmse_cm":None if fit12["rmse_cm"] is None else round(fit12["rmse_cm"],2),
+          "raw_bias_cm":None if fit12["bias_cm"] is None else round(fit12["bias_cm"],2),
+          "nse":None if fit12["nse"] is None else round(fit12["nse"],4)},
       "peak":{"time_local":peak[0].isoformat(timespec="minutes"),"stage_cm":round(peak[1],2),"q_m3s":round(peak[2],2),
           "rise_from_observed_cm":round(peak[1]-obs_n,2)},
       "publishable":publishable,

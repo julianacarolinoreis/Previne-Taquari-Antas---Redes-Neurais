@@ -1,0 +1,30 @@
+{
+  "schema_version": "g040_target_event_refinement_request_v1",
+  "research_only": true,
+  "events": [
+    "E22_SEP2023",
+    "E24_NOV2023"
+  ],
+  "targets": [
+    "86510000",
+    "86720000",
+    "86879300",
+    "86895000"
+  ],
+  "search": {
+    "variants_per_unique_seed": 10,
+    "include_robust_seed": true,
+    "target_specific_selection": true,
+    "hec_compute_interval_min": 3
+  },
+  "objective": {
+    "nse": 0.15,
+    "kge": 0.1,
+    "pbias": 0.15,
+    "peak_error": 0.25,
+    "peak_timing": 0.25,
+    "rise_fall": 0.1,
+    "selection": "prefer checkpoint gate pass, then minimize target-specific loss"
+  },
+  "note": "Refine historical event-specific parameter donors for multiple cities/controls. Full-event fits remain donor-library calibration, not pseudo-operational validation."
+}

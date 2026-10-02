@@ -1,0 +1,79 @@
+name: G040 adaptive eventwise selector
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 * * * *"
+  push:
+    branches: [main]
+    paths:
+      - "config/g040_adaptive_eventwise_selection_v1.json"
+      - "scripts/build_g040_target_event_parameter_library.py"
+      - "scripts/select_g040_adaptive_scenario.py"
+      - "scripts/test_g040_adaptive_eventwise.py"
+      - "assets/data/hec_hms_g040_full_basin/g040_e1_multievent_calibration_latest.json"
+      - "assets/data/hec_hms_g040_full_basin/g040_target_event_refinement_latest.json"
+      - "assets/data/hec_hms_g040_full_basin/whole_basin_rain_forcing_latest.json"
+      - "assets/data/hec_hms_g040_full_basin/g040_basin_snapshot_latest.json"
+      - "assets/data/estudo_bacia_taquari_antas/modelo_mucum_eventwise_v1_fechado_latest.json"
+  pull_request:
+    paths:
+      - "config/g040_adaptive_eventwise_selection_v1.json"
+      - "scripts/build_g040_target_event_parameter_library.py"
+      - "scripts/select_g040_adaptive_scenario.py"
+      - "scripts/test_g040_adaptive_eventwise.py"
+      - ".github/workflows/g040-adaptive-eventwise-selector.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: g040-adaptive-eventwise-selector-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build target-event library
+        run: python -B scripts/build_g040_target_event_parameter_library.py
+
+      - name: Select current analogs
+        run: python -B scripts/select_g040_adaptive_scenario.py
+
+      - name: Contract tests
+        run: python -B scripts/test_g040_adaptive_eventwise.py
+
+      - name: Publish research artifacts
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="assets/data/hec_hms_g040_full_basin"
+          cp "$BASE/g040_target_event_parameter_library_latest.json" /tmp/
+          cp "$BASE/g040_adaptive_scenario_latest.json" /tmp/
+
+          git config user.name "previne-g040-adaptive-selector-bot"
+          git config user.email "previne-g040-adaptive-selector-bot@users.noreply.github.com"
+
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp /tmp/g040_target_event_parameter_library_latest.json "$BASE/"
+            cp /tmp/g040_adaptive_scenario_latest.json "$BASE/"
+            git add --               "$BASE/g040_target_event_parameter_library_latest.json"               "$BASE/g040_adaptive_scenario_latest.json"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "bot: update G040 adaptive eventwise selection [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt*2))
+          done
+          exit 1

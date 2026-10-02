@@ -1,0 +1,146 @@
+{
+  "schema_version": "g040_adaptive_eventwise_selection_v1",
+  "research_only": true,
+  "purpose": "Select event-conditioned parameter families per target/control from historical analogs, while retaining a robust multi-event fallback. The selector supports research forecasts but does not issue warnings or evacuation decisions.",
+  "targets": [
+    {
+      "code": "86472600",
+      "name": "Santa Tereza",
+      "status": "eventwise_hydrologic_library_pending",
+      "upstream_controls": [
+        "86472000"
+      ],
+      "notes": "RNA/eventwise evidence exists; HEC discharge library waits on reconciled target Q/rating-curve evidence."
+    },
+    {
+      "code": "86510000",
+      "name": "Muçum",
+      "status": "eventwise_library_available",
+      "upstream_controls": [
+        "86472000",
+        "86500000"
+      ]
+    },
+    {
+      "code": "86720000",
+      "name": "Encantado",
+      "status": "eventwise_library_building",
+      "upstream_controls": [
+        "86472000",
+        "86500000",
+        "86595000"
+      ]
+    },
+    {
+      "code": "86743000",
+      "name": "Arroio do Meio",
+      "status": "eventwise_library_pending",
+      "upstream_controls": [
+        "86472000",
+        "86500000",
+        "86595000"
+      ]
+    },
+    {
+      "code": "86879000",
+      "name": "Lajeado",
+      "status": "eventwise_library_pending",
+      "upstream_controls": [
+        "86472000",
+        "86500000",
+        "86595000",
+        "86746000"
+      ]
+    },
+    {
+      "code": "86879300",
+      "name": "Estrela",
+      "status": "eventwise_library_building",
+      "upstream_controls": [
+        "86472000",
+        "86500000",
+        "86595000",
+        "86746000"
+      ]
+    },
+    {
+      "code": "86895000",
+      "name": "Porto Mariante",
+      "status": "eventwise_library_building",
+      "upstream_controls": [
+        "86472000",
+        "86500000",
+        "86595000",
+        "86746000"
+      ]
+    },
+    {
+      "code": "86950000",
+      "name": "Taquari",
+      "status": "eventwise_library_pending",
+      "upstream_controls": [
+        "86472000",
+        "86500000",
+        "86595000",
+        "86746000"
+      ]
+    },
+    {
+      "code": "86996000",
+      "name": "Triunfo",
+      "status": "eventwise_library_pending",
+      "upstream_controls": [
+        "86472000",
+        "86500000",
+        "86595000",
+        "86746000"
+      ],
+      "notes": "checkpoint only; does not define G040 spatial domain"
+    }
+  ],
+  "scenario_features": {
+    "rainfall": [
+      "observed_24h_basin_mm",
+      "observed_72h_basin_mm",
+      "forecast_24h_basin_mm",
+      "forecast_48h_basin_mm",
+      "forecast_72h_basin_mm",
+      "component_spatial_pattern"
+    ],
+    "hydrology": [
+      "current_discharge_at_target_or_nearest_control",
+      "upstream_discharge_state",
+      "flow_trend"
+    ],
+    "wetness": [
+      "antecedent_rain_proxy",
+      "SMA_state_when_available"
+    ],
+    "future": [
+      "ECMWF_spatial_pattern",
+      "forecast_accumulation"
+    ]
+  },
+  "selector": {
+    "top_k": 3,
+    "weighting": "inverse-distance soft weighting among compatible analogs",
+    "hard_pick": false,
+    "fallback": "robust multi-event parameterization when no sufficiently similar/validated analog exists",
+    "minimum_evidence": "an analog must have a compatible target-specific parameter row and historical fingerprint",
+    "target_event_exclusion": "pseudo-operational replay must exclude the target event from its candidate library and may only use observations available at t0",
+    "online_recalibration": "optional research arm; may use observations only up to t0 and must be separately benchmarked"
+  },
+  "distance_weights": {
+    "rain_magnitude": 0.3,
+    "spatial_rain_pattern": 0.25,
+    "antecedent_wetness": 0.15,
+    "upstream_hydrologic_state": 0.2,
+    "trend": 0.1
+  },
+  "confidence": {
+    "high": "top analog close and clearly separated from alternatives, all critical features available",
+    "medium": "usable analogs exist but distances are similar or some features are missing",
+    "low": "no close analog, weak target library, or conflicting upstream state; use robust fallback/ensemble"
+  },
+  "no_single_parameter_rule": "Do not replace the eventwise library with one basin-wide parameter set. A common/multi-event fit remains a fallback and scientific comparator."
+}

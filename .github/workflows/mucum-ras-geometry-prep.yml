@@ -1,0 +1,53 @@
+name: Muçum HEC-RAS geometry prep
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/mucum-ras-geometry-prep.yml"
+      - "scripts/build_mucum_ras_geometry_prep.py"
+      - "assets/data/hec_hms_integrated_taquari_antas/network_audit_latest.json"
+      - "assets/data/hec_hms_integrated_taquari_antas/bho6_taquari_antas_network.geojson"
+      - "assets/data/mucum_inundacao/mdt/**"
+      - "assets/data/santa_tereza_inundacao/mdt/**"
+      - "assets/data/g040_hydro_stack/project_source_inventory_latest.json"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository and LFS terrain
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install geospatial dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy pandas shapely pyproj rasterio
+
+      - name: Build Muçum hydraulic geometry prep
+        run: python scripts/build_mucum_ras_geometry_prep.py
+
+      - name: Commit generated research artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/data/g040_hydro_stack/mucum_ras_prep
+          if git diff --cached --quiet; then
+            echo "No generated changes."
+            exit 0
+          fi
+          git commit -m "Build Muçum hydraulic geometry prep"
+          git pull --rebase origin main
+          git push origin HEAD:main

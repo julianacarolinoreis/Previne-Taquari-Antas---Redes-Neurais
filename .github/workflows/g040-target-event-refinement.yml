@@ -1,0 +1,89 @@
+name: G040 target-event refinement
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "config/g040_target_event_refinement_request_v1.json"
+      - "scripts/refine_g040_target_event_library.py"
+      - "scripts/test_g040_target_event_refinement.py"
+      - ".github/workflows/g040-target-event-refinement.yml"
+  pull_request:
+    paths:
+      - "config/g040_target_event_refinement_request_v1.json"
+      - "scripts/refine_g040_target_event_library.py"
+      - "scripts/test_g040_target_event_refinement.py"
+      - ".github/workflows/g040-target-event-refinement.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: g040-target-event-refinement
+  cancel-in-progress: true
+
+jobs:
+  refine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Contract tests
+        run: python -B scripts/test_g040_target_event_refinement.py
+      - name: Cache HEC-HMS 4.13
+        if: github.event_name != 'pull_request'
+        id: cache-hec
+        uses: actions/cache@v4
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+      - name: Download HEC-HMS 4.13
+        if: github.event_name != 'pull_request' && steps.cache-hec.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .hec
+          curl -L --fail --retry 3 --retry-delay 4             -o /tmp/HEC-HMS-4.13-linux64.tar.gz             https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
+          tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
+      - name: Verify historical forcing exists
+        if: github.event_name != 'pull_request'
+        run: |
+          for E in E22_SEP2023 E24_NOV2023; do
+            test -f "assets/data/hec_hms_g040_full_basin/historical_calibration_forcing/$E/rain.json"
+            test -f "assets/data/hec_hms_g040_full_basin/historical_calibration_forcing/$E/hydro.json"
+            test -f "assets/data/hec_hms_g040_full_basin/historical_calibration_forcing/$E/scenario.json"
+          done
+      - name: Refine target-event donor library
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          test -n "$HEC_SH"
+          python -B scripts/refine_g040_target_event_library.py "$HEC_SH"
+      - name: Publish refinement
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="assets/data/hec_hms_g040_full_basin"
+          cp "$BASE/g040_target_event_refinement_latest.json" /tmp/
+          cp "$BASE/g040_target_event_refinement_latest.csv" /tmp/
+          git config user.name "previne-g040-target-calibration-bot"
+          git config user.email "previne-g040-target-calibration-bot@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp /tmp/g040_target_event_refinement_latest.json "$BASE/"
+            cp /tmp/g040_target_event_refinement_latest.csv "$BASE/"
+            git add -- "$BASE/g040_target_event_refinement_latest.json" "$BASE/g040_target_event_refinement_latest.csv"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "bot: refine G040 target-event parameter donors [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt*2))
+          done
+          exit 1

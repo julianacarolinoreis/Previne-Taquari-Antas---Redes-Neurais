@@ -1,15 +1,24 @@
 #!/usr/bin/env python3
 """Iterative operational calibration for Muçum.
 
-A candidate is never treated as final merely because HEC-HMS completed.
-The loop keeps observed forcing/boundaries fixed and iterates only over
-permitted internal state/routing parameters until objective hydrologic
-acceptance criteria are met.
+A failed candidate is not the end of the workflow. The controller keeps the
+observed rainfall and observed discharge boundaries fixed, searches only
+physically interpretable HEC-HMS state/routing/loss parameters, and reruns the
+model until the objective launch-state and recent-hydrograph criteria pass.
+
+If the search budget is exhausted, the best candidate is retained internally
+with status RECALIBRATING and becomes the seed of the next fresh-data cycle.
+It is never relabeled as validated by relaxing the acceptance thresholds.
 
 Research/decision-support only; not an official alert.
 """
 from __future__ import annotations
-import json, os, subprocess, sys
+
+import json
+import math
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -17,85 +26,99 @@ OUT=ROOT/"assets/data/estudo_bacia_taquari_antas"
 RESULT=OUT/"hec_hms_dual_boundary_mucum_latest.json"
 SCRIPT=ROOT/"scripts/run_hec_hms_mucum_dual_boundary.py"
 
-# Acceptance criteria for a FINAL operational candidate.
 LIMITS={
     "abs_stage_error_cm": 10.0,
     "abs_slope_error_cm_h": 12.0,
     "rmse6h_cm": 35.0,
     "abs_bias6h_cm": 15.0,
+    "min_nse6h": 0.50,
+    "min_nse12h": 0.75,
     "min_lag_corr": 0.98,
     "max_lag_rmse_m3s": 150.0,
     "min_rain_stations": 40,
     "min_flow_q_stations": 30,
     "max_boundary_age_h": 2.0,
 }
+MAX_CANDIDATES=240
 
-# Stage 1: physically plausible coarse neighborhood around the current event.
-BASE_STAGE=[
-  (1.00,1.00,0.75,w) for w in (4,6,8,10,12)
-] + [
-  (1.00,1.00,1.00,w) for w in (4,6,8,10,12)
-] + [
-  (1.25,1.25,1.00,w) for w in (4,6,8,10,12)
-] + [
-  (1.25,1.25,1.25,w) for w in (4,6,8,10,12)
-] + [
-  (1.50,1.50,1.00,w) for w in (4,6,8,10,12)
-]
+DEFAULT={
+    "k1":1.25,"k2":1.25,"k3":1.00,"x":0.20,"warmup_h":8,
+    "memory_tau_h":3.0,
+    "dn_initial_loss_scale":1.0,
+    "dn_constant_loss_scale":1.0,
+    "dn_tc_scale":1.0,
+    "dn_storage_scale":1.0,
+    "dn_recession_scale":1.0,
+    "dn_flow_ratio_scale":1.0,
+}
 
-def adaptive_candidates(best, k_step, warm_step):
-    """Refine deterministically around the best executed candidate."""
-    if not best:
-        return []
-    ks1=[round(max(0.6,best["k1"]+d),2) for d in (-k_step,0,k_step)]
-    ks2=[round(max(0.6,best["k2"]+d),2) for d in (-k_step,0,k_step)]
-    ks3=[round(max(0.5,best["k3"]+d),2) for d in (-k_step,0,k_step)]
-    warms=sorted(set(max(3,min(12,int(round(best["warmup_h"]+d)))) for d in (-warm_step,0,warm_step)))
-    out=[]
-    for k1 in ks1:
-        for k2 in ks2:
-            if abs(k1-k2)>0.45:
-                continue
-            for k3 in ks3:
-                for warm in warms:
-                    out.append((k1,k2,k3,warm))
-    return out
+def clamp(v,lo,hi):
+    return max(lo,min(hi,float(v)))
+
+def norm(c):
+    # Keep only actual parameter keys. Candidate rows also carry score,
+    # accepted/current/metrics metadata; letting those fields survive here
+    # caused an old score/accepted flag to overwrite the newly computed result
+    # when **c was expanded in run_one.
+    src=c or {}
+    x=dict(DEFAULT)
+    for k in DEFAULT:
+        if k in src and src.get(k) is not None:
+            x[k]=src[k]
+    x["k1"]=round(clamp(x["k1"],0.50,4.00),3)
+    x["k2"]=round(clamp(x["k2"],0.50,4.00),3)
+    x["k3"]=round(clamp(x["k3"],0.40,3.00),3)
+    x["x"]=round(clamp(x["x"],0.05,0.35),3)
+    x["warmup_h"]=int(round(clamp(x["warmup_h"],3,24)))
+    x["memory_tau_h"]=round(clamp(x["memory_tau_h"],0.75,8.0),3)
+    for k in ("dn_initial_loss_scale","dn_constant_loss_scale","dn_tc_scale","dn_storage_scale"):
+        x[k]=round(clamp(x[k],0.45,1.80),3)
+    x["dn_recession_scale"]=round(clamp(x["dn_recession_scale"],0.75,1.20),3)
+    # Initial residual flow is an event-state variable, not a fixed historical
+    # calibration coefficient. During a wet/flood recession, the observed
+    # ungauged incremental contribution can be tens of times the dry-event
+    # library seed (0.005 m3/s/km2). Allow the optimizer to represent that
+    # stored water explicitly instead of compensating with a vertical stage shift.
+    x["dn_flow_ratio_scale"]=round(clamp(x["dn_flow_ratio_scale"],0.20,80.0),3)
+    return x
+
+PARAM_KEYS=tuple(DEFAULT.keys())
+
+def ckey(c):
+    c=norm(c)
+    return tuple(c[k] for k in PARAM_KEYS)
 
 def val(x, default=999.0):
     try:
         if x is None: return default
-        return float(x)
+        v=float(x)
+        return v if math.isfinite(v) else default
     except Exception:
         return default
-
-def score(pkg):
-    cur=pkg.get("current") or {}
-    fit=pkg.get("recent_fit_6h") or {}
-    e=abs(val(cur.get("stage_error_cm")))
-    slope=abs(val(cur.get("slope_error_cm_h")))
-    rmse=val(fit.get("raw_rmse_cm"))
-    bias=abs(val(fit.get("raw_bias_cm")))
-    # Emphasize present state and current derivative, then recent-shape fit.
-    return e + 1.35*slope + 0.35*rmse + 0.12*bias
 
 def boundary_age_h(pkg, key):
     from datetime import datetime
     cur=(pkg.get("current") or {}).get("observed_time_local")
     b=((pkg.get("boundary_audit") or {}).get(key) or {}).get("last_observed_local")
     if not cur or not b: return 999.0
-    return max(0.0,(datetime.fromisoformat(cur)-datetime.fromisoformat(b)).total_seconds()/3600.0)
+    try:
+        return max(0.0,(datetime.fromisoformat(cur)-datetime.fromisoformat(b)).total_seconds()/3600.0)
+    except Exception:
+        return 999.0
 
 def checks(pkg):
     cur=pkg.get("current") or {}
-    fit=pkg.get("recent_fit_6h") or {}
+    fit6=pkg.get("recent_fit_6h") or {}
+    fit12=pkg.get("recent_fit_12h") or {}
     net=pkg.get("observed_network_audit") or {}
     lag=(((pkg.get("boundary_audit") or {}).get("observed_event_lag") or {}).get("best") or {})
-
     values={
       "abs_stage_error_cm":abs(val(cur.get("stage_error_cm"))),
       "abs_slope_error_cm_h":abs(val(cur.get("slope_error_cm_h"))),
-      "rmse6h_cm":val(fit.get("raw_rmse_cm")),
-      "abs_bias6h_cm":abs(val(fit.get("raw_bias_cm"))),
+      "rmse6h_cm":val(fit6.get("raw_rmse_cm")),
+      "abs_bias6h_cm":abs(val(fit6.get("raw_bias_cm"))),
+      "nse6h":val(fit6.get("nse"),-999),
+      "nse12h":val(fit12.get("nse"),-999),
       "lag_corr":val(lag.get("corr"),-999),
       "lag_rmse_m3s":val(lag.get("rmse_m3s")),
       "rain_station_count":int(net.get("rain_valid_station_count") or 0),
@@ -108,6 +131,8 @@ def checks(pkg):
       "slope":values["abs_slope_error_cm_h"]<=LIMITS["abs_slope_error_cm_h"],
       "rmse6h":values["rmse6h_cm"]<=LIMITS["rmse6h_cm"],
       "bias6h":values["abs_bias6h_cm"]<=LIMITS["abs_bias6h_cm"],
+      "nse6h":values["nse6h"]>=LIMITS["min_nse6h"],
+      "nse12h":values["nse12h"]>=LIMITS["min_nse12h"],
       "lag_corr":values["lag_corr"]>=LIMITS["min_lag_corr"],
       "lag_rmse":values["lag_rmse_m3s"]<=LIMITS["max_lag_rmse_m3s"],
       "rain_network":values["rain_station_count"]>=LIMITS["min_rain_stations"],
@@ -117,117 +142,281 @@ def checks(pkg):
     }
     return values,passed,all(passed.values())
 
-def run_one(hec,k1,k2,k3,warm):
+def score(pkg):
+    values,passed,_=checks(pkg)
+    s=(
+      values["abs_stage_error_cm"]
+      +1.35*values["abs_slope_error_cm_h"]
+      +0.35*values["rmse6h_cm"]
+      +0.12*values["abs_bias6h_cm"]
+    )
+    if values["nse6h"]<LIMITS["min_nse6h"]:
+        s += 55.0*(LIMITS["min_nse6h"]-values["nse6h"])
+    if values["nse12h"]<LIMITS["min_nse12h"]:
+        s += 45.0*(LIMITS["min_nse12h"]-values["nse12h"])
+    # Data freshness is not calibrated away; penalize it so the audit remains
+    # obvious, but never modify observations to make the model pass.
+    for k in ("rain_network","flow_network","ljj_fresh","carreiro_fresh","lag_corr","lag_rmse"):
+        if not passed[k]: s += 25.0
+    return s
+
+def env_for(c):
+    c=norm(c)
     env=dict(os.environ)
     env.update({
-      "DUAL_K1_H":str(k1),"DUAL_K2_H":str(k2),"DUAL_K3_H":str(k3),
-      "DUAL_X":"0.2","DUAL_WARMUP_H":str(warm)
+      "DUAL_K1_H":str(c["k1"]),
+      "DUAL_K2_H":str(c["k2"]),
+      "DUAL_K3_H":str(c["k3"]),
+      "DUAL_X":str(c["x"]),
+      "DUAL_WARMUP_H":str(c["warmup_h"]),
+      "DUAL_MEMORY_TAU_H":str(c["memory_tau_h"]),
+      "DUAL_DN_INITIAL_LOSS_SCALE":str(c["dn_initial_loss_scale"]),
+      "DUAL_DN_CONSTANT_LOSS_SCALE":str(c["dn_constant_loss_scale"]),
+      "DUAL_DN_TC_SCALE":str(c["dn_tc_scale"]),
+      "DUAL_DN_STORAGE_SCALE":str(c["dn_storage_scale"]),
+      "DUAL_DN_RECESSION_SCALE":str(c["dn_recession_scale"]),
+      "DUAL_DN_FLOW_RATIO_SCALE":str(c["dn_flow_ratio_scale"]),
     })
-    cp=subprocess.run([sys.executable,"-B",str(SCRIPT),hec],cwd=ROOT,env=env,text=True,capture_output=True)
+    return env
+
+def run_one(hec,c):
+    c=norm(c)
+    cp=subprocess.run([sys.executable,"-B",str(SCRIPT),hec],cwd=ROOT,env=env_for(c),text=True,capture_output=True)
     if cp.returncode!=0:
-        return {"ok":False,"k1":k1,"k2":k2,"k3":k3,"warmup_h":warm,
-                "stderr":cp.stderr[-1500:]}
+        return {"ok":False,**c,"stderr":cp.stderr[-1600:]}
     pkg=json.loads(RESULT.read_text(encoding="utf-8"))
     values,passed,accepted=checks(pkg)
     return {
-      "ok":True,"accepted":accepted,"score":score(pkg),
-      "k1":k1,"k2":k2,"k3":k3,"warmup_h":warm,
-      "values":values,"passed":passed,
-      "current":pkg.get("current"),"recent_fit_6h":pkg.get("recent_fit_6h"),
+      "ok":True,"accepted":accepted,"score":round(score(pkg),6),
+      **c,"values":values,"passed":passed,
+      "current":pkg.get("current"),
+      "recent_fit_6h":pkg.get("recent_fit_6h"),
+      "recent_fit_12h":pkg.get("recent_fit_12h"),
       "peak":pkg.get("peak"),
     }
 
 def rerun_selected(hec,row):
-    env=dict(os.environ)
-    env.update({
-      "DUAL_K1_H":str(row["k1"]),"DUAL_K2_H":str(row["k2"]),"DUAL_K3_H":str(row["k3"]),
-      "DUAL_X":"0.2","DUAL_WARMUP_H":str(row["warmup_h"])
-    })
-    cp=subprocess.run([sys.executable,"-B",str(SCRIPT),hec],cwd=ROOT,env=env,text=True,capture_output=True)
-    print(cp.stdout)
-    print(cp.stderr,file=sys.stderr)
+    cp=subprocess.run([sys.executable,"-B",str(SCRIPT),hec],cwd=ROOT,env=env_for(row),text=True,capture_output=True)
+    print(cp.stdout); print(cp.stderr,file=sys.stderr)
     if cp.returncode!=0: raise SystemExit(cp.returncode)
     return json.loads(RESULT.read_text(encoding="utf-8"))
+
+def previous_seed():
+    if not RESULT.exists(): return None
+    try:
+        old=json.loads(RESULT.read_text(encoding="utf-8"))
+        sel=((old.get("operational_validation") or {}).get("selected") or {})
+        topo=((old.get("topology") or {}).get("live_calibration_controls") or {})
+        if not sel: return None
+        return norm({
+          "k1":sel.get("k1_h"),"k2":sel.get("k2_h"),"k3":sel.get("k3_h"),
+          "x":sel.get("x"),"warmup_h":sel.get("warmup_h"),
+          "memory_tau_h":sel.get("memory_tau_h",topo.get("memory_tau_h",3.0)),
+          "dn_initial_loss_scale":sel.get("dn_initial_loss_scale",topo.get("dn_initial_loss_scale",1.0)),
+          "dn_constant_loss_scale":sel.get("dn_constant_loss_scale",topo.get("dn_constant_loss_scale",1.0)),
+          "dn_tc_scale":sel.get("dn_tc_scale",topo.get("dn_tc_scale",1.0)),
+          "dn_storage_scale":sel.get("dn_storage_scale",topo.get("dn_storage_scale",1.0)),
+          "dn_recession_scale":sel.get("dn_recession_scale",topo.get("dn_recession_scale",1.0)),
+          "dn_flow_ratio_scale":sel.get("dn_flow_ratio_scale",topo.get("dn_flow_ratio_scale",1.0)),
+        })
+    except Exception:
+        return None
+
+def base_candidates():
+    out=[]
+    prev=previous_seed()
+    if prev: out.append(prev)
+    for k1,k2,k3 in [
+      (1.00,1.00,0.75),(1.00,1.00,1.00),(1.25,1.25,1.00),
+      (1.25,1.25,1.25),(1.50,1.50,1.00)
+    ]:
+      for warm in (4,6,8,10,12):
+        out.append(norm({"k1":k1,"k2":k2,"k3":k3,"warmup_h":warm}))
+    return out
+
+def route_refine(best,step=0.12):
+    if not best:return []
+    b=norm(best);out=[]
+    for d1,d2,d3 in [
+      (-step,-step,0),(step,step,0),(0,0,-step),(0,0,step),
+      (-step,0,0),(step,0,0),(0,-step,0),(0,step,0),
+      (-step,-step,-step),(step,step,step)
+    ]:
+      x=dict(b);x["k1"]+=d1;x["k2"]+=d2;x["k3"]+=d3;out.append(norm(x))
+    for dw in (-2,-1,1,2):
+      x=dict(b);x["warmup_h"]+=dw;out.append(norm(x))
+    return out
+
+def memory_x_candidates(best):
+    if not best:return []
+    b=norm(best);out=[]
+    for x in (0.10,0.15,0.20,0.25,0.30):
+      q=dict(b);q["x"]=x;out.append(norm(q))
+    for tau in (1.0,1.5,2.0,3.0,4.5,6.0):
+      q=dict(b);q["memory_tau_h"]=tau;out.append(norm(q))
+    for x,tau in ((0.15,1.5),(0.15,4.5),(0.25,1.5),(0.25,4.5),(0.30,3.0)):
+      q=dict(b);q["x"]=x;q["memory_tau_h"]=tau;out.append(norm(q))
+    return out
+
+def residual_state_candidates(best):
+    """Search the live residual/baseflow state before retuning event physics.
+
+    The current Muçum residual is diagnosed from past observations as a nearly
+    constant missing discharge while the hydrograph slope is already correct.
+    Therefore initial residual flow is searched over a broad wet-state range
+    before changing losses/Clark timing.
+    """
+    if not best:return []
+    b=norm(best);out=[]
+    for fr in (3,5,8,12,16,20,25,30,35,40,42,44,45,46,47,48,49,50,51,52,53,55,60,70):
+      q=dict(b);q["dn_flow_ratio_scale"]=fr;out.append(norm(q))
+    # Recession controls how quickly that assimilated stored-water state decays.
+    # Focus tightly around the 45–52 range indicated by the current mass-balance
+    # residual, while still keeping broader wet-state candidates.
+    for fr,rec in (
+      (40,0.95),(42,0.95),(44,0.95),(45,0.95),(46,0.95),(48,0.95),(50,0.95),(52,0.95),
+      (42,0.97),(44,0.97),(45,0.97),(46,0.97),(47,0.97),(48,0.97),(49,0.97),(50,0.97),(51,0.97),(52,0.97),
+      (42,0.98),(44,0.98),(45,0.98),(46,0.98),(47,0.98),(48,0.98),(49,0.98),(50,0.98),(51,0.98),(52,0.98),
+      (44,0.99),(45,0.99),(46,0.99),(47,0.99),(48,0.99),(49,0.99),(50,0.99),(51,0.99),(52,0.99),
+      (45,1.0),(46,1.0),(47,1.0),(48,1.0),(49,1.0),(50,1.0),(51,1.0),(52,1.0)
+    ):
+      q=dict(b);q["dn_flow_ratio_scale"]=fr;q["dn_recession_scale"]=rec;out.append(norm(q))
+    return out
+
+def residual_coordinate_candidates(best):
+    if not best:return []
+    b=norm(best);out=[]
+    choices={
+      "dn_initial_loss_scale":(0.65,0.80,1.0,1.20,1.40),
+      "dn_constant_loss_scale":(0.65,0.80,1.0,1.20,1.40),
+      "dn_tc_scale":(0.65,0.80,1.0,1.20,1.40),
+      "dn_storage_scale":(0.65,0.80,1.0,1.20,1.40),
+      "dn_recession_scale":(0.85,0.95,1.0,1.05,1.12),
+      "dn_flow_ratio_scale":(10,20,30,40,45,50,55,60,70),
+    }
+    for name,vals in choices.items():
+      for v in vals:
+        q=dict(b);q[name]=v;out.append(norm(q))
+    return out
+
+def residual_mixed_candidates(best):
+    if not best:return []
+    b=norm(best);out=[]
+    combos=[
+      (0.80,0.80,0.80,0.80),(1.20,1.20,0.80,0.80),
+      (0.80,0.80,1.20,1.20),(1.20,1.20,1.20,1.20),
+      (0.70,1.15,0.80,0.80),(1.15,0.70,0.80,0.80),
+      (0.85,1.25,1.15,0.85),(1.25,0.85,0.85,1.15),
+      (0.90,0.90,0.70,1.10),(1.10,1.10,1.10,0.70),
+    ]
+    for il,cl,tc,st in combos:
+      q=dict(b);q.update(dn_initial_loss_scale=il,dn_constant_loss_scale=cl,dn_tc_scale=tc,dn_storage_scale=st);out.append(norm(q))
+    for fr,rec in ((20,0.90),(30,0.95),(40,0.98),(45,1.0),(50,1.0),(55,1.0),(60,1.02),(70,1.05)):
+      q=dict(b);q["dn_flow_ratio_scale"]=fr;q["dn_recession_scale"]=rec;out.append(norm(q))
+    return out
+
+def fine_candidates(best):
+    if not best:return []
+    b=norm(best);out=[]
+    perturb={
+      "k1":(-0.06,0.06),"k2":(-0.06,0.06),"k3":(-0.05,0.05),
+      "x":(-0.03,0.03),"memory_tau_h":(-0.5,0.5),
+      "dn_initial_loss_scale":(-0.10,0.10),
+      "dn_constant_loss_scale":(-0.10,0.10),
+      "dn_tc_scale":(-0.10,0.10),
+      "dn_storage_scale":(-0.10,0.10),
+      "dn_flow_ratio_scale":(-5.0,-2.0,2.0,5.0),
+    }
+    for name,ds in perturb.items():
+      for d in ds:
+        q=dict(b);q[name]+=d;out.append(norm(q))
+    return out
+
+def best_executed(rows):
+    xs=[x for x in rows if x.get("ok")]
+    return min(xs,key=lambda x:x["score"],default=None)
 
 def main():
     if len(sys.argv)<2: raise SystemExit("usage: iterative_validation /path/to/hec-hms.sh")
     hec=sys.argv[1]
-    all_rows=[]
-    accepted=[]
-    seen=set()
-    candidates=BASE_STAGE
+    all_rows=[];accepted=[];seen=set()
 
-    for stage_i in (1,2,3):
+    stage_builders=[
+      lambda best: base_candidates(),
+      residual_state_candidates,
+      lambda best: route_refine(best,0.15),
+      memory_x_candidates,
+      residual_coordinate_candidates,
+      residual_mixed_candidates,
+      fine_candidates,
+      lambda best: route_refine(best,0.06)+fine_candidates(best),
+    ]
+
+    for stage_i,builder in enumerate(stage_builders,1):
+        best_so_far=best_executed(all_rows)
+        candidates=builder(best_so_far)
         stage_rows=[]
         for cand in candidates:
-            if cand in seen: continue
-            seen.add(cand)
-            row=run_one(hec,*cand)
-            row["stage"]=stage_i
-            stage_rows.append(row); all_rows.append(row)
+            if len(all_rows)>=MAX_CANDIDATES: break
+            k=ckey(cand)
+            if k in seen: continue
+            seen.add(k)
+            row=run_one(hec,cand);row["stage"]=stage_i
+            stage_rows.append(row);all_rows.append(row)
             if row.get("accepted"):
                 accepted.append(row)
-
-        if accepted:
+                break
+        if accepted or len(all_rows)>=MAX_CANDIDATES:
             break
-
-        executed=[x for x in all_rows if x.get("ok")]
-        best_so_far=min(executed,key=lambda x:x["score"],default=None)
-        print("CALIBRATION_STAGE_INCOMPLETE="+json.dumps({
-          "stage":stage_i,
-          "best":best_so_far,
-          "next_action":"refine_internal_state_and_routing_around_best"
+        best_so_far=best_executed(all_rows)
+        print("CALIBRATION_CONTINUES="+json.dumps({
+          "stage":stage_i,"candidate_count":len(all_rows),"best":best_so_far,
+          "next_action":"expand_search_without_relaxing_validation"
         },ensure_ascii=False))
-
-        if stage_i==1:
-            candidates=adaptive_candidates(best_so_far,0.15,1)
-        elif stage_i==2:
-            candidates=adaptive_candidates(best_so_far,0.08,1)
 
     valid=[x for x in all_rows if x.get("ok")]
     if not valid: raise SystemExit("all calibration candidates failed to execute")
-
-    if accepted:
-        selected=min(accepted,key=lambda x:x["score"])
-        status="VALIDATED"
-    else:
-        selected=min(valid,key=lambda x:x["score"])
-        status="CALIBRATION_PENDING"
+    selected=min(accepted,key=lambda x:x["score"]) if accepted else min(valid,key=lambda x:x["score"])
 
     pkg=rerun_selected(hec,selected)
     values,passed,accepted_now=checks(pkg)
-    final_status="VALIDATED" if accepted_now else "CALIBRATION_PENDING"
+    final_status="VALIDATED" if accepted_now else "RECALIBRATING"
 
+    selected_payload={
+      "k1_h":selected["k1"],"k2_h":selected["k2"],"k3_h":selected["k3"],
+      "x":selected["x"],"warmup_h":selected["warmup_h"],
+      "memory_tau_h":selected["memory_tau_h"],
+      "dn_initial_loss_scale":selected["dn_initial_loss_scale"],
+      "dn_constant_loss_scale":selected["dn_constant_loss_scale"],
+      "dn_tc_scale":selected["dn_tc_scale"],
+      "dn_storage_scale":selected["dn_storage_scale"],
+      "dn_recession_scale":selected["dn_recession_scale"],
+      "dn_flow_ratio_scale":selected["dn_flow_ratio_scale"],
+      "score":selected["score"],
+    }
     pkg["operational_validation"]={
       "status":final_status,
-      "policy":"iterate candidates until objective hydrologic criteria pass; do not treat incomplete calibration as a final operational forecast",
+      "policy":"failed candidates trigger automatic recalibration; thresholds are never loosened merely to obtain a publishable result",
       "limits":LIMITS,
       "values":values,
       "checks":passed,
-      "selected":{
-        "k1_h":selected["k1"],"k2_h":selected["k2"],"k3_h":selected["k3"],
-        "x":0.2,"warmup_h":selected["warmup_h"],"score":selected["score"],
-      },
+      "selected":selected_payload,
       "stages_attempted":max(x.get("stage",0) for x in all_rows),
       "candidate_count":len(all_rows),
+      "search_budget":MAX_CANDIDATES,
       "accepted_candidate_count":sum(1 for x in all_rows if x.get("accepted")),
+      "next_cycle_action":None if accepted_now else "resume from best candidate with fresh observations and re-optimize",
       "candidates":all_rows,
     }
-
-    # "publishable" now means objective validation completed, not just executable.
     pkg["publishable"]=bool(accepted_now)
     RESULT.write_text(json.dumps(pkg,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
 
     print("OPERATIONAL_VALIDATION="+json.dumps({
-      "status":final_status,
-      "selected":pkg["operational_validation"]["selected"],
-      "values":values,"checks":passed,
-      "peak":pkg.get("peak")
+      "status":final_status,"selected":selected_payload,
+      "values":values,"checks":passed,"peak":pkg.get("peak"),
+      "candidate_count":len(all_rows)
     },ensure_ascii=False))
-
-    # Exit 0 even when calibration remains pending so the workflow can publish
-    # diagnostics and the next automated cycle can continue from fresh data.
-    # Final chart generation must require status == VALIDATED.
+    return 0
 
 if __name__=="__main__":
-    main()
+    raise SystemExit(main())

@@ -7,7 +7,7 @@
   <link rel="icon" href="data:,">
   <title>PREVINE · Dashboard da bacia Taquari–Antas</title>
   <link rel="stylesheet" href="assets/css/site_chrome.css">
-  <link rel="stylesheet" href="assets/css/bacia_dashboard.css?v=20261001-models5">
+  <link rel="stylesheet" href="assets/css/bacia_dashboard.css?v=20261002-rain2">
   <link rel="stylesheet" href="assets/css/gestor_chrome.css">
 </head>
 <body>
@@ -17,7 +17,7 @@
       <div class="brand-copy">
         <p class="eyebrow">PREVINE · pesquisa de transbordamento</p>
         <h1>Dashboard da bacia <span>Taquari–Antas</span></h1>
-        <p class="lede">Telemetria observada, RNAs de curto prazo, chuva ECMWF e evidências históricas em uma leitura integrada.</p>
+        <p class="lede">Nível observado, RNAs, chuva prevista e saúde da rede G040 em uma leitura operacional e auditável.</p>
       </div>
       <div class="research-badge"><strong>PESQUISA</strong><span>sem alerta automático</span></div>
     </header>
@@ -33,18 +33,24 @@
       <a href="pesquisas.html">Arquivo</a>
     </nav>
 
-    <section class="intro-card" aria-labelledby="intro-title">
-      <div>
-        <p class="section-kicker">Resposta rápida</p>
-        <h2 id="intro-title">O que está previsto e o que ainda precisa ser conferido?</h2>
-        <p>Escolha uma estação e um horizonte para ver a chuva de cada fonte, o nível do rio e o score experimental de cruzar a cota. <strong>Chuva prevista não é a mesma coisa que probabilidade de inundação. Ausência de valor é UNKNOWN, não “não vai inundar”.</strong></p>
+    <section class="intro-card intro-compact" aria-labelledby="intro-title">
+      <div class="intro-primary">
+        <div class="intro-title-row">
+          <p class="section-kicker">Leitura operacional</p>
+          <span class="intro-mode-pill">prioridade: cenário atual</span>
+        </div>
+        <h2 id="intro-title">Veja primeiro o que está acontecendo agora; aprofunde a auditoria depois.</h2>
+        <p>Nível observado, chuva prevista, RNAs e qualidade das fontes aparecem separados. <strong>Chuva prevista não é a mesma coisa que probabilidade de inundação.</strong> UNKNOWN significa dado indisponível ou não utilizável — nunca condição segura.</p>
       </div>
-      <div class="legend-inline" aria-label="Legenda dos tipos de dado">
-        <span><i class="dot observed"></i>observação</span>
-        <span><i class="dot forecast"></i>previsão</span>
-        <span><i class="dot proxy"></i>proxy</span>
-        <span><i class="dot experimental"></i>experimental</span>
-      </div>
+      <details class="intro-guide">
+        <summary>Como interpretar os dados</summary>
+        <div class="legend-inline" aria-label="Legenda dos tipos de dado">
+          <span><i class="dot observed"></i>observação</span>
+          <span><i class="dot forecast"></i>previsão</span>
+          <span><i class="dot proxy"></i>proxy</span>
+          <span><i class="dot experimental"></i>experimental</span>
+        </div>
+      </details>
     </section>
 
     <section class="controls-card" aria-label="Filtros do dashboard">
@@ -65,43 +71,19 @@
         </div>
       </div>
       <button type="button" class="refresh-button" id="refresh-feeds">Atualizar dados</button>
-      <p class="control-status" id="control-status" aria-live="polite">Carregando feeds publicados…</p>
+      <div class="control-health" aria-label="Saúde da atualização"><span class="live-dot" aria-hidden="true"></span><p class="control-status" id="control-status" aria-live="polite">Carregando feeds publicados…</p></div>
     </section>
 
-    <section class="panel now-panel" id="agora" aria-labelledby="now-title">
-      <div class="panel-heading now-heading">
-        <div><p class="section-kicker">Agora na bacia</p><h2 id="now-title">Telemetria e RNAs de curto prazo</h2></div>
-        <span class="panel-note">Observado e previsto ficam separados. As RNAs mostram nível futuro em centímetros; não são probabilidade de inundação.</span>
-      </div>
-      <div class="now-overview">
-        <div class="basin-map-card">
-          <div class="now-subhead"><div><span class="now-eyebrow">Rede hidrometeorológica</span><h3>G040 inteira · Taquari–Antas</h3></div><span class="now-map-note" id="basin-network-note">catálogo, observados, previstos e RNA separados</span></div>
-          <div id="basin-network-summary" class="basin-network-summary" aria-live="polite"><span class="network-summary-empty">Carregando saúde da rede…</span></div>
-          <div class="basin-network-toolbar" aria-label="Filtros da rede G040">
-            <div class="network-toolbar-row"><span class="network-toolbar-label">Visualização</span><button type="button" class="network-chip is-active" data-network-mode="health" aria-pressed="true">Saúde da rede</button><button type="button" class="network-chip" data-network-mode="catalog" aria-pressed="false">Catálogo</button></div>
-            <div class="network-toolbar-row"><span class="network-toolbar-label">Observação</span><button type="button" class="network-chip is-active" data-network-filter="all" aria-pressed="true">Todas</button><button type="button" class="network-chip" data-network-filter="le1h" aria-pressed="false">≤ 1 h</button><button type="button" class="network-chip" data-network-filter="1to3" aria-pressed="false">1–3 h</button><button type="button" class="network-chip" data-network-filter="over3" aria-pressed="false">&gt; 3 h</button><button type="button" class="network-chip" data-network-filter="no-time" aria-pressed="false">Sem hora</button><button type="button" class="network-chip" data-network-filter="no-current" aria-pressed="false">Sem observado atual</button><button type="button" class="network-chip" data-network-filter="none" aria-pressed="false">Sem observado</button></div>
-            <div class="network-select-row">
-              <label>Fonte<select id="basin-source-filter"><option value="all">Todas</option><option value="ANA/HidroWeb">ANA/HidroWeb</option><option value="SGB/SACE">SGB/SACE</option><option value="CEMADEN">CEMADEN</option><option value="INMET">INMET</option></select></label>
-              <label>Sub-bacia G040<select id="basin-upg-filter"><option value="all">Todas as sub-bacias</option></select></label>
-              <label>Dado<select id="basin-variable-filter"><option value="all">Todos</option><option value="level">Nível</option><option value="flow">Vazão</option><option value="rain">Chuva observada</option><option value="rna">RNA de nível</option></select></label>
-              <label>Modelo previsto<select id="basin-model-filter"><option value="all">Todos</option><option value="ecmwf_ifs025">ECMWF IFS</option><option value="gfs_seamless">GFS</option><option value="icon_seamless">ICON</option><option value="gem_seamless">GEM</option><option value="meteofrance_seamless">Météo-France</option></select></label>
-            </div>
-            <div class="network-search-row">
-              <label class="network-search-label">Localizar estação<input id="basin-station-search" type="search" list="basin-station-options" placeholder="Nome ou código, ex.: 86472000" autocomplete="off"><datalist id="basin-station-options"></datalist></label>
-              <button type="button" class="network-clear-button" id="basin-clear-filters">Limpar filtros</button>
-              <span class="network-search-status" id="basin-search-status" aria-live="polite"></span>
-            </div>
-          </div>
-          <div id="basin-map" class="basin-map" aria-live="polite"><div class="loading-block">Carregando limite da G040 e snapshot das estações…</div></div>
-          <div id="basin-station-detail" class="basin-station-detail" aria-live="polite"><div class="loading-block">Clique em uma estação para abrir nível, chuva, previsão e RNA.</div></div>
-          <div id="basin-gap-diagnostics" class="basin-gap-diagnostics" aria-live="polite"><div class="loading-block">Calculando lacunas da rede por variável e idade…</div></div>
-          <div id="basin-upg-health" class="basin-upg-health" aria-live="polite"><div class="loading-block">Calculando cobertura observacional por sub-bacia…</div></div>
-          <p class="basin-map-foot">A cor do ponto representa a idade da evidência observada, não o risco hidrológico. Previsão meteorológica, observação e RNA permanecem em campos independentes. Ausência de dado nunca é convertida em zero.</p>
-        </div>
-        <div id="now-stations" class="now-stations" aria-live="polite"><div class="loading-block">Carregando telemetria e previsões curtas…</div></div>
-      </div>
-    </section>
+    <nav class="dashboard-jumpbar" aria-label="Atalhos desta página">
+      <a href="#cenario">Cenário agora</a>
+      <a href="#agora">Rio e rede</a>
+      <a href="#chuva">Chuva</a>
+      <a href="#modelos">Modelos</a>
+      <a href="#historico">Cheias históricas</a>
+      <a href="#fontes">Fontes</a>
+    </nav>
 
+    <div id="cenario" class="operational-stack">
     <section class="answer-card" aria-labelledby="answer-title" aria-live="polite">
       <div class="answer-icon" aria-hidden="true">⌁</div>
       <div class="answer-copy">
@@ -110,41 +92,6 @@
         <p id="answer-text">Os feeds públicos estão sendo consultados. A ausência de um valor não significa “não vai inundar”.</p>
       </div>
       <div class="answer-state" id="answer-state">CARREGANDO</div>
-    </section>
-
-    <section class="panel research-context-panel" aria-labelledby="research-context-title">
-      <div class="panel-heading">
-        <div><p class="section-kicker">Pesquisa de transbordamento</p><h2 id="research-context-title">Cabeceiras → rio → avaliação por horizonte</h2></div>
-        <span class="panel-note" id="research-context-status">Carregando o contexto da bacia…</span>
-      </div>
-      <p class="research-context-lede">Esta faixa reúne os sinais que entram na pesquisa: chuva prevista nas cabeceiras, chuva no ponto, nível observado, previsão curta e a estimativa experimental de cruzar a cota. Cada valor conserva a sua fonte, idade e unidade.</p>
-      <div id="research-context-grid" class="research-context-grid" aria-live="polite"><div class="loading-block">Carregando contexto pesquisável…</div></div>
-      <div id="research-context-gates" class="research-context-gates" aria-live="polite"></div>
-      <div id="research-upstream" class="research-upstream" aria-live="polite"></div>
-      <div id="research-source-registry" class="research-source-registry" aria-live="polite"></div>
-    </section>
-
-    <section class="layer-strip" id="layer-strip" aria-label="Quatro camadas da decisão">
-      <article class="layer-card previsao is-unknown" id="layer-previsao">
-        <span class="layer-kicker">Previsão</span>
-        <strong>UNKNOWN</strong>
-        <p>consultando fonte · ausência ≠ seguro</p>
-      </article>
-      <article class="layer-card perigo is-unknown" id="layer-perigo">
-        <span class="layer-kicker">Perigo</span>
-        <strong>UNKNOWN</strong>
-        <p>cota oficial e HAND 0 ainda não cruzados nesta leitura</p>
-      </article>
-      <article class="layer-card exposicao is-unknown" id="layer-exposicao">
-        <span class="layer-kicker">Exposição</span>
-        <strong>UNKNOWN</strong>
-        <p>sem mancha validada ∩ grade 200 m</p>
-      </article>
-      <article class="layer-card resposta is-blocked" id="layer-resposta">
-        <span class="layer-kicker">Resposta</span>
-        <strong>Bloqueado</strong>
-        <p>rota, abrigo e comunicação sem confirmação de campo</p>
-      </article>
     </section>
 
     <section class="kpi-grid" aria-label="Indicadores hidrológicos">
@@ -170,6 +117,87 @@
       </article>
     </section>
 
+    <section class="layer-strip" id="layer-strip" aria-label="Quatro camadas da decisão">
+      <article class="layer-card previsao is-unknown" id="layer-previsao">
+        <span class="layer-kicker">Previsão</span>
+        <strong>UNKNOWN</strong>
+        <p>consultando fonte · ausência ≠ seguro</p>
+      </article>
+      <article class="layer-card perigo is-unknown" id="layer-perigo">
+        <span class="layer-kicker">Perigo</span>
+        <strong>UNKNOWN</strong>
+        <p>cota oficial e HAND 0 ainda não cruzados nesta leitura</p>
+      </article>
+      <article class="layer-card exposicao is-unknown" id="layer-exposicao">
+        <span class="layer-kicker">Exposição</span>
+        <strong>UNKNOWN</strong>
+        <p>sem mancha validada ∩ grade 200 m</p>
+      </article>
+      <article class="layer-card resposta is-blocked" id="layer-resposta">
+        <span class="layer-kicker">Resposta</span>
+        <strong>Bloqueado</strong>
+        <p>rota, abrigo e comunicação sem confirmação de campo</p>
+      </article>
+    </section>
+
+    </div>
+
+    <section class="panel now-panel" id="agora" aria-labelledby="now-title">
+      <div class="panel-heading now-heading">
+        <div><p class="section-kicker">Agora na bacia</p><h2 id="now-title">Telemetria e RNAs de curto prazo</h2></div>
+        <span class="panel-note">Observado e previsto ficam separados. As RNAs mostram nível futuro em centímetros; não são probabilidade de inundação.</span>
+      </div>
+      <div class="now-overview">
+        <div id="now-stations" class="now-stations" aria-live="polite"><div class="loading-block">Carregando telemetria e previsões curtas…</div></div>
+        <div class="basin-map-card">
+          <div class="now-subhead"><div><span class="now-eyebrow">Rede hidrometeorológica</span><h3>G040 inteira · Taquari–Antas</h3></div><span class="now-map-note" id="basin-network-note">catálogo, observados, previstos e RNA separados</span></div>
+          <div id="basin-network-summary" class="basin-network-summary" aria-live="polite"><span class="network-summary-empty">Carregando saúde da rede…</span></div>
+          <details class="network-tools-fold">
+            <summary><span>Filtros avançados da rede</span><small>fonte, sub-bacia, variável, modelo e estação</small></summary>
+            <div class="network-tools-fold-body">
+          <div class="basin-network-toolbar" aria-label="Filtros da rede G040">
+            <div class="network-toolbar-row"><span class="network-toolbar-label">Visualização</span><button type="button" class="network-chip is-active" data-network-mode="health" aria-pressed="true">Saúde da rede</button><button type="button" class="network-chip" data-network-mode="catalog" aria-pressed="false">Catálogo</button></div>
+            <div class="network-toolbar-row"><span class="network-toolbar-label">Observação</span><button type="button" class="network-chip is-active" data-network-filter="all" aria-pressed="true">Todas</button><button type="button" class="network-chip" data-network-filter="le1h" aria-pressed="false">≤ 1 h</button><button type="button" class="network-chip" data-network-filter="1to3" aria-pressed="false">1–3 h</button><button type="button" class="network-chip" data-network-filter="over3" aria-pressed="false">&gt; 3 h</button><button type="button" class="network-chip" data-network-filter="no-time" aria-pressed="false">Sem hora</button><button type="button" class="network-chip" data-network-filter="no-current" aria-pressed="false">Sem observado atual</button><button type="button" class="network-chip" data-network-filter="none" aria-pressed="false">Sem observado</button></div>
+            <div class="network-select-row">
+              <label>Fonte<select id="basin-source-filter"><option value="all">Todas</option><option value="ANA/HidroWeb">ANA/HidroWeb</option><option value="SGB/SACE">SGB/SACE</option><option value="CEMADEN">CEMADEN</option><option value="INMET">INMET</option></select></label>
+              <label>Sub-bacia G040<select id="basin-upg-filter"><option value="all">Todas as sub-bacias</option></select></label>
+              <label>Dado<select id="basin-variable-filter"><option value="all">Todos</option><option value="level">Nível</option><option value="flow">Vazão</option><option value="rain">Chuva observada</option><option value="rna">RNA de nível</option></select></label>
+              <label>Modelo previsto<select id="basin-model-filter"><option value="all">Todos</option><option value="ecmwf_ifs025">ECMWF IFS</option><option value="gfs_seamless">GFS</option><option value="icon_seamless">ICON</option><option value="gem_seamless">GEM</option><option value="meteofrance_seamless">Météo-France</option></select></label>
+            </div>
+            <div class="network-search-row">
+              <label class="network-search-label">Localizar estação<input id="basin-station-search" type="search" list="basin-station-options" placeholder="Nome ou código, ex.: 86472000" autocomplete="off"><datalist id="basin-station-options"></datalist></label>
+              <button type="button" class="network-clear-button" id="basin-clear-filters">Limpar filtros</button>
+              <span class="network-search-status" id="basin-search-status" aria-live="polite"></span>
+            </div>
+          </div>
+            </div>
+          </details>
+          <div id="basin-map" class="basin-map" aria-live="polite"><div class="loading-block">Carregando limite da G040 e snapshot das estações…</div></div>
+          <div id="basin-station-detail" class="basin-station-detail" aria-live="polite"><div class="loading-block">Clique em uma estação para abrir nível, chuva, previsão e RNA.</div></div>
+          <details class="network-audit-fold">
+            <summary><span>Auditoria da cobertura da rede</span><small>lacunas por variável, idade e sub-bacia</small></summary>
+            <div class="network-audit-fold-body">
+          <div id="basin-gap-diagnostics" class="basin-gap-diagnostics" aria-live="polite"><div class="loading-block">Calculando lacunas da rede por variável e idade…</div></div>
+          <div id="basin-upg-health" class="basin-upg-health" aria-live="polite"><div class="loading-block">Calculando cobertura observacional por sub-bacia…</div></div>
+            </div>
+          </details>
+          <p class="basin-map-foot">A cor do ponto representa a idade da evidência observada, não o risco hidrológico. Previsão meteorológica, observação e RNA permanecem em campos independentes. Ausência de dado nunca é convertida em zero.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel research-context-panel" aria-labelledby="research-context-title">
+      <div class="panel-heading">
+        <div><p class="section-kicker">Pesquisa de transbordamento</p><h2 id="research-context-title">Cabeceiras → rio → avaliação por horizonte</h2></div>
+        <span class="panel-note" id="research-context-status">Carregando o contexto da bacia…</span>
+      </div>
+      <p class="research-context-lede">Esta faixa reúne os sinais que entram na pesquisa: chuva prevista nas cabeceiras, chuva no ponto, nível observado, previsão curta e a estimativa experimental de cruzar a cota. Cada valor conserva a sua fonte, idade e unidade.</p>
+      <div id="research-context-grid" class="research-context-grid" aria-live="polite"><div class="loading-block">Carregando contexto pesquisável…</div></div>
+      <div id="research-context-gates" class="research-context-gates" aria-live="polite"></div>
+      <div id="research-upstream" class="research-upstream" aria-live="polite"></div>
+      <div id="research-source-registry" class="research-source-registry" aria-live="polite"></div>
+    </section>
+
     <section class="panel comparison-panel" aria-labelledby="comparison-title">
       <div class="panel-heading">
         <div><p class="section-kicker">Estação por estação</p><h2 id="comparison-title">O mesmo horizonte, duas leituras</h2></div>
@@ -178,12 +206,39 @@
       <div id="station-comparison" class="station-comparison" aria-live="polite"><div class="loading-block">Carregando Santa Tereza e Muçum…</div></div>
     </section>
 
-    <section class="panel zones-panel" id="chuva" aria-labelledby="zones-title">
+    <section class="panel rain-basin-panel" id="chuva" aria-labelledby="rain-basin-title">
       <div class="panel-heading">
-        <div><p class="section-kicker">Onde a chuva está?</p><h2 id="zones-title">Pontos a montante, alvo e cobertura hidrológica</h2></div>
-        <span class="panel-note">A média e o máximo abaixo resumem células ligadas aos pontos monitorados a montante. Não são a média de toda a bacia; a máscara hidrológica e o tempo de propagação ainda precisam de validação.</span>
+        <div><p class="section-kicker">Chuva na G040 inteira</p><h2 id="rain-basin-title">Observado, previsto e distribuição espacial na bacia</h2></div>
+        <span class="panel-note">O resumo usa o forcing espacial da bacia: chuva observada espacializada + ECMWF/IFS, mantendo os 11 componentes hidrológicos separados e sem transformar dado ausente em zero.</span>
       </div>
-      <div id="zone-cards" class="zone-grid" aria-live="polite"></div>
+      <div id="rain-basin-overview" class="rain-basin-overview" aria-live="polite"><div class="loading-block">Carregando chuva integrada da bacia…</div></div>
+      <article class="rain-spatial-card" aria-labelledby="rain-spatial-title">
+        <div class="rain-spatial-head">
+          <div><span class="now-eyebrow">Mapa espacial</span><h3 id="rain-spatial-title">Grade de chuva da G040 · 600 células</h3></div>
+          <span id="rain-spatial-status">carregando grade observada + ECMWF/IFS…</span>
+        </div>
+        <div class="rain-spatial-controls" aria-label="Controles do mapa de chuva">
+          <div class="rain-control-group"><span>Fonte</span><div class="rain-chip-row"><button type="button" class="rain-chip" data-rain-map-mode="observed" aria-pressed="false">Observado</button><button type="button" class="rain-chip is-active" data-rain-map-mode="forecast" aria-pressed="true">ECMWF/IFS</button></div></div>
+          <div class="rain-control-group"><span>Acumulado</span><div class="rain-chip-row" id="rain-map-horizon-chips">
+            <button type="button" class="rain-chip" data-rain-map-hours="1" aria-pressed="false">1 h</button>
+            <button type="button" class="rain-chip" data-rain-map-hours="3" aria-pressed="false">3 h</button>
+            <button type="button" class="rain-chip" data-rain-map-hours="6" aria-pressed="false">6 h</button>
+            <button type="button" class="rain-chip" data-rain-map-hours="12" aria-pressed="false">12 h</button>
+            <button type="button" class="rain-chip" data-rain-map-hours="24" aria-pressed="false">24 h</button>
+            <button type="button" class="rain-chip" data-rain-map-hours="48" aria-pressed="false">48 h</button>
+            <button type="button" class="rain-chip is-active" data-rain-map-hours="72" aria-pressed="true">72 h</button>
+            <button type="button" class="rain-chip" data-rain-map-hours="120" aria-pressed="false">120 h</button>
+          </div></div>
+        </div>
+        <div id="rain-spatial-map" class="rain-spatial-map" aria-live="polite"><div class="loading-block">Montando o campo espacial de chuva…</div></div>
+        <div id="rain-spatial-summary" class="rain-spatial-summary" aria-live="polite"></div>
+      </article>
+      <details class="rain-proxy-fold">
+        <summary><span>Comparações por ponto e proxies</span><small>cabeceiras, estação e cobertura hidrológica</small></summary>
+        <div class="rain-proxy-fold-body">
+          <div id="zone-cards" class="zone-grid" aria-live="polite"></div>
+        </div>
+      </details>
     </section>
 
     <section class="panel model-panel" id="modelos" aria-labelledby="models-title">
@@ -245,7 +300,7 @@
     </footer>
   </main>
   <script src="assets/js/live_feed.js?v=20260916-nunca-atrasado"></script>
-  <script src="assets/js/bacia_dashboard.js?v=20261001-models4" defer></script>
+  <script src="assets/js/bacia_dashboard.js?v=20261002-rain2" defer></script>
   <script src="assets/js/gestor_chrome.js" data-page="agora" data-place="bacia"></script>
   <script src="assets/js/site_chrome.js" data-page="bacia"></script>
 </body>
