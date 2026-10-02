@@ -93,10 +93,10 @@ def spatial_stats(gdf, names):
         sensitivity = {}
         for k in K_TEST:
             w = knn_weights(sub, k)
-            m = Moran(y, w, permutations=999)
+            m = Moran(y, w, permutations=GLOBAL_PERMUTATIONS)
             sensitivity[str(k)] = {"I": float(m.I), "p_sim": float(m.p_sim)}
         w = knn_weights(sub, K_MAIN)
-        ml = Moran_Local(y, w, permutations=999, seed=SEED)
+        ml = Moran_Local(y, w, permutations=LOCAL_PERMUTATIONS, seed=SEED)
         pvals = np.asarray(ml.p_sim, dtype=float)
         sig = pvals <= 0.05
         order = np.argsort(pvals)
