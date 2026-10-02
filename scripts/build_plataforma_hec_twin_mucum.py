@@ -1208,7 +1208,7 @@ def render_root_entry() -> str:
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>PREVINE · Plataforma HEC/REC</title>
+<title>PREVINE · Plataforma HEC-HMS G040</title>
 <meta http-equiv="refresh" content="0; url=assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html"/>
 <link rel="canonical" href="assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html"/>
 <style>
@@ -1221,8 +1221,8 @@ def render_root_entry() -> str:
 <body>
 <main>
   <p><strong>PREVINE · Bacia Taquari–Antas (G040)</strong></p>
-  <p>Redirecionando para o mapa da bacia e o produto gêmeo ΔN Muçum…</p>
-  <p><a href="assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html">Abrir plataforma da bacia</a>
+  <p>Redirecionando para a plataforma HEC-HMS da bacia inteira: chuva, rede hidrológica, ramos, checkpoints e calibração multi-evento.</p>
+  <p><a href="assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html">Abrir plataforma G040</a>
      · <a href="mucum_previsao_inundacao.html">Plataforma RNA Muçum</a></p>
 </main>
 </body>
