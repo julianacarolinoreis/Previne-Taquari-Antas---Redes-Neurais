@@ -32,6 +32,7 @@ NETWORK_DIR = ROOT / "assets/data/hec_hms_integrated_taquari_antas"
 NETWORK_AUDIT = NETWORK_DIR / "network_audit_latest.json"
 NETWORK_GEOJSON = NETWORK_DIR / "bho6_taquari_antas_network.geojson"
 FORWARD = ROOT / "assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d_latest.json"
+CONFLUENCES = ROOT / "assets/data/estudo_bacia_taquari_antas/subbacias_e_fozes_latest.json"
 SOURCE_INVENTORY = ROOT / "assets/data/g040_hydro_stack/project_source_inventory_latest.json"
 OUT = ROOT / "assets/data/g040_hydro_stack/mucum_ras_prep"
 
