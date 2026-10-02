@@ -10,7 +10,10 @@ class TestG040FullBasinContract(unittest.TestCase):
     def test_contract_is_full_basin_not_single_endpoint(self):
         p = ROOT / "config/g040_full_basin_operational_contract_v1.json"
         j = json.loads(p.read_text(encoding="utf-8"))
-        self.assertEqual(j["hydrology"]["domain"], "entire G040 from all headwaters and tributaries to the official basin outlet")
+        self.assertEqual(
+            j["hydrology"]["domain"],
+            "entire G040 from all headwaters and tributaries to the official basin outlet",
+        )
         self.assertIn("station_role", j["hydrology"])
         self.assertEqual(j["spatial_domain"]["hydrologic_mask"], "strict_g040_union")
         self.assertGreater(j["spatial_domain"]["acquisition_buffer_km_default"], 0)
@@ -36,7 +39,9 @@ class TestG040FullBasinContract(unittest.TestCase):
     def test_snapshot_explicitly_has_no_single_endpoint(self):
         src = (ROOT / "scripts/build_g040_basin_snapshot.py").read_text(encoding="utf-8")
         self.assertIn('"single_endpoint": False', src)
-        self.assertIn("g040_basin_controls_latest.csv", src)\n        self.assertIn("g040_basin_network_latest.csv", src)\n        self.assertIn("basin_station_status_latest.json", src)
+        self.assertIn("g040_basin_controls_latest.csv", src)
+        self.assertIn("g040_basin_network_latest.csv", src)
+        self.assertIn("basin_station_status_latest.json", src)
 
 
 if __name__ == "__main__":
