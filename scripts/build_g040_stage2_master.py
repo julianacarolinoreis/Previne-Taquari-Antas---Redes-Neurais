@@ -32,6 +32,7 @@ PATHS={
     "boundary":BASE/"whole_basin_boundary_scenarios_latest.json",
     "live":BASE/"whole_basin_live_hydro_controls_latest.json",
     "e1":BASE/"g040_e1_hindcast/SMOKE_E1/result.json",
+    "e1_calibration":BASE/"g040_e1_multievent_calibration_latest.json",
     "legacy_met_audit":BASE/"original_145_meteorologic_assignment_audit_latest.json",
     "sma":STACK/"sma_parameter_template.csv",
     "sma_branch":STACK/"sma_branch_parameter_template.csv",
@@ -260,6 +261,7 @@ def build_master():
     boundary=jload(PATHS["boundary"],{}) or {}
     live=jload(PATHS["live"],{}) or {}
     e1=jload(PATHS["e1"],{}) or {}
+    e1_calibration=jload(PATHS["e1_calibration"],{}) or {}
     mgb=jload(PATHS["mgb"],{}) or {}
     mgb_ready=jload(PATHS["mgb_readiness"],{}) or {}
     ras=jload(PATHS["ras"],{}) or {}
@@ -361,6 +363,17 @@ def build_master():
             },
             "fix HEC-HMS branch-project compute before calibration",
         ),
+        "hec_multievent_calibration":gate(
+            str(e1_calibration.get("status","")).startswith("MULTIEVENT_CALIBRATION_SEARCH_COMPLETE")
+            and bool((e1_calibration.get("best_calibration_candidate") or {}).get("eligible_for_calibration_ranking")),
+            {
+                "status":e1_calibration.get("status"),
+                "fixed_split":e1_calibration.get("fixed_split") or {},
+                "best_calibration_candidate":e1_calibration.get("best_calibration_candidate"),
+                "candidate_count":len(e1_calibration.get("ranked_candidates") or []),
+            },
+            "run fixed E22_SEP2023 + E24_NOV2023 multi-event calibration and retain only candidates supported by both events",
+        ),
         "native_hec145":gate(
             bool(legacy_native),
             {
@@ -458,7 +471,7 @@ def build_master():
         "blockers":blockers,
         "workstreams":{
             "A_rain_and_state":["observed_full_grid","ifs_full_grid","merged_rain","sma_branch_parameters","sma_145_transfer"],
-            "B_hec_network":["bho6_branch_topology","hec_branch_compute","native_hec145"],
+            "B_hec_network":["bho6_branch_topology","hec_branch_compute","hec_multievent_calibration","native_hec145"],
             "C_tributaries":["dynamic_boundary_mass_balance","assimilation_generalized"],
             "D_mgb":["mgb_inputs"],
             "E_hec_ras":["hec_ras_inputs"],
@@ -466,8 +479,9 @@ def build_master():
         },
         "next_actions_in_order":[
             "close current full-grid observed+IFS run and publish merged 600-cell artifacts",
-            "fix HEC-HMS E1 compute return code before any calibration search",
-            "run fixed benchmark split across all six historical/holdout events",
+            "complete and refine fixed E22_SEP2023 + E24_NOV2023 multi-event calibration search",
+            "freeze the selected calibration candidate and run E27_MAY2024 + E28_JUN2024 independent validation without retuning",
+            "run E2026_JUL pseudo-operational holdout only after validation parameters are frozen",
             "recover/verify native 145-subbasin + 72-reach topology in parallel with BHO6 branch model",
             "select and materialize PET + soil/land-cover inputs for continuous SMA",
             "prepare MGB mini-basins/HRUs and meteorological forcing without reusing HEC discretization blindly",
