@@ -9,9 +9,10 @@
   if (!root) return;
 
   const $ = (id) => document.getElementById(id);
-  const state = { station: 'basin', horizon: 72, feeds: {}, research: null, basinGeometry: null, networkStatus: null, networkFilter: 'all', networkSource: 'all', networkUpg: 'all', networkVariable: 'all', networkModel: 'all', networkMode: 'health', selectedNetworkStationId: null, lastLoadedAt: null, loading: false };
+  const state = { station: 'basin', horizon: 72, feeds: {}, research: null, rainSummary: null, basinGeometry: null, networkStatus: null, networkFilter: 'all', networkSource: 'all', networkUpg: 'all', networkVariable: 'all', networkModel: 'all', networkMode: 'health', selectedNetworkStationId: null, lastLoadedAt: null, loading: false };
   const researchUrl = 'assets/data/research_basin_screening_latest.json';
   const basinStatusUrl = 'assets/data/basin_station_status_latest.json';
+  const rainSummaryUrl = 'assets/data/hec_hms_g040_full_basin/g040_adaptive_scenario_latest.json';
   const basinUrl = 'assets/data/estudo_bacia_taquari_antas/ugs_g040.geojson';
   const AUTO_REFRESH_MS = 5 * 60 * 1000;
   const stations = {
@@ -1040,6 +1041,116 @@
     }
     return { value: '—', note: 'camada zonal independente ainda não publicada' };
   }
+  function rainComponentLabel(componentId) {
+    const raw = String(componentId || '');
+    const stationsByCode = new Map(networkStations().map((row) => [String(row.code || ''), row.name || row.code || 'Estação']));
+    if (raw.startsWith('BRANCH_')) {
+      const code = raw.replace('BRANCH_', '');
+      return stationsByCode.get(code) ? `Afluente · ${stationsByCode.get(code)}` : `Afluente · ${code}`;
+    }
+    const match = raw.match(/^CORE_INC_(\d+)_(\d+)$/);
+    if (match) {
+      const from = stationsByCode.get(match[1]) || match[1];
+      const to = stationsByCode.get(match[2]) || match[2];
+      return `Trecho principal · ${from} → ${to}`;
+    }
+    return raw || 'Componente hidrológico';
+  }
+
+  function rainSummarySnapshot() {
+    const fp = state.rainSummary && state.rainSummary.live_fingerprint;
+    return fp && fp.rain && typeof fp.rain === 'object' ? fp.rain : null;
+  }
+
+  function rainMetricCard(label, value, note, kind = '') {
+    const n = num(value);
+    return '<article class="rain-metric-card ' + esc(kind) + '">' +
+      '<span>' + esc(label) + '</span>' +
+      '<strong>' + (n == null ? '—' : fmt(n, 1) + ' mm') + '</strong>' +
+      '<small>' + esc(note) + '</small>' +
+    '</article>';
+  }
+
+  function renderRainBasinOverview() {
+    const host = $('rain-basin-overview');
+    if (!host) return;
+    const rain = rainSummarySnapshot();
+    if (!rain) {
+      host.innerHTML = '<div class="empty-block">O resumo integrado de chuva da G040 ainda não está disponível nesta publicação.</div>';
+      return;
+    }
+
+    const freshness = rain.freshness || {};
+    const stale = freshness.critical_stale === true;
+    const observedAge = num(freshness.observed_rain_age_hours);
+    const forcingAge = num(freshness.forcing_age_hours);
+    const compactHorizon = state.horizon <= 24 ? 24 : state.horizon <= 48 ? 48 : 72;
+    const compactKey = 'fc' + compactHorizon;
+    const components = Object.entries(rain.component_values || {}).map(([id, row]) => ({
+      id,
+      label: rainComponentLabel(id),
+      area: num(row && row.area),
+      obs24: num(row && row.obs24),
+      obs72: num(row && row.obs72),
+      fc24: num(row && row.fc24),
+      fc48: num(row && row.fc48),
+      fc72: num(row && row.fc72),
+      selected: num(row && row[compactKey])
+    })).sort((a, b) => (b.selected ?? -1) - (a.selected ?? -1));
+
+    const maxSelected = Math.max(1, ...components.map((row) => row.selected == null ? 0 : row.selected));
+    const coverage = networkVariableCoverage();
+    const sourceCounts = state.networkStatus && state.networkStatus.source_counts && typeof state.networkStatus.source_counts === 'object'
+      ? state.networkStatus.source_counts : {};
+    const sourceOrder = ['ANA/HidroWeb', 'SGB/SACE', 'CEMADEN', 'INMET'];
+    const sourceHtml = sourceOrder.filter((key) => num(sourceCounts[key]) != null).map((key) =>
+      '<span><b>' + esc(key) + '</b>' + fmt(sourceCounts[key], 0) + '</span>'
+    ).join('');
+
+    const staleText = stale
+      ? 'ATENÇÃO: o forcing integrado está defasado' + (observedAge != null ? ' · última chuva observada há ' + fmt(observedAge, 1) + ' h' : '') + (forcingAge != null ? ' · produto há ' + fmt(forcingAge, 1) + ' h' : '') + '.'
+      : 'Forcing integrado sem bloqueio crítico de frescor nesta publicação.';
+    const cycleText = freshness.exact_ecmwf_cycle_id_available === false
+      ? 'O endpoint usado não expõe o identificador exato do ciclo ECMWF; horário de coleta não é relabelado como ciclo.'
+      : 'Ciclo meteorológico com proveniência publicada.';
+
+    const barHtml = components.length ? components.map((row) => {
+      const width = row.selected == null ? 0 : Math.max(0, Math.min(100, row.selected / maxSelected * 100));
+      return '<div class="rain-component-row">' +
+        '<div class="rain-component-head"><span><strong>' + esc(row.label) + '</strong><small>' + (row.area == null ? 'área não publicada' : fmt(row.area, 0) + ' km²') + '</small></span><b>' + (row.selected == null ? '—' : fmt(row.selected, 1) + ' mm') + '</b></div>' +
+        '<div class="rain-component-track" aria-hidden="true"><i style="width:' + width.toFixed(1) + '%"></i></div>' +
+      '</div>';
+    }).join('') : '<div class="empty-block">Sem componentes espaciais no resumo integrado.</div>';
+
+    const tableHtml = components.length ? '<div class="table-scroll"><table class="rain-component-table"><thead><tr><th>Componente</th><th>Área</th><th>Obs. 24 h</th><th>Obs. 72 h</th><th>Prev. 24 h</th><th>Prev. 48 h</th><th>Prev. 72 h</th></tr></thead><tbody>' +
+      components.map((row) => '<tr><td><strong>' + esc(row.label) + '</strong><small>' + esc(row.id) + '</small></td><td class="num">' + (row.area == null ? '—' : fmt(row.area, 0) + ' km²') + '</td><td class="num">' + (row.obs24 == null ? '—' : fmt(row.obs24, 1) + ' mm') + '</td><td class="num">' + (row.obs72 == null ? '—' : fmt(row.obs72, 1) + ' mm') + '</td><td class="num">' + (row.fc24 == null ? '—' : fmt(row.fc24, 1) + ' mm') + '</td><td class="num">' + (row.fc48 == null ? '—' : fmt(row.fc48, 1) + ' mm') + '</td><td class="num">' + (row.fc72 == null ? '—' : fmt(row.fc72, 1) + ' mm') + '</td></tr>').join('') +
+      '</tbody></table></div>' : '';
+
+    const horizonNote = state.horizon > 72
+      ? 'O seletor geral está em +' + state.horizon + ' h; o resumo espacial compacto da G040 publicado aqui vai até +72 h. O campo bruto ECMWF/IFS da arquitetura da bacia é mantido separadamente.'
+      : 'Barras espaciais ordenadas pela previsão +' + compactHorizon + ' h.';
+
+    host.innerHTML =
+      '<div class="rain-freshness ' + (stale ? 'is-stale' : 'is-current') + '"><div><span class="now-eyebrow">Frescor e proveniência</span><strong>' + esc(staleText) + '</strong></div><small>' + esc(cycleText) + '</small></div>' +
+      '<div class="rain-metric-grid">' +
+        rainMetricCard('Observado · 24 h', rain.observed_24h_basin_mm, 'chuva espacial acumulada na área modelada', 'observed') +
+        rainMetricCard('Observado · 72 h', rain.observed_72h_basin_mm, 'memória antecedente da bacia', 'observed') +
+        rainMetricCard('Previsto · 24 h', rain.forecast_24h_basin_mm, 'ECMWF/IFS espacial', 'forecast') +
+        rainMetricCard('Previsto · 48 h', rain.forecast_48h_basin_mm, 'ECMWF/IFS espacial', 'forecast') +
+        rainMetricCard('Previsto · 72 h', rain.forecast_72h_basin_mm, 'ECMWF/IFS espacial', 'forecast') +
+      '</div>' +
+      '<div class="rain-detail-grid">' +
+        '<article class="rain-network-card"><div class="rain-card-head"><div><span class="now-eyebrow">Rede observada</span><h3>Cobertura de chuva publicada</h3></div><span>' + fmt(coverage.total, 0) + ' estações no snapshot</span></div>' +
+          '<div class="rain-network-stats"><div><span>Série horária</span><strong>' + fmt(coverage.hourlyRain, 0) + '<small>/' + fmt(coverage.total, 0) + '</small></strong></div><div><span>CEMADEN 24 h</span><strong>' + fmt(coverage.cemaden24, 0) + '<small>/' + fmt(coverage.total, 0) + '</small></strong></div></div>' +
+          (sourceHtml ? '<div class="rain-source-counts">' + sourceHtml + '</div>' : '') +
+          '<p>O painel preserva chuva horária observada e acumulado CEMADEN 24 h como produtos diferentes; ausência de série não vira zero.</p>' +
+        '</article>' +
+        '<article class="rain-components-card"><div class="rain-card-head"><div><span class="now-eyebrow">Distribuição espacial</span><h3>11 componentes hidrológicos da G040</h3></div><span>' + esc(horizonNote) + '</span></div><div class="rain-component-list">' + barHtml + '</div></article>' +
+      '</div>' +
+      '<details class="rain-table-fold"><summary><span>Tabela completa dos 11 componentes</span><small>observado 24/72 h + previsto 24/48/72 h</small></summary>' + tableHtml + '</details>' +
+      '<div class="rain-method-strip"><p><strong>Como a chuva da bacia é tratada:</strong> os postos válidos de cada hora formam um campo espacial; o forcing preserva os componentes hidrológicos e acumula no tempo. Milímetros de estações diferentes não são simplesmente somados como se fossem uma única lâmina sobre toda a bacia.</p><div><a href="assets/data/hec_hms_g040_full_basin/g040_adaptive_scenario_latest.json">resumo integrado →</a><a href="assets/data/hec_hms_g040_full_basin/whole_basin_rain_forcing_latest.json">forcing observado + previsto →</a><a href="assets/data/hec_hms_g040_full_basin/whole_basin_ifs_forecast_latest.json">campo ECMWF/IFS →</a></div></div>';
+  }
+
   function renderZones() {
     const snap = state.station === 'basin' ? null : stationSnapshot(state.station, state.horizon);
     $('zone-cards').innerHTML = zoneDefinitions.map((z, i) => {
@@ -1345,7 +1456,7 @@
     $('control-status').textContent = `${keys.map((key) => { const s = stationSnapshot(key, state.horizon); return `${stations[key].label}: feed ${ageLabel(s.forecastAge)} · observação ${ageLabel(s.observedAge)}`; }).join(' · ')} · horário em BRT${loaded}`;
   }
   function render() {
-    renderNowOverview(); renderAnswer(); renderLayers(); renderResearchContext(); renderKpis(); renderStationComparison(); renderZones(); renderModels(); renderEvents(); renderEvaluation(); renderProvenance(); renderStatus();
+    renderNowOverview(); renderAnswer(); renderLayers(); renderResearchContext(); renderKpis(); renderStationComparison(); renderRainBasinOverview(); renderZones(); renderModels(); renderEvents(); renderEvaluation(); renderProvenance(); renderStatus();
   }
 
   async function loadJson(url) {
@@ -1370,12 +1481,14 @@
         const [pattern, weather, live] = await Promise.all([loadJson(cfg.pattern), loadJson(cfg.weather), loadLive(cfg.live)]);
         state.feeds[key] = { pattern, weather, live };
       }));
-      const [research, basin, networkStatus] = await Promise.all([
+      const [research, rainSummary, basin, networkStatus] = await Promise.all([
         loadJson(researchUrl),
+        loadJson(rainSummaryUrl),
         state.basinGeometry ? Promise.resolve(state.basinGeometry) : loadJson(basinUrl),
         loadJson(basinStatusUrl)
       ]);
       state.research = research;
+      state.rainSummary = rainSummary;
       state.basinGeometry = basin;
       state.networkStatus = networkStatus;
       populateNetworkUpgFilter();
