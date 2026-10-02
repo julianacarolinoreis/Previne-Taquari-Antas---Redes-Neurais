@@ -373,7 +373,9 @@ def _local_series_to_utc(times):
 
 
 def _dual_model_nodes(feed: dict, dual: dict, times_utc: list[str]) -> dict:
-    lookup = {str(n.get("code")): n for n in (feed.get("hydro_nodes") or [])}
+    hydro_nodes = feed.get("hydro_nodes") or {}
+    node_rows = hydro_nodes.get("nodes") if isinstance(hydro_nodes, dict) else hydro_nodes
+    lookup = {str(n.get("code")): n for n in (node_rows or []) if isinstance(n, dict) and n.get("code")}
     specs = [
         ("86472000", "Linha José Júlio · fronteira observada", dual.get("q_ljj_boundary_m3s") or [], "observed_upstream_boundary"),
         ("86500000", "Passo Carreiro · fronteira observada", dual.get("q_carreiro_boundary_m3s") or [], "observed_tributary_boundary"),
