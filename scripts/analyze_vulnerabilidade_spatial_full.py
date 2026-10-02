@@ -21,6 +21,8 @@ CRS_ANALYSIS = "EPSG:5880"
 VARIABLES = ["income", "water", "sewage", "child", "elderly", "blackbrown"]
 K_MAIN = 6
 K_TEST = [4, 6, 8, 12]
+GLOBAL_PERMUTATIONS = 999
+LOCAL_PERMUTATIONS = 9999
 SEED = 20261001
 
 def val(x):
