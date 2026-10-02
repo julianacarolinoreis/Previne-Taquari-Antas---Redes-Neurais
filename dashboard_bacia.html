@@ -7,7 +7,7 @@
   <link rel="icon" href="data:,">
   <title>PREVINE · Dashboard da bacia Taquari–Antas</title>
   <link rel="stylesheet" href="assets/css/site_chrome.css">
-  <link rel="stylesheet" href="assets/css/bacia_dashboard.css?v=20261002-ops1">
+  <link rel="stylesheet" href="assets/css/bacia_dashboard.css?v=20261002-ops2">
   <link rel="stylesheet" href="assets/css/gestor_chrome.css">
 </head>
 <body>
@@ -33,18 +33,24 @@
       <a href="pesquisas.html">Arquivo</a>
     </nav>
 
-    <section class="intro-card" aria-labelledby="intro-title">
-      <div>
-        <p class="section-kicker">Resposta rápida</p>
-        <h2 id="intro-title">Leia primeiro o cenário; abra os detalhes quando precisar auditar.</h2>
-        <p>O topo mostra a leitura operacional; a rede completa e os diagnósticos ficam logo abaixo. <strong>Observação, previsão e resultado experimental continuam separados. UNKNOWN significa dado não utilizável, nunca “seguro”.</strong></p>
+    <section class="intro-card intro-compact" aria-labelledby="intro-title">
+      <div class="intro-primary">
+        <div class="intro-title-row">
+          <p class="section-kicker">Leitura operacional</p>
+          <span class="intro-mode-pill">prioridade: cenário atual</span>
+        </div>
+        <h2 id="intro-title">Veja primeiro o que está acontecendo agora; aprofunde a auditoria depois.</h2>
+        <p>Nível observado, chuva prevista, RNAs e qualidade das fontes aparecem separados. <strong>UNKNOWN significa dado indisponível ou não utilizável — nunca condição segura.</strong></p>
       </div>
-      <div class="legend-inline" aria-label="Legenda dos tipos de dado">
-        <span><i class="dot observed"></i>observação</span>
-        <span><i class="dot forecast"></i>previsão</span>
-        <span><i class="dot proxy"></i>proxy</span>
-        <span><i class="dot experimental"></i>experimental</span>
-      </div>
+      <details class="intro-guide">
+        <summary>Como interpretar os dados</summary>
+        <div class="legend-inline" aria-label="Legenda dos tipos de dado">
+          <span><i class="dot observed"></i>observação</span>
+          <span><i class="dot forecast"></i>previsão</span>
+          <span><i class="dot proxy"></i>proxy</span>
+          <span><i class="dot experimental"></i>experimental</span>
+        </div>
+      </details>
     </section>
 
     <section class="controls-card" aria-label="Filtros do dashboard">
@@ -65,7 +71,7 @@
         </div>
       </div>
       <button type="button" class="refresh-button" id="refresh-feeds">Atualizar dados</button>
-      <p class="control-status" id="control-status" aria-live="polite">Carregando feeds publicados…</p>
+      <div class="control-health" aria-label="Saúde da atualização"><span class="live-dot" aria-hidden="true"></span><p class="control-status" id="control-status" aria-live="polite">Carregando feeds publicados…</p></div>
     </section>
 
     <nav class="dashboard-jumpbar" aria-label="Atalhos desta página">
@@ -74,6 +80,7 @@
       <a href="#chuva">Chuva</a>
       <a href="#modelos">Modelos</a>
       <a href="#historico">Cheias históricas</a>
+      <a href="#fontes">Fontes</a>
     </nav>
 
     <div id="cenario" class="operational-stack">
@@ -85,29 +92,6 @@
         <p id="answer-text">Os feeds públicos estão sendo consultados. A ausência de um valor não significa “não vai inundar”.</p>
       </div>
       <div class="answer-state" id="answer-state">CARREGANDO</div>
-    </section>
-
-    <section class="layer-strip" id="layer-strip" aria-label="Quatro camadas da decisão">
-      <article class="layer-card previsao is-unknown" id="layer-previsao">
-        <span class="layer-kicker">Previsão</span>
-        <strong>UNKNOWN</strong>
-        <p>consultando fonte · ausência ≠ seguro</p>
-      </article>
-      <article class="layer-card perigo is-unknown" id="layer-perigo">
-        <span class="layer-kicker">Perigo</span>
-        <strong>UNKNOWN</strong>
-        <p>cota oficial e HAND 0 ainda não cruzados nesta leitura</p>
-      </article>
-      <article class="layer-card exposicao is-unknown" id="layer-exposicao">
-        <span class="layer-kicker">Exposição</span>
-        <strong>UNKNOWN</strong>
-        <p>sem mancha validada ∩ grade 200 m</p>
-      </article>
-      <article class="layer-card resposta is-blocked" id="layer-resposta">
-        <span class="layer-kicker">Resposta</span>
-        <strong>Bloqueado</strong>
-        <p>rota, abrigo e comunicação sem confirmação de campo</p>
-      </article>
     </section>
 
     <section class="kpi-grid" aria-label="Indicadores hidrológicos">
@@ -130,6 +114,29 @@
         <div class="kpi-top"><span class="kpi-label">Qualidade dos dados</span><span class="tag status">FEEDS</span></div>
         <strong id="kpi-freshness" class="kpi-value">—</strong>
         <p id="kpi-freshness-note">observação · previsão · risco</p>
+      </article>
+    </section>
+
+    <section class="layer-strip" id="layer-strip" aria-label="Quatro camadas da decisão">
+      <article class="layer-card previsao is-unknown" id="layer-previsao">
+        <span class="layer-kicker">Previsão</span>
+        <strong>UNKNOWN</strong>
+        <p>consultando fonte · ausência ≠ seguro</p>
+      </article>
+      <article class="layer-card perigo is-unknown" id="layer-perigo">
+        <span class="layer-kicker">Perigo</span>
+        <strong>UNKNOWN</strong>
+        <p>cota oficial e HAND 0 ainda não cruzados nesta leitura</p>
+      </article>
+      <article class="layer-card exposicao is-unknown" id="layer-exposicao">
+        <span class="layer-kicker">Exposição</span>
+        <strong>UNKNOWN</strong>
+        <p>sem mancha validada ∩ grade 200 m</p>
+      </article>
+      <article class="layer-card resposta is-blocked" id="layer-resposta">
+        <span class="layer-kicker">Resposta</span>
+        <strong>Bloqueado</strong>
+        <p>rota, abrigo e comunicação sem confirmação de campo</p>
       </article>
     </section>
 
