@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
+      - ".github/workflows/mucum-ras-geometry-prep.yml"
       - "scripts/build_mucum_ras_geometry_prep.py"
       - "assets/data/hec_hms_integrated_taquari_antas/network_audit_latest.json"
       - "assets/data/hec_hms_integrated_taquari_antas/bho6_taquari_antas_network.geojson"
@@ -48,4 +49,5 @@ jobs:
             exit 0
           fi
           git commit -m "Build Muçum hydraulic geometry prep"
-          git push
+          git pull --rebase origin main
+          git push origin HEAD:main
