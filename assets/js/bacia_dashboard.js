@@ -9,10 +9,12 @@
   if (!root) return;
 
   const $ = (id) => document.getElementById(id);
-  const state = { station: 'basin', horizon: 72, feeds: {}, research: null, rainSummary: null, basinGeometry: null, networkStatus: null, networkFilter: 'all', networkSource: 'all', networkUpg: 'all', networkVariable: 'all', networkModel: 'all', networkMode: 'health', selectedNetworkStationId: null, lastLoadedAt: null, loading: false };
+  const state = { station: 'basin', horizon: 72, feeds: {}, research: null, rainSummary: null, rainSpatial: { grid: null, components: null, loading: false, error: null }, rainMapMode: 'forecast', rainMapHours: 72, basinGeometry: null, networkStatus: null, networkFilter: 'all', networkSource: 'all', networkUpg: 'all', networkVariable: 'all', networkModel: 'all', networkMode: 'health', selectedNetworkStationId: null, lastLoadedAt: null, loading: false };
   const researchUrl = 'assets/data/research_basin_screening_latest.json';
   const basinStatusUrl = 'assets/data/basin_station_status_latest.json';
   const rainSummaryUrl = 'assets/data/hec_hms_g040_full_basin/g040_adaptive_scenario_latest.json';
+  const rainGridUrl = 'assets/data/hec_hms_g040_full_basin/whole_basin_rain_forcing_fullgrid_hourly.csv';
+  const rainComponentsUrl = 'assets/data/hec_hms_g040_full_basin/whole_basin_rain_forcing_components_hourly.csv';
   const basinUrl = 'assets/data/estudo_bacia_taquari_antas/ugs_g040.geojson';
   const AUTO_REFRESH_MS = 5 * 60 * 1000;
   const stations = {
@@ -443,7 +445,30 @@
     state.networkUpg = 'all';
     state.networkVariable = 'all';
     state.networkModel = 'all';
-    root.querySelectorAll('[data-network-filter]').forEach((button) => {
+    root.querySelectorAll('[data-rain-map-mode]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.rainMapMode = button.dataset.rainMapMode || 'forecast';
+      root.querySelectorAll('[data-rain-map-mode]').forEach((b) => {
+        const active = b === button;
+        b.classList.toggle('is-active', active);
+        b.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+      renderRainSpatialMap();
+    });
+  });
+  root.querySelectorAll('[data-rain-map-hours]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.rainMapHours = Number(button.dataset.rainMapHours) || 72;
+      root.querySelectorAll('[data-rain-map-hours]').forEach((b) => {
+        const active = b === button;
+        b.classList.toggle('is-active', active);
+        b.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+      renderRainSpatialMap();
+    });
+  });
+
+  root.querySelectorAll('[data-network-filter]').forEach((button) => {
       const active = button.dataset.networkFilter === 'all';
       button.classList.toggle('is-active', active);
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
@@ -1041,6 +1066,214 @@
     }
     return { value: '—', note: 'camada zonal independente ainda não publicada' };
   }
+  function parseSimpleCsv(text) {
+    const lines = String(text || '').trim().split(/\r?\n/).filter(Boolean);
+    if (!lines.length) return null;
+    const headers = lines[0].split(',').map((x) => x.trim());
+    const rows = lines.slice(1).map((line) => line.split(','));
+    const index = Object.fromEntries(headers.map((h, i) => [h, i]));
+    return { headers, rows, index };
+  }
+
+  function rainPhaseRows(dataset, mode, hours) {
+    if (!dataset || !Array.isArray(dataset.rows)) return [];
+    const phaseIndex = dataset.index.phase;
+    if (phaseIndex == null) return [];
+    const all = dataset.rows.filter((row) => {
+      const phase = String(row[phaseIndex] || '');
+      return mode === 'observed' ? phase === 'observed' : /ecmwf_ifs/i.test(phase);
+    });
+    const n = Math.max(1, Number(hours) || 1);
+    return mode === 'observed' ? all.slice(-n) : all.slice(0, n);
+  }
+
+  function rainComponentAccumulation(mode, hours) {
+    const dataset = state.rainSpatial.components;
+    const rain = rainSummarySnapshot();
+    if (!dataset || !rain) return null;
+    const rows = rainPhaseRows(dataset, mode, hours);
+    if (rows.length < Number(hours)) return null;
+    const areas = rain.component_values || {};
+    const ids = dataset.headers.filter((h) => /^BRANCH_|^CORE_INC_/.test(h));
+    if (!ids.length) return null;
+    let weighted = 0, areaTotal = 0;
+    for (const id of ids) {
+      const col = dataset.index[id];
+      const area = num(areas[id] && areas[id].area);
+      if (col == null || area == null || area <= 0) return null;
+      let sum = 0;
+      for (const row of rows) {
+        const raw = row[col];
+        if (raw == null || String(raw).trim() === '') return null;
+        const v = num(raw);
+        if (v == null) return null;
+        sum += v;
+      }
+      weighted += sum * area;
+      areaTotal += area;
+    }
+    return areaTotal > 0 ? weighted / areaTotal : null;
+  }
+
+  function rainAccumulationBoard() {
+    const hoursList = [1, 3, 6, 12, 24, 48, 72, 120];
+    if (!state.rainSpatial.components) {
+      return '<div class="rain-accumulation-board is-loading"><div class="rain-board-head"><div><span class="now-eyebrow">Acumulados da bacia</span><h3>1 a 120 horas</h3></div><span>carregando forcing espacial…</span></div></div>';
+    }
+    return '<div class="rain-accumulation-board"><div class="rain-board-head"><div><span class="now-eyebrow">Acumulados da bacia</span><h3>Observado × ECMWF/IFS</h3></div><span>média ponderada pela área dos 11 componentes hidrológicos</span></div><div class="rain-accumulation-grid">' +
+      hoursList.map((h) => {
+        const obs = rainComponentAccumulation('observed', h);
+        const fc = rainComponentAccumulation('forecast', h);
+        return '<article><strong>' + h + ' h</strong><div><span>OBS</span><b>' + (obs == null ? '—' : fmt(obs, 1) + ' mm') + '</b></div><div><span>IFS</span><b>' + (fc == null ? '—' : fmt(fc, 1) + ' mm') + '</b></div></article>';
+      }).join('') +
+    '</div><p>OBS usa as últimas horas disponíveis antes da transição para previsão; IFS usa as primeiras horas futuras do forcing. Janela incompleta permanece “—”.</p></div>';
+  }
+
+  function rainGridAccumulation(mode, hours) {
+    const dataset = state.rainSpatial.grid;
+    if (!dataset) return null;
+    const rows = rainPhaseRows(dataset, mode, hours);
+    if (rows.length < Number(hours)) return null;
+    const cellIds = dataset.headers.filter((h) => /^G040_R\d{2}_C\d{2}$/.test(h));
+    const values = [];
+    for (const id of cellIds) {
+      const col = dataset.index[id];
+      let sum = 0, valid = true;
+      for (const row of rows) {
+        const raw = row[col];
+        if (raw == null || String(raw).trim() === '') { valid = false; break; }
+        const v = num(raw);
+        if (v == null) { valid = false; break; }
+        sum += v;
+      }
+      const match = id.match(/^G040_R(\d{2})_C(\d{2})$/);
+      if (!match) continue;
+      values.push({ id, row: Number(match[1]), col: Number(match[2]), mm: valid ? sum : null });
+    }
+    const timeIndex = dataset.index.time_utc;
+    const times = rows.map((row) => row[timeIndex]).filter(Boolean);
+    return { values, rows: rows.length, start: times[0] || null, end: times[times.length - 1] || null };
+  }
+
+  function rainMapFill(value, maxValue) {
+    const v = num(value);
+    if (v == null) return 'url(#rain-missing)';
+    if (maxValue <= 0) return 'hsl(205 25% 96%)';
+    const ratio = Math.max(0, Math.min(1, v / maxValue));
+    const light = 96 - ratio * 58;
+    const sat = 36 + ratio * 42;
+    return 'hsl(205 ' + sat.toFixed(0) + '% ' + light.toFixed(0) + '%)';
+  }
+
+  function renderRainSpatialMap() {
+    const host = $('rain-spatial-map');
+    const status = $('rain-spatial-status');
+    const summary = $('rain-spatial-summary');
+    if (!host) return;
+    if (state.rainSpatial.loading) {
+      host.innerHTML = '<div class="loading-block">Carregando a grade de 600 células…</div>';
+      if (status) status.textContent = 'carregando forcing espacial…';
+      if (summary) summary.innerHTML = '';
+      return;
+    }
+    if (state.rainSpatial.error || !state.rainSpatial.grid) {
+      host.innerHTML = '<div class="empty-block">Grade espacial indisponível nesta publicação.</div>';
+      if (status) status.textContent = state.rainSpatial.error || 'sem grade publicada';
+      if (summary) summary.innerHTML = '';
+      return;
+    }
+    const data = rainGridAccumulation(state.rainMapMode, state.rainMapHours);
+    const rings = geoRings(state.basinGeometry);
+    if (!data || !rings.length) {
+      host.innerHTML = '<div class="empty-block">Não há janela completa para este acumulado.</div>';
+      if (status) status.textContent = 'janela incompleta · ausência não vira zero';
+      if (summary) summary.innerHTML = '';
+      return;
+    }
+
+    const coords = rings.flat();
+    const lons = coords.map((p) => Number(p[0])).filter(Number.isFinite);
+    const lats = coords.map((p) => Number(p[1])).filter(Number.isFinite);
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const cosLat = Math.cos(((minLat + maxLat) / 2) * Math.PI / 180);
+    const xs = lons.map((lon) => lon * cosLat);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const width = 760, height = 470, pad = 24;
+    const project = (lon, lat) => [
+      pad + ((lon * cosLat - minX) / Math.max(.000001, maxX - minX)) * (width - pad * 2),
+      pad + ((maxLat - lat) / Math.max(.000001, maxLat - minLat)) * (height - pad * 2)
+    ];
+    const ringPath = rings.map((ring) => {
+      const step = Math.max(1, Math.ceil(ring.length / 1400));
+      const pts = ring.filter((_, i) => i % step === 0 || i === ring.length - 1).map((p) => project(Number(p[0]), Number(p[1])));
+      return pts.length ? 'M' + pts.map((p) => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join('L') + 'Z' : '';
+    }).filter(Boolean).join('');
+
+    const valid = data.values.map((x) => x.mm).filter((x) => x != null);
+    const maxValue = valid.length ? Math.max(...valid) : 0;
+    const sorted = valid.slice().sort((a, b) => a - b);
+    const p90 = sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * .9))] : null;
+    const cellRects = data.values.map((cell) => {
+      const west = -52.8 + cell.col * .1;
+      const east = west + .1;
+      const south = -30 + cell.row * .1;
+      const north = south + .1;
+      const nw = project(west, north);
+      const se = project(east, south);
+      const x = Math.min(nw[0], se[0]), y = Math.min(nw[1], se[1]);
+      const w = Math.abs(se[0] - nw[0]), h = Math.abs(se[1] - nw[1]);
+      const fill = rainMapFill(cell.mm, maxValue);
+      const title = cell.id + ' · ' + (cell.mm == null ? 'sem dado' : fmt(cell.mm, 1) + ' mm');
+      return '<rect x="' + x.toFixed(2) + '" y="' + y.toFixed(2) + '" width="' + w.toFixed(2) + '" height="' + h.toFixed(2) + '" fill="' + fill + '"><title>' + esc(title) + '</title></rect>';
+    }).join('');
+
+    const label = state.rainMapMode === 'observed' ? 'Observado' : 'ECMWF/IFS';
+    const timeText = data.start && data.end ? when(data.start) + ' → ' + when(data.end) + ' BRT' : 'horário não publicado';
+    host.innerHTML =
+      '<svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Mapa de chuva acumulada da G040, ' + esc(label) + ', ' + state.rainMapHours + ' horas">' +
+        '<defs><pattern id="rain-missing" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#eef1ef"></rect><line x1="0" y1="0" x2="0" y2="8" stroke="#c6cfca" stroke-width="2"></line></pattern><clipPath id="rain-basin-clip"><path d="' + ringPath + '" clip-rule="evenodd"></path></clipPath><linearGradient id="rain-scale" x1="0%" x2="100%"><stop offset="0%" stop-color="hsl(205 25% 96%)"></stop><stop offset="100%" stop-color="hsl(205 78% 38%)"></stop></linearGradient></defs>' +
+        '<g clip-path="url(#rain-basin-clip)">' + cellRects + '</g>' +
+        '<path class="rain-basin-outline" d="' + ringPath + '" fill="none" fill-rule="evenodd"></path>' +
+        '<g class="rain-map-scale"><rect x="' + (width - 212) + '" y="' + (height - 26) + '" width="150" height="9" rx="4.5" fill="url(#rain-scale)"></rect><text x="' + (width - 218) + '" y="' + (height - 17) + '" text-anchor="end">0</text><text x="' + (width - 56) + '" y="' + (height - 17) + '">' + esc(fmt(maxValue, 0)) + ' mm</text></g>' +
+      '</svg>';
+
+    if (status) status.textContent = label + ' · ' + state.rainMapHours + ' h · ' + timeText;
+    if (summary) summary.innerHTML =
+      '<div><span>Máximo de célula</span><strong>' + (valid.length ? fmt(maxValue, 1) + ' mm' : '—') + '</strong></div>' +
+      '<div><span>P90 das células</span><strong>' + (p90 == null ? '—' : fmt(p90, 1) + ' mm') + '</strong></div>' +
+      '<div><span>Células com valor</span><strong>' + fmt(valid.length, 0) + '<small>/600</small></strong></div>' +
+      '<div><span>Janela</span><strong>' + state.rainMapHours + ' h</strong></div>';
+  }
+
+  async function loadText(url) {
+    try {
+      const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}cb=${Date.now()}`, { cache: 'no-store' });
+      if (!response.ok) return null;
+      return await response.text();
+    } catch (_) { return null; }
+  }
+
+  async function loadRainSpatial() {
+    if (state.rainSpatial.loading) return;
+    state.rainSpatial.loading = true;
+    state.rainSpatial.error = null;
+    renderRainSpatialMap();
+    try {
+      const [gridText, componentText] = await Promise.all([loadText(rainGridUrl), loadText(rainComponentsUrl)]);
+      const grid = parseSimpleCsv(gridText);
+      const components = parseSimpleCsv(componentText);
+      if (!grid || !components) throw new Error('forcing espacial não publicado');
+      state.rainSpatial.grid = grid;
+      state.rainSpatial.components = components;
+    } catch (err) {
+      state.rainSpatial.error = err && err.message ? err.message : 'falha ao carregar forcing espacial';
+    } finally {
+      state.rainSpatial.loading = false;
+      renderRainBasinOverview();
+      renderRainSpatialMap();
+    }
+  }
+
   function rainComponentLabel(componentId) {
     const raw = String(componentId || '');
     const stationsByCode = new Map(networkStations().map((row) => [String(row.code || ''), row.name || row.code || 'Estação']));
@@ -1139,6 +1372,7 @@
         rainMetricCard('Previsto · 48 h', rain.forecast_48h_basin_mm, 'ECMWF/IFS espacial', 'forecast') +
         rainMetricCard('Previsto · 72 h', rain.forecast_72h_basin_mm, 'ECMWF/IFS espacial', 'forecast') +
       '</div>' +
+      rainAccumulationBoard() +
       '<div class="rain-detail-grid">' +
         '<article class="rain-network-card"><div class="rain-card-head"><div><span class="now-eyebrow">Rede observada</span><h3>Cobertura de chuva publicada</h3></div><span>' + fmt(coverage.total, 0) + ' estações no snapshot</span></div>' +
           '<div class="rain-network-stats"><div><span>Série horária</span><strong>' + fmt(coverage.hourlyRain, 0) + '<small>/' + fmt(coverage.total, 0) + '</small></strong></div><div><span>CEMADEN 24 h</span><strong>' + fmt(coverage.cemaden24, 0) + '<small>/' + fmt(coverage.total, 0) + '</small></strong></div></div>' +
@@ -1456,7 +1690,7 @@
     $('control-status').textContent = `${keys.map((key) => { const s = stationSnapshot(key, state.horizon); return `${stations[key].label}: feed ${ageLabel(s.forecastAge)} · observação ${ageLabel(s.observedAge)}`; }).join(' · ')} · horário em BRT${loaded}`;
   }
   function render() {
-    renderNowOverview(); renderAnswer(); renderLayers(); renderResearchContext(); renderKpis(); renderStationComparison(); renderRainBasinOverview(); renderZones(); renderModels(); renderEvents(); renderEvaluation(); renderProvenance(); renderStatus();
+    renderNowOverview(); renderAnswer(); renderLayers(); renderResearchContext(); renderKpis(); renderStationComparison(); renderRainBasinOverview(); renderRainSpatialMap(); renderZones(); renderModels(); renderEvents(); renderEvaluation(); renderProvenance(); renderStatus();
   }
 
   async function loadJson(url) {
@@ -1501,6 +1735,7 @@
       const available = pairs.filter(([key]) => stationFeed(key).pattern || stationFeed(key).weather || stationFeed(key).live).length;
       $('control-status').textContent = available ? `Feeds carregados às ${when(state.lastLoadedAt)} · atualização automática a cada 5 min` : 'Feeds indisponíveis no momento · tente atualizar a página';
       render();
+      void loadRainSpatial();
     } finally {
       state.loading = false;
     }
