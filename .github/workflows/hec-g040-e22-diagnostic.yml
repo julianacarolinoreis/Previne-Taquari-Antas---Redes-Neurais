@@ -62,7 +62,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          BASE="assets/data/hec_hms_g040_full_basin"
+          BASE="$PWD/assets/data/hec_hms_g040_full_basin"
           EV="$BASE/historical_calibration_forcing/E22_SEP2023"
           HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
           test -n "$HEC_SH"
@@ -97,7 +97,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          BASE="assets/data/hec_hms_g040_full_basin/e22_diagnostic"
+          BASE="$PWD/assets/data/hec_hms_g040_full_basin/e22_diagnostic"
           mkdir -p /tmp/e22-publish
           cp /tmp/e22_result.json /tmp/e22-publish/e22_diagnostic_latest.json
           cp /tmp/e22_run.log /tmp/e22-publish/e22_diagnostic_run.log
