@@ -206,12 +206,18 @@
       <div id="station-comparison" class="station-comparison" aria-live="polite"><div class="loading-block">Carregando Santa Tereza e Muçum…</div></div>
     </section>
 
-    <section class="panel zones-panel" id="chuva" aria-labelledby="zones-title">
+    <section class="panel rain-basin-panel" id="chuva" aria-labelledby="rain-basin-title">
       <div class="panel-heading">
-        <div><p class="section-kicker">Onde a chuva está?</p><h2 id="zones-title">Pontos a montante, alvo e cobertura hidrológica</h2></div>
-        <span class="panel-note">A média e o máximo abaixo resumem células ligadas aos pontos monitorados a montante. Não são a média de toda a bacia; a máscara hidrológica e o tempo de propagação ainda precisam de validação.</span>
+        <div><p class="section-kicker">Chuva na G040 inteira</p><h2 id="rain-basin-title">Observado, previsto e distribuição espacial na bacia</h2></div>
+        <span class="panel-note">O resumo usa o forcing espacial da bacia: chuva observada espacializada + ECMWF/IFS, mantendo os 11 componentes hidrológicos separados e sem transformar dado ausente em zero.</span>
       </div>
-      <div id="zone-cards" class="zone-grid" aria-live="polite"></div>
+      <div id="rain-basin-overview" class="rain-basin-overview" aria-live="polite"><div class="loading-block">Carregando chuva integrada da bacia…</div></div>
+      <details class="rain-proxy-fold">
+        <summary><span>Comparações por ponto e proxies</span><small>cabeceiras, estação e cobertura hidrológica</small></summary>
+        <div class="rain-proxy-fold-body">
+          <div id="zone-cards" class="zone-grid" aria-live="polite"></div>
+        </div>
+      </details>
     </section>
 
     <section class="panel model-panel" id="modelos" aria-labelledby="models-title">
