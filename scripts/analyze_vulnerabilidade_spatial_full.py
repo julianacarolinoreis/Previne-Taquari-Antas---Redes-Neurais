@@ -97,14 +97,29 @@ def spatial_stats(gdf, names):
             sensitivity[str(k)] = {"I": float(m.I), "p_sim": float(m.p_sim)}
         w = knn_weights(sub, K_MAIN)
         ml = Moran_Local(y, w, permutations=999, seed=SEED)
-        sig = ml.p_sim <= 0.05
+        pvals = np.asarray(ml.p_sim, dtype=float)
+        sig = pvals <= 0.05
+        order = np.argsort(pvals)
+        ranked = pvals[order]
+        bh_line = 0.05 * (np.arange(1, len(ranked) + 1) / len(ranked))
+        passed = ranked <= bh_line
+        sig_fdr = np.zeros(len(sub), dtype=bool)
+        bh_cutoff = None
+        if passed.any():
+            last = np.where(passed)[0].max()
+            bh_cutoff = float(ranked[last])
+            sig_fdr = pvals <= bh_cutoff
         labels = np.full(len(sub), "NS", dtype=object)
+        labels_fdr = np.full(len(sub), "NS", dtype=object)
         qmap = {1: "HH", 2: "LH", 3: "LL", 4: "HL"}
         for q, label in qmap.items():
             labels[sig & (ml.q == q)] = label
+            labels_fdr[sig_fdr & (ml.q == q)] = label
         sub["lisa"] = labels
-        local_maps[var] = dict(zip(sub["setor"], sub["lisa"]))
+        sub["lisa_fdr"] = labels_fdr
+        local_maps[var] = dict(zip(sub["setor"], sub["lisa_fdr"]))
         count = sub["lisa"].value_counts().to_dict()
+        count_fdr = sub["lisa_fdr"].value_counts().to_dict()
         mun = sub.groupby(["cod_mun", "lisa"], observed=True).agg(
             sectors=("setor", "count"),
             pop=("pop", "sum"),
@@ -126,10 +141,13 @@ def spatial_stats(gdf, names):
             "global": sensitivity[str(K_MAIN)],
             "sensitivity": sensitivity,
             "lisa_counts": {k: int(count.get(k, 0)) for k in ["HH", "LL", "HL", "LH", "NS"]},
+            "lisa_counts_fdr_bh": {k: int(count_fdr.get(k, 0)) for k in ["HH", "LL", "HL", "LH", "NS"]},
+            "fdr_bh_alpha": 0.05,
+            "fdr_bh_cutoff_p_sim": bh_cutoff,
             "top_HH_municipalities": mun_records(top_hh),
             "top_LL_municipalities": mun_records(top_ll),
         }
-        map_df = pd.DataFrame({"setor": sub["setor"], f"lisa_{var}": sub["lisa"]})
+        map_df = pd.DataFrame({"setor": sub["setor"], f"lisa_{var}": sub["lisa"], f"lisa_fdr_{var}": sub["lisa_fdr"]})
         lisa_rows = lisa_rows.merge(map_df, on="setor", how="left")
     return summary, local_maps, lisa_rows
 
@@ -270,7 +288,7 @@ def main():
             "global_permutations": 999,
             "local_permutations": 999,
             "local_significance": 0.05,
-            "multiple_testing_adjustment": "none; LISA is exploratory and should be interpreted with spatial context",
+            "multiple_testing_adjustment": "Benjamini-Hochberg FDR alpha=0.05 is reported alongside the exploratory p_sim<=0.05 classification",
         },
         "spatial_statistics": spatial,
         "santa_tereza_historical_events": santa_events(gdf, local_maps),
