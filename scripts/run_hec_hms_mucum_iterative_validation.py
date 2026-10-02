@@ -39,7 +39,7 @@ LIMITS={
     "min_flow_q_stations": 30,
     "max_boundary_age_h": 2.0,
 }
-MAX_CANDIDATES=180
+MAX_CANDIDATES=240
 
 DEFAULT={
     "k1":1.25,"k2":1.25,"k3":1.00,"x":0.20,"warmup_h":8,
@@ -56,7 +56,15 @@ def clamp(v,lo,hi):
     return max(lo,min(hi,float(v)))
 
 def norm(c):
-    x=dict(DEFAULT); x.update(c or {})
+    # Keep only actual parameter keys. Candidate rows also carry score,
+    # accepted/current/metrics metadata; letting those fields survive here
+    # caused an old score/accepted flag to overwrite the newly computed result
+    # when **c was expanded in run_one.
+    src=c or {}
+    x=dict(DEFAULT)
+    for k in DEFAULT:
+        if k in src and src.get(k) is not None:
+            x[k]=src[k]
     x["k1"]=round(clamp(x["k1"],0.50,4.00),3)
     x["k2"]=round(clamp(x["k2"],0.50,4.00),3)
     x["k3"]=round(clamp(x["k3"],0.40,3.00),3)
@@ -260,10 +268,18 @@ def residual_state_candidates(best):
     """
     if not best:return []
     b=norm(best);out=[]
-    for fr in (3,5,8,12,16,20,25,30,35,40,45,50,55,60,70):
+    for fr in (3,5,8,12,16,20,25,30,35,40,42,44,45,46,47,48,49,50,51,52,53,55,60,70):
       q=dict(b);q["dn_flow_ratio_scale"]=fr;out.append(norm(q))
     # Recession controls how quickly that assimilated stored-water state decays.
-    for fr,rec in ((20,0.90),(30,0.95),(40,0.98),(45,1.0),(50,1.0),(55,1.0),(60,1.0),(50,1.03),(50,1.06)):
+    # Focus tightly around the 45–52 range indicated by the current mass-balance
+    # residual, while still keeping broader wet-state candidates.
+    for fr,rec in (
+      (40,0.95),(42,0.95),(44,0.95),(45,0.95),(46,0.95),(48,0.95),(50,0.95),(52,0.95),
+      (42,0.97),(44,0.97),(45,0.97),(46,0.97),(47,0.97),(48,0.97),(49,0.97),(50,0.97),(51,0.97),(52,0.97),
+      (42,0.98),(44,0.98),(45,0.98),(46,0.98),(47,0.98),(48,0.98),(49,0.98),(50,0.98),(51,0.98),(52,0.98),
+      (44,0.99),(45,0.99),(46,0.99),(47,0.99),(48,0.99),(49,0.99),(50,0.99),(51,0.99),(52,0.99),
+      (45,1.0),(46,1.0),(47,1.0),(48,1.0),(49,1.0),(50,1.0),(51,1.0),(52,1.0)
+    ):
       q=dict(b);q["dn_flow_ratio_scale"]=fr;q["dn_recession_scale"]=rec;out.append(norm(q))
     return out
 
