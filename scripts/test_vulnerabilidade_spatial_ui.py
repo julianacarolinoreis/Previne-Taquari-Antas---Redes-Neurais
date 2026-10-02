@@ -40,7 +40,7 @@ def main():
 
     html=HTML.read_text(encoding="utf-8")
     p=Parser(); p.feed(html)
-    ids={"analiseEspacial","spatialMetric","spatialFlood","spatialAnalysisLegend","spatialAnalysisStatus","spatialPresetElderlyFlood"}
+    ids={"analiseEspacial","spatialMetric","spatialFlood","spatialAnalysisLegend","spatialAnalysisStatus","spatialPresetElderlyFlood","spatialMiniCharts","miniMoran","miniLisa","miniProfile","miniFlood"}
     assert ids <= p.ids
     for path in (
         "assets/data/vulnerabilidade/analises_spaciais/lisa_setores_bacia.geojson",
@@ -50,6 +50,9 @@ def main():
         assert path in html
     assert "9.999 permutações" in html and "Benjamini" in html and "FDR" in html
     assert "HH/LL não significam risco alto/baixo" in html
+    assert "function atualizaSpatialMiniCharts()" in html
+    assert "function weightedShare(feats,key)" in html
+    assert "Perfil da área" in html
     assert "ainda não sobrepõe o perigo" not in html
 
     scripts=re.findall(r"<script(?:\s[^>]*)?>(.*?)</script>",html,flags=re.S|re.I)
