@@ -159,9 +159,36 @@ def choose_window(rain,hydro,active):
     # Avoid treating an in-progress rainfall hour as complete when wall-clock is inside it.
     complete_cap=floor_hour(datetime.now(timezone.utc))-timedelta(hours=1)
     end=min(end,complete_cap)
-    if end<=start or (end-start).total_seconds()<24*3600:
+    if end<=start:
         raise RuntimeError(f"insufficient common hindcast window: {start} -> {end}")
-    return start,end,used_components
+
+    # Historical packages can contain isolated missing rain hours. Do not
+    # zero-fill them and do not let one hole invalidate an otherwise useful
+    # event. Select the longest contiguous hourly block for which every
+    # rainfall-runoff component has observed rain and every Source has flow.
+    axis=hourly_axis(start,end)
+    valid=[]
+    for t in axis:
+        rain_ok=all(rain_at(rain[cid]["rows"],t) is not None for cid in used_components)
+        flow_ok=all(interp(rows,t) is not None for rows in series)
+        valid.append(bool(rain_ok and flow_ok))
+    runs=[]
+    run_start=None
+    for i,ok in enumerate(valid+[False]):
+        if ok and run_start is None:
+            run_start=i
+        elif not ok and run_start is not None:
+            runs.append((run_start,i-1))
+            run_start=None
+    if not runs:
+        raise RuntimeError("no contiguous complete rain+source-flow block in hindcast window")
+    a,b=max(runs,key=lambda z:z[1]-z[0]+1)
+    start2=axis[a]; end2=axis[b]
+    if (end2-start2).total_seconds()<24*3600:
+        raise RuntimeError(
+            f"longest complete rain+source-flow block is shorter than 24h: {start2} -> {end2}"
+        )
+    return start2,end2,used_components
 
 def source_hourly(hydro,code,times):
     _c,rows=series_control(hydro,code)
