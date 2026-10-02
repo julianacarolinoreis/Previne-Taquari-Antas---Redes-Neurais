@@ -6,6 +6,8 @@ on:
       - analysis-vulnerabilidade-spatial-20261001
     paths:
       - "scripts/analyze_vulnerabilidade_spatial_full.py"
+      - "scripts/test_vulnerabilidade_spatial_ui.py"
+      - "vulnerabilidade.html"
       - ".github/workflows/vulnerabilidade-spatial-audit.yml"
 
 permissions:
@@ -45,6 +47,11 @@ jobs:
             git commit -m "data: publish vulnerability spatial analysis assets"
             git push
           fi
+
+      - name: Validate published vulnerability contract
+        run: |
+          python scripts/validate_vulnerabilidade_publicacao.py
+          python scripts/test_vulnerabilidade_spatial_ui.py
 
       - name: Upload analysis artifact
         uses: actions/upload-artifact@v4
