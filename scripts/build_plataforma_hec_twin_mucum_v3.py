@@ -643,7 +643,7 @@ def build_feed_v3() -> dict:
             "available": False,
             "generated_at_utc": spatial_hec.get("generated_at_utc"),
             "status": spatial_hec.get("status"),
-            "label_pt": "HEC-HMS 4.13 · rodada bloqueada pela validação",
+            "label_pt": "HEC-HMS 4.13 · recalibração automática em andamento",
             "warning_pt": spatial_hec.get("warning_pt"),
             "forcing_spatial": True,
             "engine": "HEC-HMS 4.13",
@@ -667,11 +667,11 @@ def build_feed_v3() -> dict:
                 "peak_time_utc": sm.get("candidate_peak_time_utc"),
                 "peak_level_cm": sm.get("candidate_peak_level_rating_cm"),
                 "rise_from_model_t0_cm": sm.get("candidate_rise_from_model_t0_cm"),
-                "label_pt": "candidato HEC rejeitado pelas guardas; diagnóstico apenas, não previsão",
+                "label_pt": "melhor candidato interno em ajuste; ainda não liberado como previsão",
             },
             "plain_pt": (
-                "A rodada HEC foi executada, mas não foi publicada como previsão porque nenhum "
-                "candidato fechou o estado hidrológico observado dentro das guardas. Nenhuma "
+                "A rodada HEC foi executada e a calibração automática continua porque ainda nenhum "
+                "candidato fechou o estado hidrológico observado dentro das guardas. O sistema continua buscando parâmetros físicos; nenhuma "
                 "correção visual de nível é aplicada; a saída permanece diagnóstica."
             ),
             "artifact_json": "hec_hms_operational_forecast_latest.json",
@@ -766,7 +766,7 @@ def build_feed_v3() -> dict:
             "source": "hec_hms_4_13_spatial_blocked",
             "question_pt": "Qual é a previsão HEC-HMS válida para Muçum agora?",
             "plain_pt": (
-                "A rodada HEC-HMS foi bloqueada e não há pico publicado neste ciclo. "
+                "A rodada HEC-HMS está em recalibração automática e ainda não há pico liberado neste ciclo. "
                 + (" Motivo: " + "; ".join(reasons) if reasons else "")
             ),
             "primary": None,
