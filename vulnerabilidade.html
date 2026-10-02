@@ -585,22 +585,7 @@
   .spatial-analysis-legend i{width:11px;height:11px;border-radius:3px;border:1px solid rgba(0,0,0,.18)}
   .spatial-preset{border:1px solid var(--line);border-radius:8px;background:#fff;padding:7px 9px;font-size:11px;font-weight:700;color:var(--brand);cursor:pointer}
   .spatial-preset:hover{background:#edf5f1}
-  .spatial-mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .spatial-mini-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 10px;min-width:0}
-  .spatial-mini-head{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:7px}
-  .spatial-mini-head strong{font-size:11px;color:var(--ink)}
-  .spatial-mini-head small{font-size:9px;color:var(--muted);text-align:right}
-  .mini-bars{display:grid;gap:5px}
-  .mini-bar-row{display:grid;grid-template-columns:minmax(72px,auto) 1fr auto;gap:6px;align-items:center;font-size:9.5px;color:var(--muted)}
-  .mini-bar-row b{font-size:9.5px;color:var(--ink);font-variant-numeric:tabular-nums}
-  .mini-track{height:7px;background:#edf1ef;border-radius:999px;overflow:hidden;position:relative}
-  .mini-fill{height:100%;min-width:2px;border-radius:999px;background:#597d70}
-  .mini-fill.is-active{background:#4d2a6e}
-  .mini-fill.hh{background:#7b3294}.mini-fill.ll{background:#008837}.mini-fill.hl{background:#e66101}.mini-fill.lh{background:#0571b0}
-  .mini-fill.demo{background:#547989}.mini-fill.flood{background:#2b8cbe}
-  .spatial-mini-empty{font-size:10px;line-height:1.4;color:var(--muted);padding:5px 0}
-  .spatial-mini-foot{font-size:9px;color:var(--muted);margin-top:6px;line-height:1.35}
-  @media(max-width:760px){.spatial-analysis-grid,.spatial-mini-grid{grid-template-columns:1fr}}
+  @media(max-width:760px){.spatial-analysis-grid{grid-template-columns:1fr}}
 </style>
 <link rel="stylesheet" href="assets/css/gestor_chrome.css">
 </head>
@@ -755,12 +740,6 @@
         <div><button type="button" class="spatial-preset" id="spatialPresetElderlyFlood">Atalho · idosos × maior cheia histórica de Santa Tereza</button></div>
         <div class="spatial-analysis-legend" id="spatialAnalysisLegend" aria-label="Legenda da análise espacial"></div>
         <div class="spatial-analysis-status" id="spatialAnalysisStatus" role="status" aria-live="polite">Escolha uma camada estatística ou uma mancha para iniciar a análise.</div>
-        <div class="spatial-mini-grid" id="spatialMiniCharts" aria-label="Mini-gráficos da análise espacial">
-          <div class="spatial-mini-card"><div class="spatial-mini-head"><strong>Autocorrelação espacial</strong><small>Moran I · bacia</small></div><div id="miniMoran" class="mini-bars"><div class="spatial-mini-empty">Carregando…</div></div></div>
-          <div class="spatial-mini-card"><div class="spatial-mini-head"><strong id="miniLisaTitle">Clusters robustos</strong><small id="miniLisaScope">bacia inteira</small></div><div id="miniLisa" class="mini-bars"><div class="spatial-mini-empty">Escolha uma camada LISA.</div></div></div>
-          <div class="spatial-mini-card"><div class="spatial-mini-head"><strong>Perfil da área</strong><small id="miniProfileScope">bacia inteira</small></div><div id="miniProfile" class="mini-bars"><div class="spatial-mini-empty">Carregando…</div></div><div class="spatial-mini-foot">Percentuais ponderados pela população dos setores com dado válido; são descrições ecológicas.</div></div>
-          <div class="spatial-mini-card"><div class="spatial-mini-head"><strong id="miniFloodTitle">Cheias / cenários</strong><small>proxy geométrico</small></div><div id="miniFlood" class="mini-bars"><div class="spatial-mini-empty">Carregando…</div></div><div class="spatial-mini-foot" id="miniFloodFoot">Proxy ≠ contagem observada de pessoas inundadas.</div></div>
-        </div>
       </div>
     </details>
 
@@ -1478,94 +1457,9 @@ async function aplicaSpatialFlood(valor, ajustar=true){
     if(status)status.textContent="Não foi possível carregar esta mancha agora. A camada estatística permanece disponível.";
   }
 }
-function miniBarHTML(label,value,maxValue,display,klass="",active=false){
-  const max=Number(maxValue)>0?Number(maxValue):1;
-  const pct=Math.max(0,Math.min(100,Number(value||0)/max*100));
-  return `<div class="mini-bar-row"><span>${escHTML(label)}</span><div class="mini-track"><div class="mini-fill ${klass}${active?" is-active":""}" style="width:${pct.toFixed(1)}%"></div></div><b>${escHTML(display)}</b></div>`;
-}
-function spatialSubset(gj){
-  const feats=(gj?.features||[]);
-  if(!selectionRect)return {features:feats,label:"bacia inteira"};
-  const b=selectionRect.getBounds();
-  const sub=feats.filter(f=>geometriaCruzaRetangulo(f,b));
-  return {features:sub,label:`seleção · ${fmt(sub.length)} setores`};
-}
-function weightedShare(feats,key){
-  let num=0,den=0;
-  feats.forEach(f=>{
-    const p=f.properties||{},v=Number(p[key]),pop=Number(p.pop);
-    if(Number.isFinite(v)&&Number.isFinite(pop)&&pop>0){num+=v*pop;den+=pop;}
-  });
-  return den>0?num/den:null;
-}
-async function atualizaSpatialMiniCharts(){
-  const moranEl=document.getElementById("miniMoran"),lisaEl=document.getElementById("miniLisa"),profileEl=document.getElementById("miniProfile"),floodEl=document.getElementById("miniFlood");
-  if(!moranEl||!lisaEl||!profileEl||!floodEl)return;
-  try{
-    const [d,gj]=await Promise.all([garanteSpatialSummary(),garanteSpatialGeo()]);
-    const defs=[["income","Renda"],["water","Água"],["sewage","Esgoto"],["child","Crianças"],["elderly","Idosos"],["blackbrown","Pretos+pardos"]];
-    const moranRows=defs.map(([k,label])=>({k,label,v:Number(d.spatial_statistics?.[k]?.global?.I)||0}));
-    const moranMax=Math.max(...moranRows.map(x=>x.v),1e-9);
-    moranEl.innerHTML=moranRows.map(x=>miniBarHTML(x.label,x.v,moranMax,x.v.toLocaleString("pt-BR",{minimumFractionDigits:3,maximumFractionDigits:3}),"",spatialMetric===x.k)).join("");
-
-    const subset=spatialSubset(gj),feats=subset.features;
-    const scopeLabel=document.getElementById("miniLisaScope"),profileScope=document.getElementById("miniProfileScope");
-    if(scopeLabel)scopeLabel.textContent=subset.label;
-    if(profileScope)profileScope.textContent=subset.label;
-
-    const lisaTitle=document.getElementById("miniLisaTitle");
-    if(spatialMetric==="none"){
-      if(lisaTitle)lisaTitle.textContent="Clusters robustos";
-      lisaEl.innerHTML='<div class="spatial-mini-empty">Escolha uma camada LISA para comparar HH, LL, HL e LH.</div>';
-    }else if(spatialMetric==="structural"){
-      if(lisaTitle)lisaTitle.textContent="Convergência estrutural";
-      const counts=[1,2,3].map(n=>({n,c:feats.filter(f=>Number(f.properties?.structural_ll_count)===n).length}));
-      const mx=Math.max(...counts.map(x=>x.c),1);
-      lisaEl.innerHTML=counts.map(x=>miniBarHTML(`${x.n} condição${x.n>1?"ões":""} LL`,x.c,mx,fmt(x.c),"",x.n>=2)).join("");
-    }else if(spatialMetric==="elderly_structural"){
-      if(lisaTitle)lisaTitle.textContent="Idosos + estrutura";
-      const c=feats.filter(f=>Number(f.properties?.elderly_hh_plus_structural)===1).length;
-      lisaEl.innerHTML=miniBarHTML("HH idosos + LL",c,Math.max(feats.length,1),fmt(c),"hh",true)+
-        `<div class="spatial-mini-foot">${fmt(c)} de ${fmt(feats.length)} setores no recorte.</div>`;
-    }else{
-      if(lisaTitle)lisaTitle.textContent=`LISA · ${spatialMetricLabel(spatialMetric)}`;
-      const field=`lisa_fdr_${spatialMetric}`,cats=["HH","LL","HL","LH"];
-      const rows=cats.map(cat=>({cat,c:feats.filter(f=>f.properties?.[field]===cat).length}));
-      const mx=Math.max(...rows.map(x=>x.c),1);
-      lisaEl.innerHTML=rows.map(x=>miniBarHTML(x.cat,x.c,mx,fmt(x.c),x.cat.toLowerCase(),false)).join("");
-    }
-
-    const shares=[
-      ["child","Crianças 0–9"],
-      ["elderly","Idosos 60+"],
-      ["blackbrown","Pretos+pardos"],
-    ].map(([k,label])=>({label,v:weightedShare(feats,k)})).filter(x=>x.v!==null);
-    profileEl.innerHTML=shares.length?shares.map(x=>miniBarHTML(x.label,x.v,1,(x.v*100).toLocaleString("pt-BR",{maximumFractionDigits:1})+"%","demo")).join(""):'<div class="spatial-mini-empty">Sem dados válidos suficientes no recorte.</div>';
-
-    let floodRows=[],activeKey=null,title="Santa Tereza · cheias históricas",foot="Proxy geométrico setorial; não é contagem observada de pessoas inundadas.";
-    if(spatialFlood.startsWith("mucum:")){
-      title="Muçum · cenários HAND"; activeKey=Number(spatialFlood.split(":")[1]);
-      floodRows=(d.mucum_research_scenarios||[]).map(e=>({key:Number(e.nivel_m),label:`HAND ${Number(e.nivel_m)} m`,v:Number(e.sector_overlay?.population_area_weighted_proxy)||0,elderly:Number(e.sector_overlay?.elderly_share_proxy)}));
-      foot="Cenários de pesquisa; proxy geométrico setorial ≠ pessoas observadas inundadas.";
-    }else{
-      activeKey=spatialFlood.startsWith("santa:")?spatialFlood.split(":")[1]:null;
-      floodRows=(d.santa_tereza_historical_events||[]).map(e=>({key:e.case_id,label:e.event_label,v:Number(e.sector_overlay?.population_area_weighted_proxy)||0,elderly:Number(e.sector_overlay?.elderly_share_proxy)}));
-    }
-    const floodTitle=document.getElementById("miniFloodTitle"),floodFoot=document.getElementById("miniFloodFoot");
-    if(floodTitle)floodTitle.textContent=title;
-    if(floodFoot)floodFoot.textContent=foot;
-    const fmax=Math.max(...floodRows.map(x=>x.v),1);
-    floodEl.innerHTML=floodRows.map(x=>{
-      const idosos=Number.isFinite(x.elderly)?` · 60+ ${(x.elderly*100).toLocaleString("pt-BR",{maximumFractionDigits:1})}%`:"";
-      return miniBarHTML(x.label,x.v,fmax,Math.round(x.v).toLocaleString("pt-BR")+idosos,"flood",x.key===activeKey);
-    }).join("");
-  }catch(e){
-    [moranEl,lisaEl,profileEl,floodEl].forEach(el=>{if(el)el.innerHTML='<div class="spatial-mini-empty">Mini-gráfico indisponível nesta atualização.</div>';});
-  }
-}
 async function atualizaSpatialStatus(){
   const el=document.getElementById("spatialAnalysisStatus"); if(!el)return;
-  if(spatialMetric==="none" && spatialFlood==="none"){el.textContent="Escolha uma camada estatística ou uma mancha para iniciar a análise.";await atualizaSpatialMiniCharts();return;}
+  if(spatialMetric==="none" && spatialFlood==="none"){el.textContent="Escolha uma camada estatística ou uma mancha para iniciar a análise.";return;}
   try{
     const d=await garanteSpatialSummary();
     const partes=[];
@@ -1593,8 +1487,7 @@ async function atualizaSpatialStatus(){
       }
     }
     el.innerHTML=partes.join("<br>");
-    await atualizaSpatialMiniCharts();
-  }catch(_){el.textContent="Camada ativa. O resumo estatístico não pôde ser carregado, mas a geometria continua visível."; await atualizaSpatialMiniCharts();}
+  }catch(_){el.textContent="Camada ativa. O resumo estatístico não pôde ser carregado, mas a geometria continua visível.";}
 }
 function restauraSpatialURL(){
   const sm=PARAMS.get("spatial");
@@ -3123,7 +3016,6 @@ function limpaSelecao(){
   if (munLayer || setLayer) repinta();
   atualizaPainelSelecao();
   atualizaEscolhaZoom?.();
-  atualizaSpatialMiniCharts();
   sincronizaURL();
 }
 function atualizaBotaoSelecao(){
@@ -3158,7 +3050,6 @@ function concluiSelecao(){
   atualizaEscolhaZoom?.();
   aplicaDestaqueSelecao();
   atualizaPainelSelecao();
-  atualizaSpatialMiniCharts();
   sincronizaURL();
   informa(novos.length ? `${fmt(novos.length)} ${nomeCamadaSelecao()} selecionado(s).` : "Nenhum elemento foi alcançado pelo retângulo.");
 }
@@ -3172,7 +3063,6 @@ function restauraSelecaoURL(){
   selectionLayers=camadasVisiveis().filter(l=>geometriaCruzaRetangulo(l.feature,bounds));
   aplicaDestaqueSelecao();
   atualizaPainelSelecao();
-  atualizaSpatialMiniCharts();
 }
 function fichaSelecao(){
   const vista=dadosDaSelecao(); if(!vista)return;
@@ -4714,8 +4604,7 @@ carrega("icm_municipios.json", "assets/data").then(d=>{
 
 initUxApoios();
 
-document.getElementById("analiseEspacial")?.addEventListener("toggle",e=>{if(e.currentTarget.open)atualizaSpatialMiniCharts();});
-window.addEventListener("load",()=>{ setTimeout(()=>{restauraSpatialURL();atualizaSpatialMiniCharts();},0); },{once:true});
+window.addEventListener("load",()=>{ setTimeout(restauraSpatialURL,0); },{once:true});
 </script>
 <script src="assets/js/gestor_chrome.js" data-page="pessoas" data-place="bacia"></script>
 </body>
