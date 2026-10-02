@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b211b">
+  <meta name="description" content="PREVINE AI Lab Brasil — protótipo nacional para operação hidrológica em tempo real, supervisão e evolução de modelos.">
+  <title>PREVINE AI Lab Brasil</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/site_chrome.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="assets/css/ai_lab_brasil.css">
+</head>
+<body>
+  <a class="skip" href="#conteudo">Ir para o conteúdo</a>
+
+  <main id="conteudo" class="lab-shell">
+    <section class="lab-hero">
+      <div>
+        <p class="eyebrow">PREVINE · AI Lab Brasil</p>
+        <h1>Operação hidrológica<br>orientada por modelos.</h1>
+        <p class="hero-copy">Uma arquitetura nacional para descobrir dados, acompanhar modelos ativos, testar candidatos em modo sombra e evoluir previsões sem confundir experimento com operação.</p>
+      </div>
+      <div class="hero-status">
+        <span class="status-dot" aria-hidden="true"></span>
+        <div>
+          <strong id="hero-status-title">Carregando feed piloto</strong>
+          <small id="hero-status-note">A cobertura nacional ainda está em implantação.</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="national-note" aria-label="Escopo desta versão">
+      <strong>Escopo desta versão</strong>
+      <span>Interface e arquitetura nacionais. Dados em tempo quase real conectados agora: piloto Taquari-Antas. Nenhum alerta automático é emitido por esta página.</span>
+    </section>
+
+    <section class="ops-grid" aria-label="Sala operacional nacional">
+      <aside class="ops-sidebar">
+        <div class="panel-head">
+          <div>
+            <p class="section-kicker">Brasil agora</p>
+            <h2>Rede operacional</h2>
+          </div>
+          <button class="ghost-button" id="refresh-feed" type="button">atualizar</button>
+        </div>
+
+        <label class="field-label" for="station-search">Estação, bacia ou código</label>
+        <div class="search-wrap">
+          <input id="station-search" type="search" placeholder="Ex.: 86472600 ou Santa Tereza" autocomplete="off">
+          <button id="station-search-button" type="button" aria-label="Buscar">→</button>
+        </div>
+        <p class="search-help" id="search-help">Nesta versão a busca encontra os pontos conectados ao piloto.</p>
+
+        <div class="scope-row">
+          <label>
+            <span>Variável</span>
+            <select id="variable-select">
+              <option value="nivel">Nível</option>
+              <option value="vazao">Vazão</option>
+            </select>
+          </label>
+          <label>
+            <span>Horizonte</span>
+            <select id="horizon-select">
+              <option value="2">2 h</option>
+              <option value="4" selected>4 h</option>
+              <option value="8">8 h</option>
+              <option value="12">12 h</option>
+              <option value="24">24 h</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="network-kpis" aria-live="polite">
+          <article>
+            <span>Pontos conectados</span>
+            <strong id="kpi-stations">—</strong>
+            <small>feed piloto</small>
+          </article>
+          <article>
+            <span>Modelos ativos</span>
+            <strong id="kpi-active">—</strong>
+            <small>papel principal</small>
+          </article>
+          <article>
+            <span>Modelos sombra</span>
+            <strong id="kpi-shadow">—</strong>
+            <small>não publicam decisão</small>
+          </article>
+          <article>
+            <span>Atualização</span>
+            <strong id="kpi-updated">—</strong>
+            <small>geração do feed</small>
+          </article>
+        </div>
+
+        <div class="sidebar-actions">
+          <button class="primary-button" id="new-station" type="button">Conectar nova estação</button>
+          <button class="secondary-button" id="new-training" type="button">Abrir treinamento automático</button>
+        </div>
+
+        <div class="architecture-mini">
+          <p class="section-kicker">Motor nacional</p>
+          <ol>
+            <li><span>01</span>descobrir e auditar dados</li>
+            <li><span>02</span>montar features hidrológicas</li>
+            <li><span>03</span>treinar candidatos</li>
+            <li><span>04</span>rodar em sombra</li>
+            <li><span>05</span>promover só após validação</li>
+          </ol>
+        </div>
+      </aside>
+
+      <div class="map-column">
+        <div class="map-toolbar">
+          <div>
+            <p class="section-kicker">Mapa nacional</p>
+            <h2>Escolha um ponto e veja o estado do modelo</h2>
+          </div>
+          <div class="map-legend" aria-label="Legenda">
+            <span><i class="dot-live"></i> conectado</span>
+            <span><i class="dot-shadow"></i> sombra</span>
+            <span><i class="dot-national"></i> expansão nacional</span>
+          </div>
+        </div>
+        <div id="brazil-map" role="application" aria-label="Mapa do Brasil com pontos hidrológicos conectados"></div>
+        <div class="map-foot">
+          <span id="map-status">Carregando pontos conectados…</span>
+          <button id="fit-brazil" class="text-button" type="button">ver Brasil inteiro</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="detail-grid" aria-label="Detalhes do ponto selecionado">
+      <article class="detail-card station-card">
+        <div class="card-top">
+          <div>
+            <p class="section-kicker">Ponto selecionado</p>
+            <h2 id="station-name">Nenhuma estação selecionada</h2>
+            <p id="station-meta" class="muted">Clique em um ponto no mapa.</p>
+          </div>
+          <span id="station-freshness" class="pill neutral">—</span>
+        </div>
+        <div class="reading-row">
+          <div>
+            <span>Nível observado</span>
+            <strong id="station-level">—</strong>
+          </div>
+          <div>
+            <span>Horário</span>
+            <strong id="station-time">—</strong>
+          </div>
+          <div>
+            <span>Fonte</span>
+            <strong id="station-source">—</strong>
+          </div>
+        </div>
+      </article>
+
+      <article class="detail-card supervisor-card">
+        <div class="card-top">
+          <div>
+            <p class="section-kicker">Supervisor</p>
+            <h2>Confiabilidade operacional</h2>
+          </div>
+          <span id="supervisor-state" class="pill neutral">sem leitura</span>
+        </div>
+        <p id="supervisor-summary" class="supervisor-summary">Selecione uma estação para avaliar telemetria, cobertura de inputs e domínio do modelo.</p>
+        <div id="supervisor-checks" class="check-list"></div>
+      </article>
+    </section>
+
+    <section class="models-section" aria-labelledby="models-title">
+      <div class="section-head">
+        <div>
+          <p class="section-kicker">Modelos do ponto</p>
+          <h2 id="models-title">Ativo × candidatos em sombra</h2>
+        </div>
+        <p>O melhor desempenho histórico não promove automaticamente um modelo. O candidato precisa sobreviver a validação temporal, extremos e operação em sombra.</p>
+      </div>
+      <div class="model-table-wrap">
+        <table class="model-table">
+          <thead>
+            <tr>
+              <th>papel</th>
+              <th>horizonte</th>
+              <th>modelo</th>
+              <th>previsão</th>
+              <th>inputs</th>
+              <th>qualidade</th>
+              <th>erro recente</th>
+            </tr>
+          </thead>
+          <tbody id="model-table-body">
+            <tr><td colspan="7" class="empty-cell">Selecione uma estação.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="factory-grid" aria-label="Fábrica de modelos">
+      <article class="factory-card">
+        <p class="section-kicker">Treinamento automático</p>
+        <h2>Fábrica de candidatos</h2>
+        <p>O motor futuro recebe objetivo, ponto e horizonte; descobre dados, testa famílias de modelos e entrega candidatos reproduzíveis.</p>
+        <div class="family-cloud" aria-label="Famílias previstas">
+          <span>MLP</span><span>NARX</span><span>LSTM</span><span>GRU</span><span>TCN</span><span>XGBoost</span><span>Transformer</span><span>Híbridos</span>
+        </div>
+      </article>
+      <article class="factory-card">
+        <p class="section-kicker">Gate científico</p>
+        <h2>O que um modelo precisa vencer</h2>
+        <div class="gate-list">
+          <span>validação temporal independente</span>
+          <span>eventos extremos</span>
+          <span>erro de pico e do horário do pico</span>
+          <span>robustez a dados faltantes</span>
+          <span>comparação com baseline</span>
+          <span>operação em sombra</span>
+        </div>
+      </article>
+      <article class="factory-card">
+        <p class="section-kicker">Expansão Brasil</p>
+        <h2>Conectores planejados</h2>
+        <p>Telemetria, chuva observada, previsão meteorológica, atributos fisiográficos e rede hidrográfica entram como contratos de dados versionados.</p>
+        <p class="muted compact">A página não declara cobertura nacional até que esses conectores estejam realmente ligados e auditados.</p>
+      </article>
+    </section>
+
+    <div id="lab-toast" class="toast" role="status" aria-live="polite" hidden></div>
+  </main>
+
+  <footer class="lab-footer">
+    <strong>PREVINE AI Lab Brasil</strong>
+    <span>Pesquisa e protótipo. Não substitui alerta oficial, Defesa Civil, ANA, SGB ou serviços hidrometeorológicos responsáveis.</span>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="assets/js/site_chrome.js" data-page="ailab"></script>
+  <script src="assets/js/ai_lab_brasil.js"></script>
+</body>
+</html>
