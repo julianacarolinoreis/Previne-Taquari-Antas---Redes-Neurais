@@ -7,7 +7,7 @@
   <link rel="icon" href="data:,">
   <title>PREVINE · Dashboard da bacia Taquari–Antas</title>
   <link rel="stylesheet" href="assets/css/site_chrome.css">
-  <link rel="stylesheet" href="assets/css/bacia_dashboard.css?v=20261002-rain1">
+  <link rel="stylesheet" href="assets/css/bacia_dashboard.css?v=20261002-rain2">
   <link rel="stylesheet" href="assets/css/gestor_chrome.css">
 </head>
 <body>
@@ -212,6 +212,27 @@
         <span class="panel-note">O resumo usa o forcing espacial da bacia: chuva observada espacializada + ECMWF/IFS, mantendo os 11 componentes hidrológicos separados e sem transformar dado ausente em zero.</span>
       </div>
       <div id="rain-basin-overview" class="rain-basin-overview" aria-live="polite"><div class="loading-block">Carregando chuva integrada da bacia…</div></div>
+      <article class="rain-spatial-card" aria-labelledby="rain-spatial-title">
+        <div class="rain-spatial-head">
+          <div><span class="now-eyebrow">Mapa espacial</span><h3 id="rain-spatial-title">Grade de chuva da G040 · 600 células</h3></div>
+          <span id="rain-spatial-status">carregando grade observada + ECMWF/IFS…</span>
+        </div>
+        <div class="rain-spatial-controls" aria-label="Controles do mapa de chuva">
+          <div class="rain-control-group"><span>Fonte</span><div class="rain-chip-row"><button type="button" class="rain-chip" data-rain-map-mode="observed" aria-pressed="false">Observado</button><button type="button" class="rain-chip is-active" data-rain-map-mode="forecast" aria-pressed="true">ECMWF/IFS</button></div></div>
+          <div class="rain-control-group"><span>Acumulado</span><div class="rain-chip-row" id="rain-map-horizon-chips">
+            <button type="button" class="rain-chip" data-rain-map-hours="1" aria-pressed="false">1 h</button>
+            <button type="button" class="rain-chip" data-rain-map-hours="3" aria-pressed="false">3 h</button>
+            <button type="button" class="rain-chip" data-rain-map-hours="6" aria-pressed="false">6 h</button>
+            <button type="button" class="rain-chip" data-rain-map-hours="12" aria-pressed="false">12 h</button>
+            <button type="button" class="rain-chip" data-rain-map-hours="24" aria-pressed="false">24 h</button>
+            <button type="button" class="rain-chip" data-rain-map-hours="48" aria-pressed="false">48 h</button>
+            <button type="button" class="rain-chip is-active" data-rain-map-hours="72" aria-pressed="true">72 h</button>
+            <button type="button" class="rain-chip" data-rain-map-hours="120" aria-pressed="false">120 h</button>
+          </div></div>
+        </div>
+        <div id="rain-spatial-map" class="rain-spatial-map" aria-live="polite"><div class="loading-block">Montando o campo espacial de chuva…</div></div>
+        <div id="rain-spatial-summary" class="rain-spatial-summary" aria-live="polite"></div>
+      </article>
       <details class="rain-proxy-fold">
         <summary><span>Comparações por ponto e proxies</span><small>cabeceiras, estação e cobertura hidrológica</small></summary>
         <div class="rain-proxy-fold-body">
@@ -279,7 +300,7 @@
     </footer>
   </main>
   <script src="assets/js/live_feed.js?v=20260916-nunca-atrasado"></script>
-  <script src="assets/js/bacia_dashboard.js?v=20261002-rain1" defer></script>
+  <script src="assets/js/bacia_dashboard.js?v=20261002-rain2" defer></script>
   <script src="assets/js/gestor_chrome.js" data-page="agora" data-place="bacia"></script>
   <script src="assets/js/site_chrome.js" data-page="bacia"></script>
 </body>
