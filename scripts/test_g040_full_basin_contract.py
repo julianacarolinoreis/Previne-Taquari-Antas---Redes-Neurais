@@ -27,6 +27,12 @@ class TestG040FullBasinContract(unittest.TestCase):
         self.assertIn("g040_download_buffer.geojson", src)
         self.assertIn("EPSG:31982", src)
 
+    def test_ecmwf_grid_is_buffer_derived_and_basin_weighted(self):
+        src = (ROOT / "scripts/build_g040_buffered_ecmwf_field.py").read_text(encoding="utf-8")
+        self.assertIn("g040_download_buffer.geojson", src)
+        self.assertIn("basin_intersection_km2", src)
+        self.assertIn("buffer-only cells are meteorological context", src)
+
     def test_snapshot_explicitly_has_no_single_endpoint(self):
         src = (ROOT / "scripts/build_g040_basin_snapshot.py").read_text(encoding="utf-8")
         self.assertIn('"single_endpoint": False', src)
