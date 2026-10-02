@@ -604,12 +604,17 @@ def main():
     ap.add_argument("--k-g4",type=float,required=True)
     ap.add_argument("--x",type=float,required=True)
     ap.add_argument("--candidate-id",default="candidate")
+    ap.add_argument("--event-id",default=None)
+    ap.add_argument("--rain-file",type=Path,default=OBSRAIN)
+    ap.add_argument("--hydro-file",type=Path,default=HYDRO)
+    ap.add_argument("--scenario-file",type=Path,default=SCENARIOS)
+    ap.add_argument("--output-root",type=Path,default=OUTROOT)
     args=ap.parse_args()
     if not (20<args.cn<95): raise SystemExit("CN outside physical search domain")
     if not (1<=args.lag_min<=600): raise SystemExit("lag outside search domain")
     if not (0<=args.x<=0.5): raise SystemExit("Muskingum X outside [0,0.5]")
 
-    rainpkg=loadj(OBSRAIN); hydro=loadj(HYDRO); scenarios=loadj(SCENARIOS)
+    rainpkg=loadj(args.rain_file); hydro=loadj(args.hydro_file); scenarios=loadj(args.scenario_file)
     if rainpkg.get("status") not in {"OBSERVED_RAIN_READY","OBSERVED_RAIN_PARTIAL"}:
         raise RuntimeError("observed G040 rain not ready")
     current=scenarios.get("current") or {}
@@ -630,7 +635,7 @@ def main():
             raise RuntimeError(f"{cid}: missing observed rainfall inside HEC hindcast window")
         rain_values[safe(cid)]=[float(v) for v in vals]
 
-    rt=OUTROOT/safe(args.candidate_id)
+    rt=Path(args.output_root)/safe(args.candidate_id)
     rt.mkdir(parents=True,exist_ok=True)
     proj=rt/"project"; proj.mkdir(parents=True,exist_ok=True)
     project_text=build_project()
@@ -657,11 +662,12 @@ def main():
     if ok: scores=score_outputs(read_output_csv(proj/"hec_output_values.csv"),hydro,times)
     result={"schema_version":"g040_e1_hindcast_candidate_v1",
       "generated_at_utc":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
-      "research_only":True,"candidate_id":args.candidate_id,"hec_hms_version":"4.13",
+      "research_only":True,"candidate_id":args.candidate_id,"event_id":args.event_id,"hec_hms_version":"4.13",
       "compute_ok":ok,"returncode":proc.returncode,
       "window":{"start_utc":start.isoformat().replace("+00:00","Z"),
                 "end_utc":end.isoformat().replace("+00:00","Z"),"hours":len(times)},
       "boundary_scenario":scenarios.get("current_scenario"),"active_boundary_codes":active,
+      "input_artifacts":{"rain_file":str(Path(args.rain_file)),"hydro_file":str(Path(args.hydro_file)),"scenario_file":str(Path(args.scenario_file))},
       "rainfall_runoff_components":used,
       "preflight_contract":preflight,
       "parameters":{"cn":args.cn,"lag_min":args.lag_min,"baseflow":"None",
@@ -669,7 +675,7 @@ def main():
         "x":args.x,
         "reach_k_h":{name:route_k(l,g,args) for name,up,down,l,g in REACHES}},
       "scores":scores,
-      "limitations":["single live-event candidate","baseflow method not documented in recovered original report",
+      "limitations":["event-specific E1 candidate; multi-event selection is performed by the calibration orchestrator","baseflow method not documented in recovered original report",
         "global CN and lag are temporary calibration parameterization, not 145-subbasin transfer",
         "model stops at Porto Mariante until lower-TaQ routing/backwater evidence is closed"],
       "promotion_allowed":False}
