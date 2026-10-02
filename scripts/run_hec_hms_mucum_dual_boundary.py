@@ -6,7 +6,7 @@ Operational research logic:
 - 86500000 Passo Carreiro is a second native HEC Source/Flow Gage using observed Q history.
 - Future LJJ shape uses the current-cycle operational HEC increment, anchored to the last observed LJJ Q.
 - Future Carreiro shape uses the E28 calibrated branch response to spatial ECMWF/IFS, anchored to observed Carreiro Q.
-- Only the small residual areas Carreiro->STZ and STZ->Muçum are rainfall-runoff subbasins.
+- The Passo Carreiro observation covers 1,820 km²; the ~744 km² downstream Carreiro increment, plus STZ and Muçum residual areas, remain rainfall-runoff subbasins.
 - Routing uses the E28 eventwise values (K1=2.5 h, K2=2.5 h, K3=1 h, x=0.2).
 - Muçum observed stage/Q is validation only: no future peak is forced toward the RNAs.
 
@@ -20,7 +20,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"scripts"))
 
-from build_hec_hms_spatial_forecast_mucum import BRT, fmt_hec_date, fmt_hec_time, dpart, stage_to_q
+from build_hec_hms_spatial_forecast_mucum import BRT, fmt_hec_date, fmt_hec_time, dpart
 from run_hec_twin_mucum_forward_5d import q_to_stage_cm, mucum_curve_segments, load_areas, params_from_library_row
 from run_hec_twin_stz_mucum_calibrate import run_network, muskingum
 from run_mucum_06z_upstream_assimilated import solve_dn_ratio
@@ -39,7 +39,14 @@ RESULT=OUT/"hec_hms_dual_boundary_mucum_latest.json"
 SERIES=RT/"primary_series.csv"
 
 AREA_LJJ=12918.656
-AREA_CARR=2564.190
+# Passo Carreiro (86500000) drains ~1,820 km², while the full BHO6 Carreiro
+# contribution at the Taquari confluence is ~2,564.19 km². Treating the
+# observed gauge as the whole tributary silently removed ~744 km² from the
+# mass balance. Keep the observed part as a Source and model only the
+# downstream/unmeasured increment as rainfall-runoff.
+AREA_CARR_TOTAL=2564.190
+AREA_CARR_GAUGE=1820.000
+AREA_CARR_RES=max(0.0,AREA_CARR_TOTAL-AREA_CARR_GAUGE)
 AREA_STZ_RES=292.340
 AREA_MUC_INC=190.021
 K1=float(os.environ.get("DUAL_K1_H","2.5"))
@@ -197,7 +204,7 @@ def carreiro_future_model(obs_q0):
     branch=[max(0.0,float(a)-float(b)) for a,b in zip(net["at_carreiro"],routed)]
     return times,branch,meta
 
-def make_source(times, obs_rows, future_times, future_vals, label, state_slope_m3s_h=0.0, memory_tau_h=3.0):
+def make_source(times, obs_rows, future_times, future_vals, label, state_slope_m3s_h=0.0, memory_tau_h=3.0, model_increment_scale=1.0):
     last_t,last_q=obs_rows[-1]
     # Model change is used, never its absolute modeled Q.
     anchor_t=max(future_times[0], min(last_t, future_times[-1]))
@@ -214,7 +221,8 @@ def make_source(times, obs_rows, future_times, future_vals, label, state_slope_m
             # toward the rainfall-runoff forecast and is estimated from the complete
             # fresh gauge network in the same UPG.
             memory=float(state_slope_m3s_h)*h*math.exp(-h/max(float(memory_tau_h),0.25))
-            out.append(max(0.0,last_q+(m-anchor_model)+memory)); source.append(f"modeled_increment_plus_observed_network_memory_{label}")
+            model_increment=(m-anchor_model)*float(model_increment_scale)
+            out.append(max(0.0,last_q+model_increment+memory)); source.append(f"modeled_increment_plus_observed_network_memory_{label}")
     return out,{
         "station":label,
         "last_observed_local":last_t.isoformat(timespec="minutes"),
@@ -223,6 +231,7 @@ def make_source(times, obs_rows, future_times, future_vals, label, state_slope_m
         "model_anchor_q_m3s":round(anchor_model,3),
         "observed_network_state_slope_m3s_h":round(float(state_slope_m3s_h),3),
         "memory_tau_h":float(memory_tau_h),
+        "model_increment_scale":float(model_increment_scale),
     },source
 
 def recent_observed_lag_audit(obs, hours=24):
@@ -279,15 +288,8 @@ def sb_text(name,area,downstream,il,cl,tc,storage,rec,ratio):
 End:
 """
 
-def basin_text(params, mucum_initial_q_m3s=None):
+def basin_text(params):
     dn=params.dn
-    if mucum_initial_q_m3s is None:
-        final_reach_initial = "     Initial Variable: Combined Inflow"
-    else:
-        final_reach_initial = (
-            "     Initial Variable: Discharge\n"
-            f"     Initial Discharge: {float(mucum_initial_q_m3s):.3f}"
-        )
     return f"""Basin: Mucum Dual Observed Boundary
      Description: observed LJJ + observed Carreiro boundaries, residual rain-runoff only
      Last Modified Date: 29 September 2026
@@ -321,13 +323,14 @@ Reach: R_LJJ_CARR
 End:
 
 Source: CARR_SOURCE
-     Area: {AREA_CARR:.3f}
+     Area: {AREA_CARR_GAUGE:.3f}
      Downstream: J_CARR
      Flow Method: GAGE_FLOW
      Flow Gage: Q_CARR_LIVE
      End Flow Method:
 End:
 
+{sb_text("CARR_RES",AREA_CARR_RES,"J_CARR",dn.initial_loss,dn.constant_loss,dn.tc,dn.storage,dn.recession,dn.initial_flow_ratio)}
 Junction: J_CARR
      Downstream: R_CARR_STZ
 End:
@@ -350,7 +353,7 @@ End:
 Reach: R_STZ_MUCUM
      Downstream: MUCUM
      Route: Muskingum
-{final_reach_initial}
+     Initial Variable: Combined Inflow
      Muskingum K: {K3:.3f}
      Muskingum x: {X:.3f}
      Muskingum Steps: 1
@@ -382,6 +385,10 @@ End:
 
 Precip Method Parameters: Specified Average
      Allow Depth Override: Yes
+End:
+
+Subbasin: CARR_RES
+     Gage: RAIN_RESIDUAL
 End:
 
 Subbasin: STZ_RES
@@ -549,7 +556,8 @@ def main():
     )
     q_carr,caudit,csource=make_source(
         times,crows,cft,cfq,"86500000",
-        state_slope_m3s_h=float(carr_stats["state_slope_m3s_h"]),memory_tau_h=MEMORY_TAU_H
+        state_slope_m3s_h=float(carr_stats["state_slope_m3s_h"]),memory_tau_h=MEMORY_TAU_H,
+        model_increment_scale=(AREA_CARR_GAUGE/AREA_CARR_TOTAL)
     )
     rain=[float(r["rain_02851072_mm"]) for r in rows]
 
@@ -574,32 +582,14 @@ def main():
         k1=params.k1,k2=params.k2,k3=params.k3,x=params.x,
     )
 
-    # Initialize the final routing reach with observed Muçum discharge at the
-    # beginning of the warm-up window. HEC-HMS explicitly supports a specified
-    # reach discharge initial condition when observed streamflow is available at
-    # the reach outlet. This corrects routing storage/state inside HEC itself;
-    # it is not a post-simulation vertical shift.
+    # Build HEC-HMS with the observed boundary areas and explicit ungauged
+    # Carreiro increment. Reach initialisation remains native/valid HEC syntax.
     segs=mucum_curve_segments()
-    live_stage_rows=[]
-    for rr0 in live.get("serie_observada_ana") or []:
-        try:
-            live_stage_rows.append((datetime.fromisoformat(rr0["hora"]),float(rr0["nivel_cm"])))
-        except Exception:
-            pass
-    live_stage_rows.sort()
-    mucum_initial_stage_cm=None
-    mucum_initial_q_m3s=None
-    if live_stage_rows:
-        mucum_initial_stage_cm=observed_at_hour(live_stage_rows,warm_start)
-        qic=stage_to_q(float(mucum_initial_stage_cm),segs)
-        if qic.get("ok"):
-            mucum_initial_q_m3s=float(qic["q_m3s"])
-
     PROJ.mkdir(parents=True,exist_ok=True)
     start=times[0].replace(tzinfo=BRT); end=times[-1].replace(tzinfo=BRT)
     (PROJ/"mucum_dual_boundary.hms").write_text(project_text(),encoding="utf-8")
     (PROJ/"mucum_dual_boundary.run").write_text(run_text(),encoding="utf-8")
-    (PROJ/"dual.basin").write_text(basin_text(params,mucum_initial_q_m3s),encoding="utf-8")
+    (PROJ/"dual.basin").write_text(basin_text(params),encoding="utf-8")
     (PROJ/"residual.met").write_text(met_text(),encoding="utf-8")
     (PROJ/"dual.control").write_text(control_text(start,end),encoding="utf-8")
     (PROJ/"mucum_dual_boundary.gage").write_text(gage_text(start,end),encoding="utf-8")
@@ -691,15 +681,14 @@ def main():
       "schema_version":"hec_hms_mucum_dual_observed_boundary_v1",
       "generated_at_utc":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
       "model":"HEC-HMS 4.13",
-      "method":"two observed discharge boundaries (LJJ 86472000 + Passo Carreiro 86500000) + residual rainfall-runoff + E28 routing",
+      "method":"two observed discharge boundaries (LJJ 86472000 + Passo Carreiro 86500000 over its 1820 km2 gauged area) + explicit 744 km2 ungauged Carreiro residual + STZ/Mucum residual rainfall-runoff + E28 routing",
       "topology":{
-        "areas_km2":{"LJJ_upstream":AREA_LJJ,"Carreiro":AREA_CARR,"STZ_residual":AREA_STZ_RES,"Mucum_increment":AREA_MUC_INC},
+        "areas_km2":{"LJJ_upstream":AREA_LJJ,"Carreiro_total":AREA_CARR_TOTAL,"Carreiro_gauged_86500000":AREA_CARR_GAUGE,"Carreiro_ungauged_residual":AREA_CARR_RES,"STZ_residual":AREA_STZ_RES,"Mucum_increment":AREA_MUC_INC},
         "routing":{"k1_h":K1,"k2_h":K2,"k3_h":K3,"x":X},
         "live_calibration_controls":{
           "warmup_h":WARMUP_H,"memory_tau_h":MEMORY_TAU_H,
-          "final_reach_initial_condition":"observed_discharge_at_warmup_start" if mucum_initial_q_m3s is not None else "combined_inflow_fallback",
-          "final_reach_initial_stage_cm":None if mucum_initial_stage_cm is None else round(mucum_initial_stage_cm,2),
-          "final_reach_initial_q_m3s":None if mucum_initial_q_m3s is None else round(mucum_initial_q_m3s,3),
+          "carreiro_gauge_fraction":round(AREA_CARR_GAUGE/AREA_CARR_TOTAL,6),
+          "carreiro_residual_area_km2":round(AREA_CARR_RES,3),
           "dn_initial_loss_scale":DN_INITIAL_LOSS_SCALE,
           "dn_constant_loss_scale":DN_CONSTANT_LOSS_SCALE,
           "dn_tc_scale":DN_TC_SCALE,
