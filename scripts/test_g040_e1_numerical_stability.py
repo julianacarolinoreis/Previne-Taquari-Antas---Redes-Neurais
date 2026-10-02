@@ -43,6 +43,24 @@ class TestNumerics(unittest.TestCase):
         self.assertLessEqual(2*ks*0.2-1e-12,dt)
         self.assertLessEqual(dt,2*ks*(1-0.2)+1e-12)
 
+    def test_all_anchor_reaches_are_stable_at_three_minutes(self):
+        class A:
+            k_g1=3.5; k_g2=1.5; k_g3=5.0; k_g4=6.0; x=0.2
+        dt=m.COMPUTE_INTERVAL_MIN/60.0
+        for name,_up,_down,length,group in m.REACHES:
+            k=m.route_k(length,group,A)
+            n=m.muskingum_steps(k,A.x)
+            ks=k/n
+            self.assertLessEqual(n,m.MAX_MUSKINGUM_SUBREACHES,name)
+            self.assertLessEqual(2*ks*A.x-1e-12,dt,name)
+            self.assertLessEqual(dt,2*ks*(1-A.x)+1e-12,name)
+
+    def test_hourly_forcing_is_not_falsely_resampled_to_three_minutes(self):
+        src=Path(m.__file__).read_text(encoding="utf-8")
+        self.assertIn('c.interval=60',src)
+        self.assertIn('t.add(60)',src)
+        self.assertIn('Time Interval: {COMPUTE_INTERVAL_MIN}',src)
+
     def test_dss_time_conversion_preserves_project_timezone(self):
         from datetime import datetime, timezone
         # 2023-09-01 00:00 local BRT must become 03:00 UTC.
