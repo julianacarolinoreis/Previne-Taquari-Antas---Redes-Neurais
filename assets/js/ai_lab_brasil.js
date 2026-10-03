@@ -49,9 +49,10 @@
   function initMap(){
     if(!window.L){ text('map-status','Mapa indisponível: biblioteca cartográfica não carregou.'); return; }
     state.map=L.map('brazil-map',{zoomControl:true,minZoom:3,maxZoom:12}).fitBounds(BRAZIL_BOUNDS);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
       maxZoom:19,
-      attribution:'© OpenStreetMap'
+      referrerPolicy:'strict-origin-when-cross-origin',
+      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(state.map);
     el('fit-brazil').addEventListener('click',function(){ state.map.fitBounds(BRAZIL_BOUNDS); });
   }
