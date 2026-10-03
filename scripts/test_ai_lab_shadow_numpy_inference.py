@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -11,6 +12,7 @@ import ai_lab_auto_train as phase1
 import ai_lab_temporal_train as temporal
 
 ROOT = Path(__file__).resolve().parents[1]
+OUT = ROOT / "assets/data/ai_lab/shadow/shadow_runtime_validation_latest.json"
 
 import sys
 sys.path.insert(0, str(ROOT / "previne" / "robo"))
@@ -60,12 +62,22 @@ def main() -> int:
             })
             if error > 1e-3:
                 raise AssertionError(f"NumPy/PyTorch mismatch {error:.8f} cm for {profile['id']}")
-    print(json.dumps({
+    result = {
+        "schema_version": 1,
+        "artifact_id": "ai_lab_shadow_numpy_runtime_validation",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "status": "OK",
+        "research_only": True,
+        "live_inference_enabled": False,
         "comparisons": len(comparisons),
         "max_abs_difference_cm": max(row["abs_difference_cm"] for row in comparisons),
+        "tolerance_cm": 1e-3,
         "profiles": sorted({row["profile"] for row in comparisons}),
-    }, ensure_ascii=False))
+        "details": comparisons,
+    }
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    OUT.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps({key: value for key, value in result.items() if key != "details"}, ensure_ascii=False))
     return 0
 
 
