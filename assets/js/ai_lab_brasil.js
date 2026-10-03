@@ -231,7 +231,7 @@
     var version=data.engine_version ? 'Motor '+data.engine_version+'. ' : '';
     text('training-message',version+'Rodada concluída. O leaderboard é evidência de pesquisa; candidatos aprovados seguem apenas para a próxima etapa de modo sombra.');
     var body=el('training-table-body');
-    var rows=(data.leaderboard || []).slice(0,12);
+    var rows=(data.leaderboard || []).slice(0,16);
     if(!rows.length){
       body.innerHTML='<tr><td colspan="10" class="empty-cell">A rodada não publicou modelos.</td></tr>';
       return;
