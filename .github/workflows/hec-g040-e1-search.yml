@@ -1,0 +1,123 @@
+name: HEC G040 E1 multi-checkpoint search
+
+on:
+  pull_request:
+    paths:
+      - "scripts/search_hec_hms_g040_e1.py"
+      - "scripts/run_hec_hms_g040_e1_hindcast.py"
+      - ".github/workflows/hec-g040-e1-search.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/search_hec_hms_g040_e1.py"
+      - ".github/workflows/hec-g040-e1-search.yml"
+  workflow_dispatch:
+    inputs:
+      qmc:
+        description: "Number of deterministic QMC candidates in addition to two anchors"
+        required: false
+        default: "16"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hec-g040-e1-search
+  cancel-in-progress: true
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || 'main' }}
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache HEC-HMS 4.13
+        id: cache-hec
+        uses: actions/cache@v4
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+
+      - name: Download HEC-HMS 4.13
+        if: steps.cache-hec.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .hec
+          curl -L --fail --retry 3 --retry-delay 4             -o /tmp/HEC-HMS-4.13-linux64.tar.gz             https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
+          tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
+
+      - name: Contract check
+        run: |
+          python -m py_compile scripts/search_hec_hms_g040_e1.py scripts/run_hec_hms_g040_e1_hindcast.py
+          python - <<'PY'
+          import json
+          p="assets/data/hec_hms_g040_full_basin/g040_e1_hindcast/SMOKE_E1/result.json"
+          j=json.load(open(p,encoding="utf-8"))
+          assert j.get("compute_ok") is True, "E1 smoke must compute before search"
+          print("SMOKE_OK",j["window"],sorted((j.get("scores") or {}).keys()))
+          PY
+
+      - name: Run deterministic multi-checkpoint search
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          test -n "$HEC_SH"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            QMC=4
+          else
+            QMC="${{ github.event.inputs.qmc || '16' }}"
+          fi
+          python -B scripts/search_hec_hms_g040_e1.py "$HEC_SH" --qmc "$QMC"
+
+      - name: Verify search output
+        run: |
+          python - <<'PY'
+          import json
+          p="assets/data/hec_hms_g040_full_basin/g040_e1_search_latest.json"
+          j=json.load(open(p,encoding="utf-8"))
+          b=j.get("best_diagnostic_candidate") or {}
+          print(json.dumps({
+              "status":j.get("status"),
+              "candidate_count":j.get("method",{}).get("candidate_count"),
+              "best_id":b.get("candidate_id"),
+              "gate_passes":b.get("checkpoint_gate_pass_count"),
+              "penalty":b.get("mean_multi_metric_penalty"),
+          },ensure_ascii=False,indent=2))
+          assert j.get("status")=="SEARCH_COMPLETE_NO_PROMOTION"
+          assert j.get("promotion_allowed") is False
+          assert any(x.get("compute_ok") for x in j.get("ranked_candidates") or [])
+          PY
+
+      - name: Upload search
+        uses: actions/upload-artifact@v4
+        with:
+          name: g040-e1-multi-checkpoint-search
+          retention-days: 5
+          path: |
+            assets/data/hec_hms_g040_full_basin/g040_e1_search_latest.json
+
+      - name: Publish search on main
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          P="assets/data/hec_hms_g040_full_basin/g040_e1_search_latest.json"
+          cp "$P" /tmp/g040_e1_search_latest.json
+          git config user.name "previne-g040-search-bot"
+          git config user.email "previne-g040-search-bot@users.noreply.github.com"
+          git fetch origin main
+          git reset --hard origin/main
+          cp /tmp/g040_e1_search_latest.json "$P"
+          git add -- "$P"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "research: update G040 E1 multi-checkpoint search [skip ci]"
+          git push origin HEAD:main
