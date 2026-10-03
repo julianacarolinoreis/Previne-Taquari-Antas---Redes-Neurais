@@ -5,17 +5,17 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import joblib
 import numpy as np
-import torch
-
-import ai_lab_temporal_train as temporal
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "previne" / "robo"))
+import ai_lab_shadow_tcn as shadow  # noqa: E402
 INPUTS = ROOT / "assets" / "data" / "ai_lab" / "live_inputs_stz_2h.json"
 MANIFEST = ROOT / "assets" / "data" / "ai_lab" / "shadow_bundle_manifest.json"
 LIVE = ROOT / "previsao_ao_vivo.json"
@@ -101,31 +101,27 @@ def validate_window(inputs: dict, manifest: dict) -> tuple[np.ndarray, datetime,
 
 
 def predict_temporal(artifact_dir: Path, manifest: dict, x: np.ndarray, current: float) -> tuple[float, dict]:
-    info = (manifest.get("temporal_candidate") or {}).get("bundle") or {}
-    filename = Path(info["path"]).name
-    model_path = find_file(artifact_dir, filename)
-    payload = torch.load(model_path, map_location="cpu", weights_only=False)
-    profile = dict(payload["profile"])
-    model_name = str(payload["model_name"])
-    feature_names = payload["feature_names"]
-    if x.shape != (int(profile["lookback_h"]), len(feature_names)):
-        raise RuntimeError(f"shape temporal inválido: {x.shape}")
-    x_mean = np.asarray(payload["x_mean"], dtype=np.float32)
-    x_std = np.asarray(payload["x_std"], dtype=np.float32)
-    scaled = (x - x_mean) / x_std
-    model = temporal.build_temporal_model(model_name, len(feature_names), profile)
-    model.load_state_dict(payload["state_dict"])
-    model.eval()
-    with torch.no_grad():
-        raw_scaled = float(model(torch.as_tensor(scaled[None, :, :], dtype=torch.float32)).item())
-    raw = raw_scaled * float(payload["y_std"]) + float(payload["y_mean"])
-    predicted = current + raw if payload.get("target_mode") == "delta" else raw
-    return float(predicted), {
-        "model": model_name,
+    bundle = (manifest.get("temporal_candidate") or {}).get("bundle") or {}
+    np_package = bundle.get("numpy_package") or {}
+    profile = np_package.get("profile") or bundle.get("profile") or {}
+    weights = np_package.get("weights") or {}
+    if not profile or not weights:
+        raise RuntimeError("bundle temporal ainda não contém exportação NumPy validada")
+    lookback = int(profile.get("lookback_h") or 0)
+    if lookback <= 0 or x.shape[0] < lookback:
+        raise RuntimeError(f"janela ao vivo insuficiente para perfil temporal: {x.shape}")
+    sequence = np.asarray(x[-lookback:], dtype=float)
+    result = shadow.predict_package(artifact_dir, np_package, sequence, current)
+    validation = bundle.get("numpy_runtime_validation") or {}
+    if validation.get("status") != "OK":
+        raise RuntimeError("exportação NumPy não possui validação cruzada OK")
+    return float(result["level_forecast_cm"]), {
+        "model": (manifest.get("temporal_candidate") or {}).get("metrics", {}).get("model") or bundle.get("model") or "TCN",
         "profile": profile,
-        "epochs_refit": payload.get("epochs_refit"),
-        "target_mode": payload.get("target_mode"),
-        "bundle_sha256": info.get("sha256"),
+        "target_mode": result.get("target_mode"),
+        "bundle_sha256": weights.get("sha256"),
+        "runtime": "numpy",
+        "runtime_validation_max_abs_difference_cm": validation.get("max_abs_difference_cm"),
     }
 
 
