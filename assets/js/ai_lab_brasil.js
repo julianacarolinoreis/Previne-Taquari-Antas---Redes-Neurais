@@ -6,6 +6,8 @@
   var AUTO_TRAIN_RAW = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/auto_training_v2_latest.json';
   var AUTO_TRAIN_FALLBACK_LOCAL = 'assets/data/ai_lab/auto_training_latest.json';
   var AUTO_TRAIN_FALLBACK_RAW = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/auto_training_latest.json';
+  var SHADOW_MANIFEST_LOCAL = 'assets/data/ai_lab/shadow_bundle_manifest.json';
+  var SHADOW_MANIFEST_RAW = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/shadow_bundle_manifest.json';
   var BRAZIL_BOUNDS = [[-34.8,-74.2],[5.7,-34.0]];
   var state = { feed:null, autoTraining:null, map:null, markers:[], stationIndex:[], selected:null };
 
@@ -282,6 +284,41 @@
         '<td>'+gate+'</td></tr>';
     }).join('');
   }
+  function shortHash(value){
+    var s=String(value || ''); return s ? s.slice(0,12)+'…' : '—';
+  }
+  function renderShadowPackage(data){
+    setPill(el('shadow-package-status'),{label:'pacote criado',cls:'good'});
+    var temporal=data.temporal_candidate || {};
+    var temporalBundle=temporal.bundle || {};
+    var temporalMetrics=temporal.metrics || {};
+    var stat=data.static_comparator || {};
+    var statMetrics=stat.metrics || {};
+    var source=data.source || {};
+    text('shadow-temporal-model',temporalMetrics.model || temporalBundle.model || '—');
+    var profile=temporalBundle.profile || {};
+    text('shadow-temporal-profile',(profile.id || temporalMetrics.dominant_profile || 'perfil não informado')+' · '+(profile.lookback_h || '—')+' h · '+(profile.target_mode || temporalBundle.target_mode || '—'));
+    text('shadow-static-model',statMetrics.model || (stat.bundle && stat.bundle.model) || '—');
+    text('shadow-static-metric',statMetrics.median_mae_cm!==undefined ? 'MAE med. '+fmtNumber(statMetrics.median_mae_cm,2)+' cm' : '—');
+    text('shadow-inputs',fmtNumber(source.feature_count,0)+' variáveis · '+fmtNumber(source.eligible_sequence_rows,0)+' linhas');
+    text('shadow-source-hash','fonte '+shortHash(source.sha256));
+    text('shadow-package-note','Pacote de pesquisa para inferência em sombra. Pesos e normalizadores ficam no artefato do Actions; o site publica apenas este manifesto auditável.');
+  }
+  async function loadShadowPackage(){
+    var sources=[SHADOW_MANIFEST_RAW,SHADOW_MANIFEST_LOCAL], lastError=null;
+    for(var i=0;i<sources.length;i++){
+      try{
+        var response=await fetch(sources[i],{cache:'no-store'});
+        if(!response.ok) throw new Error('HTTP '+response.status);
+        renderShadowPackage(await response.json());
+        return;
+      }catch(err){lastError=err;}
+    }
+    setPill(el('shadow-package-status'),{label:'ainda não criado',cls:'warn'});
+    text('shadow-package-note','O gate já pode ter candidatos, mas o pacote de pesos ainda não foi publicado. O manifesto aparecerá aqui quando a construção concluir.');
+    if(lastError) console.warn('AI Lab shadow package:',lastError);
+  }
+
   async function loadAutoTraining(){
     setPill(el('auto-training-status'),{label:'consultando',cls:'neutral'});
     var sources=[AUTO_TRAIN_RAW,AUTO_TRAIN_LOCAL,AUTO_TRAIN_FALLBACK_RAW,AUTO_TRAIN_FALLBACK_LOCAL];
@@ -358,6 +395,7 @@
     wire();
     loadFeed();
     loadAutoTraining();
+    loadShadowPackage();
     updateTrainingRequest();
   });
 })();
