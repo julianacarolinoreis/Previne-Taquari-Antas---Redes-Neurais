@@ -2,8 +2,10 @@
   'use strict';
 
   var FEED = 'assets/data/research_basin_screening_latest.json';
-  var AUTO_TRAIN_LOCAL = 'assets/data/ai_lab/auto_training_latest.json';
-  var AUTO_TRAIN_RAW = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/auto_training_latest.json';
+  var AUTO_TRAIN_LOCAL = 'assets/data/ai_lab/auto_training_v2_latest.json';
+  var AUTO_TRAIN_RAW = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/auto_training_v2_latest.json';
+  var AUTO_TRAIN_FALLBACK_LOCAL = 'assets/data/ai_lab/auto_training_latest.json';
+  var AUTO_TRAIN_FALLBACK_RAW = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/auto_training_latest.json';
   var BRAZIL_BOUNDS = [[-34.8,-74.2],[5.7,-34.0]];
   var state = { feed:null, autoTraining:null, map:null, markers:[], stationIndex:[], selected:null };
 
@@ -204,8 +206,10 @@
     setPill(el('auto-training-status'),{label:'concluído',cls:'good'});
     text('training-experiment',data.label || data.experiment_id || '—');
     text('training-target',(data.station && data.station.code ? 'Estação '+data.station.code+' · ' : '')+(data.target || 'alvo')+' · +'+fmtNumber(data.horizon_hours,0)+' h');
-    text('training-rows',fmtNumber(data.data_audit && data.data_audit.finite_rows,0));
-    text('training-features',fmtNumber(data.data_audit && data.data_audit.feature_count,0)+' entradas auditadas');
+    var seqAudit=data.sequence_audit || {};
+    var rowCount=seqAudit.eligible_sequence_rows!==undefined ? seqAudit.eligible_sequence_rows : (data.data_audit && data.data_audit.finite_rows);
+    text('training-rows',fmtNumber(rowCount,0));
+    text('training-features',fmtNumber(data.data_audit && data.data_audit.feature_count,0)+' entradas · janela comum '+fmtNumber(seqAudit.max_lookback_h,0)+' h');
     text('training-folds',fmtNumber((data.folds || []).length,0));
     text('training-shadow-count',fmtNumber((data.shadow_candidates || []).length,0));
     text('training-generated',fmtTime(data.generated_at_utc));
@@ -217,25 +221,30 @@
     var foldCount=(data.folds || []).length;
     var eligibleCount=(data.leaderboard || []).filter(function(row){return row.shadow_eligible;}).length;
     text('agent-data',duplicateCount===0 ? fmtNumber(audit.finite_rows,0)+' linhas · 0 duplicidades' : duplicateCount+' duplicidades bloqueantes');
-    text('agent-features',featureCount+' entradas · '+skippedCount+' linhas descartadas');
+    text('agent-features',featureCount+' entradas · '+(seqAudit.max_lookback_h ? 'sequência '+seqAudit.max_lookback_h+' h · ' : '')+skippedCount+' linhas brutas descartadas');
     text('agent-train',modelCount+' famílias/configurações avaliadas');
     text('agent-validation',foldCount+' dobras causais por evento');
     text('agent-shadow',eligibleCount+' candidato(s) passaram aos gates básicos');
     [['agent-data-dot',duplicateCount===0],['agent-features-dot',featureCount>0],['agent-train-dot',modelCount>1],['agent-validation-dot',foldCount>=3],['agent-shadow-dot',eligibleCount>0]].forEach(function(pair){
       var dot=el(pair[0]); if(dot) dot.className=pair[1]?'agent-ok':'agent-warn';
     });
-    text('training-message','Rodada concluída. O leaderboard é evidência de pesquisa; candidatos aprovados seguem apenas para modo sombra.');
+    var version=data.engine_version ? 'Motor '+data.engine_version+'. ' : '';
+    text('training-message',version+'Rodada concluída. O leaderboard é evidência de pesquisa; candidatos aprovados seguem apenas para a próxima etapa de modo sombra.');
     var body=el('training-table-body');
     var rows=(data.leaderboard || []).slice(0,12);
     if(!rows.length){
-      body.innerHTML='<tr><td colspan="8" class="empty-cell">A rodada não publicou modelos.</td></tr>';
+      body.innerHTML='<tr><td colspan="10" class="empty-cell">A rodada não publicou modelos.</td></tr>';
       return;
     }
     body.innerHTML=rows.map(function(row){
       var gate=row.shadow_eligible ? '<span class="training-gate pass">sombra</span>' : '<span class="training-gate hold">reter</span>';
+      var kind=row.representation==='temporal_sequence' ? 'temporal' : (row.representation==='baseline' ? 'baseline' : 'estático');
+      var profile=row.dominant_profile || '—';
       return '<tr'+(row.shadow_eligible?' class="shadow-pass"':'')+'>'+
         '<td>'+escapeHtml(row.rank)+'</td>'+
-        '<td><strong>'+escapeHtml(row.model)+'</strong></td>'+
+        '<td><strong>'+escapeHtml(row.model)+'</strong><small class="model-family-mini">'+escapeHtml(row.family || '')+'</small></td>'+
+        '<td><span class="representation-tag '+(kind==='temporal'?'temporal':'')+'">'+kind+'</span></td>'+
+        '<td>'+escapeHtml(profile)+'</td>'+
         '<td>'+fmtNumber(row.median_mae_cm,2)+' cm</td>'+
         '<td>'+fmtNumber(row.median_rmse_cm,2)+' cm</td>'+
         '<td>'+fmtNumber(row.median_nse,3)+'</td>'+
@@ -246,7 +255,7 @@
   }
   async function loadAutoTraining(){
     setPill(el('auto-training-status'),{label:'consultando',cls:'neutral'});
-    var sources=[AUTO_TRAIN_RAW,AUTO_TRAIN_LOCAL];
+    var sources=[AUTO_TRAIN_RAW,AUTO_TRAIN_LOCAL,AUTO_TRAIN_FALLBACK_RAW,AUTO_TRAIN_FALLBACK_LOCAL];
     var lastError=null;
     for(var i=0;i<sources.length;i++){
       try{
