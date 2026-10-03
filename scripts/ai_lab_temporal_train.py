@@ -260,7 +260,13 @@ def fit_temporal_profile(
     optimizer = torch.optim.AdamW(
         model.parameters(), lr=float(profile.get("learning_rate", 0.001)), weight_decay=weight_decay
     )
-    loss_fn = nn.MSELoss()
+    loss_name = str(profile.get("loss", "huber" if target_mode == "delta" else "mse")).lower()
+    if loss_name == "huber":
+        loss_fn = nn.HuberLoss(delta=float(profile.get("huber_delta", 1.0)))
+    elif loss_name == "mse":
+        loss_fn = nn.MSELoss()
+    else:
+        raise RuntimeError(f"loss inválida: {loss_name}")
     ds = TensorDataset(
         torch.as_tensor(train_x, dtype=torch.float32),
         torch.as_tensor(train_y_scaled, dtype=torch.float32),
@@ -311,6 +317,7 @@ def fit_temporal_profile(
     return {
         "profile": dict(profile),
         "target_mode": target_mode,
+        "loss": loss_name,
         "best_epoch": best_epoch,
         "epochs_run": len(history),
         "parameter_count": int(sum(p.numel() for p in model.parameters())),
@@ -484,6 +491,7 @@ def run_experiment(config: dict[str, Any]) -> dict[str, Any]:
                 "selected_lookback_h": int(best["profile"]["lookback_h"]),
                 "selected_width": int(best["profile"]["width"]),
                 "selected_target_mode": str(best["profile"].get("target_mode", "level")),
+                "selected_loss": str(best.get("loss", best["profile"].get("loss", "mse"))),
                 "best_epoch": int(best["best_epoch"]),
                 "parameter_count": int(best["parameter_count"]),
                 "validation_selection_score": float(best["validation_selection_score"]),
@@ -501,6 +509,8 @@ def run_experiment(config: dict[str, Any]) -> dict[str, Any]:
                     {
                         "profile": trial["profile"],
                         "best_epoch": trial["best_epoch"],
+                        "target_mode": trial.get("target_mode"),
+                        "loss": trial.get("loss"),
                         "validation_metric": trial["validation_metric"],
                         "validation_selection_score": trial["validation_selection_score"],
                     }
@@ -522,7 +532,7 @@ def run_experiment(config: dict[str, Any]) -> dict[str, Any]:
     return {
         "schema_version": 2,
         "artifact_id": "previne_ai_lab_auto_training_v2",
-        "engine_version": "2-temporal-common-cohort",
+        "engine_version": "2.1-temporal-residual-robust",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "experiment_id": config["id"],
         "label": config["label"],
