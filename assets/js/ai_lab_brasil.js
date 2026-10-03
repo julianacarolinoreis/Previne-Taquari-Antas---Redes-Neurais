@@ -209,7 +209,9 @@
     var seqAudit=data.sequence_audit || {};
     var rowCount=seqAudit.eligible_sequence_rows!==undefined ? seqAudit.eligible_sequence_rows : (data.data_audit && data.data_audit.finite_rows);
     text('training-rows',fmtNumber(rowCount,0));
-    text('training-features',fmtNumber(data.data_audit && data.data_audit.feature_count,0)+' entradas · janela comum '+fmtNumber(seqAudit.max_lookback_h,0)+' h');
+    var featureSummary=fmtNumber(data.data_audit && data.data_audit.feature_count,0)+' entradas auditadas';
+    if(seqAudit.max_lookback_h!==undefined) featureSummary += ' · janela comum '+fmtNumber(seqAudit.max_lookback_h,0)+' h';
+    text('training-features',featureSummary);
     text('training-folds',fmtNumber((data.folds || []).length,0));
     text('training-shadow-count',fmtNumber((data.shadow_candidates || []).length,0));
     text('training-generated',fmtTime(data.generated_at_utc));
