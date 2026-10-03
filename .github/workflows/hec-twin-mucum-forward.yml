@@ -120,6 +120,34 @@ jobs:
           fi
           python -B scripts/run_hec_hms_operational_latest.py "$HEC_SH"
 
+      - name: Publica núcleo HEC/IFS imediatamente
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-hec-bot"
+          git config user.email "previne-hec-bot@users.noreply.github.com"
+          git add -- \
+            assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_latest.json \
+            assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_rain_hourly.csv \
+            assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_flow_hourly.csv \
+            assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum \
+            assets/data/estudo_bacia_taquari_antas/hec_twin_ifs_spatial_forcing_5d_latest.json \
+            assets/data/estudo_bacia_taquari_antas/mucum_06z_upstream_assimilated_latest.json \
+            assets/data/estudo_bacia_taquari_antas/mucum_06z_upstream_assimilated_series.csv \
+            assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d_latest.json \
+            assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d.html \
+            assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d \
+            assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum \
+            assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum_latest.json \
+            assets/data/estudo_bacia_taquari_antas/hec_hms_operational_forecast_latest.json
+          if git diff --cached --quiet; then
+            echo "Núcleo já está publicado."
+          else
+            git commit -m "bot: núcleo HEC/IFS Muçum atualizado [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
       - name: HEC-HMS fronteiras observadas · LJJ + Carreiro
         continue-on-error: true
         shell: bash
