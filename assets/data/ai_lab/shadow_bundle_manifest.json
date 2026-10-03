@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "artifact_id": "previne_ai_lab_shadow_bundle",
+  "generated_at_utc": "2026-10-03T23:28:43Z",
+  "experiment_id": "stz_2h_auto_v1",
+  "station": {
+    "code": "86472600",
+    "name": "Santa Tereza",
+    "river": "Rio Taquari"
+  },
+  "horizon_hours": 2,
+  "research_only": true,
+  "official_alert": false,
+  "promotion_allowed": false,
+  "purpose": "Pacote para inferência comparativa em sombra; não publica previsão oficial.",
+  "source": {
+    "path": "assets/audit_workbooks/2H_ALT__009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21.xlsx",
+    "sha256": "33487bf862aea460c336bf098bbb3defe5dd2a0f1bd49396cfb78a18a34371e2",
+    "training_result_sha256": "e94c6353672ab02a05e1b550b3f7a9a4ce30e174f347e40ce7a80f6460a07d4e",
+    "eligible_sequence_rows": 2365,
+    "feature_count": 15,
+    "feature_names": [
+      "input_01_Nivel_86472600",
+      "input_02_DifN-1h_86472600",
+      "input_03_DifN-2h_86472600",
+      "input_04_DifN-4h_86472600",
+      "input_05_Acel-1h_86472600",
+      "input_06_Acel-2h_86472600",
+      "input_07_Acel-4h_86472600",
+      "input_08_Acel-08h_86472600",
+      "input_09_Acel-12h_86472600",
+      "input_10_Nivel_86472000",
+      "input_11_DifN-1h_86472000",
+      "input_12_DifN-2h_86472000",
+      "input_13_DifN-5h_86472000",
+      "input_14_Acel-12h_86472000",
+      "input_15_Acel-20h_86472000"
+    ]
+  },
+  "temporal_candidate": {
+    "metrics": {
+      "rank": 4,
+      "model": "TCN",
+      "family": "neural temporal",
+      "representation": "temporal_sequence",
+      "dominant_profile": "long_8h_delta",
+      "fold_count": 14,
+      "median_mae_cm": 6.912207759860386,
+      "mean_mae_cm": 7.8631975630368975,
+      "worst_fold_mae_cm": 16.102021650834516,
+      "median_rmse_cm": 9.395999370530811,
+      "median_nse": 0.9924044317541117,
+      "median_abs_bias_cm": 1.1262828221319066,
+      "median_peak_abs_error_cm": 3.77288818359375,
+      "worst_peak_abs_error_cm": 15.9117431640625,
+      "median_peak_lag_abs_h": 1.0,
+      "worst_peak_lag_abs_h": 4.0,
+      "shadow_eligible": true
+    },
+    "bundle": {
+      "path": "artifacts/ai_lab_shadow/stz_2h_auto_v1__tcn__shadow.pt",
+      "sha256": "e832f5f45c33bf7b3522873de94c1523327bf8117e5b0fc82c8f3d4f87aee83d",
+      "bytes": 71463,
+      "model": "TCN",
+      "profile": {
+        "id": "long_8h_delta",
+        "lookback_h": 8,
+        "width": 48,
+        "learning_rate": 0.0007,
+        "target_mode": "delta",
+        "loss": "huber"
+      },
+      "epochs_refit": 7,
+      "training_rows": 2365,
+      "target_mode": "delta",
+      "loss": "huber",
+      "last_train_loss_scaled": 0.029835151848257392
+    }
+  },
+  "static_comparator": {
+    "metrics": {
+      "rank": 5,
+      "model": "Ridge",
+      "family": "linear",
+      "representation": "static_current_row",
+      "dominant_profile": null,
+      "fold_count": 14,
+      "median_mae_cm": 12.717429724681061,
+      "mean_mae_cm": 13.588210883922832,
+      "worst_fold_mae_cm": 23.782372372701047,
+      "median_rmse_cm": 13.816253449307201,
+      "median_nse": 0.9765999843727112,
+      "median_abs_bias_cm": 9.469298379480422,
+      "median_peak_abs_error_cm": 15.625403234091038,
+      "worst_peak_abs_error_cm": 25.95492541305987,
+      "median_peak_lag_abs_h": 0.5,
+      "worst_peak_lag_abs_h": 2.0,
+      "shadow_eligible": true
+    },
+    "bundle": {
+      "path": "artifacts/ai_lab_shadow/stz_2h_auto_v1__ridge__shadow.joblib",
+      "sha256": "5b2ee5a80ced9bc84a53035ef10464d7cf15bf6eac734fd30467c6b9b923ce08",
+      "bytes": 2109,
+      "model": "Ridge",
+      "training_rows": 2365
+    }
+  },
+  "next_gate": [
+    "reproduzir inputs ao vivo na mesma ordem e unidade",
+    "executar sem publicar alerta",
+    "comparar erro somente quando o observado futuro estiver disponível",
+    "acumular eventos independentes antes de qualquer promoção"
+  ]
+}
