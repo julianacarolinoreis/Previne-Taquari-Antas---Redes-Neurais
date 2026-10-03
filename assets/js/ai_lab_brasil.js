@@ -242,6 +242,22 @@
     text('training-best-temporal',bestTemporal ? bestTemporal.model : '—');
     text('training-best-temporal-metric',bestTemporal ? 'MAE '+fmtNumber(bestTemporal.median_mae_cm,2)+' cm · '+(bestTemporal.dominant_profile || 'perfil variável')+' · '+(bestTemporal.shadow_eligible?'gate sombra':'retido') : '—');
     text('training-baseline',baseline ? fmtNumber(baseline.median_mae_cm,2)+' cm MAE' : '—');
+    var rec=el('training-recommendation');
+    if(rec && bestOverall){
+      var temporalWins=bestTemporal && bestTemporal.rank===1;
+      var temporalPasses=bestTemporal && bestTemporal.shadow_eligible;
+      var copy='';
+      if(temporalWins && temporalPasses){
+        copy='<strong>Rede temporal prioritária para sombra</strong><p>'+escapeHtml(bestTemporal.model)+' liderou a coorte e passou aos gates básicos. Deve seguir para inferência em sombra; ainda não é modelo operacional.</p>';
+      }else if(bestTemporal && temporalPasses){
+        copy='<strong>Rede temporal candidata, mas não líder</strong><p>'+escapeHtml(bestTemporal.model)+' passou aos gates, porém '+escapeHtml(bestOverall.model)+' foi mais robusto no ranking geral. Recomenda-se manter ambos em sombra para comparação ao vivo.</p>';
+      }else if(bestTemporal){
+        copy='<strong>Não forçar rede neural</strong><p>'+escapeHtml(bestOverall.model)+' é a opção mais robusta nesta coorte. A melhor rede temporal ('+escapeHtml(bestTemporal.model)+') ainda não passou ao gate de sombra; deve permanecer em pesquisa.</p>';
+      }else{
+        copy='<strong>Sem rede temporal avaliada</strong><p>'+escapeHtml(bestOverall.model)+' lidera o conjunto disponível; falta uma rodada temporal comparável.</p>';
+      }
+      rec.innerHTML=copy;
+    }
     var rows=(data.leaderboard || []).slice(0,16);
     if(!rows.length){
       body.innerHTML='<tr><td colspan="10" class="empty-cell">A rodada não publicou modelos.</td></tr>';
