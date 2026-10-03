@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "artifact_id": "previne_ai_lab_shadow_bundle",
-  "generated_at_utc": "2026-10-03T23:28:43Z",
+  "generated_at_utc": "2026-10-03T23:39:10Z",
   "experiment_id": "stz_2h_auto_v1",
   "station": {
     "code": "86472600",
@@ -16,7 +16,7 @@
   "source": {
     "path": "assets/audit_workbooks/2H_ALT__009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21.xlsx",
     "sha256": "33487bf862aea460c336bf098bbb3defe5dd2a0f1bd49396cfb78a18a34371e2",
-    "training_result_sha256": "e94c6353672ab02a05e1b550b3f7a9a4ce30e174f347e40ce7a80f6460a07d4e",
+    "training_result_sha256": "c69d003aa14703c96d5632e0dc8b02cc2b51b2b2c2f6b8d6dcb361545df60683",
     "eligible_sequence_rows": 2365,
     "feature_count": 15,
     "feature_names": [
@@ -74,7 +74,41 @@
       "training_rows": 2365,
       "target_mode": "delta",
       "loss": "huber",
-      "last_train_loss_scaled": 0.029835151848257392
+      "last_train_loss_scaled": 0.029835151848257392,
+      "numpy_package": {
+        "profile": {
+          "id": "long_8h_delta",
+          "lookback_h": 8,
+          "width": 48,
+          "learning_rate": 0.0007,
+          "target_mode": "delta",
+          "loss": "huber"
+        },
+        "weights": {
+          "path": "artifacts/ai_lab_shadow/stz_2h_auto_v1__tcn__shadow.npz",
+          "sha256": "9fbca436a8847462be718d9a2a6b92b82a1ab38253342f0a5a769caf2be16a4b",
+          "bytes": 63009,
+          "format": "numpy savez compressed; TCN state_dict tensors + normalization",
+          "state_key_map": {
+            "state__000": "net.0.weight",
+            "state__001": "net.0.bias",
+            "state__002": "net.2.weight",
+            "state__003": "net.2.bias",
+            "state__004": "net.4.weight",
+            "state__005": "net.4.bias",
+            "state__006": "head.0.weight",
+            "state__007": "head.0.bias",
+            "state__008": "head.1.weight",
+            "state__009": "head.1.bias"
+          }
+        }
+      },
+      "numpy_runtime_validation": {
+        "status": "OK",
+        "probe_count": 8,
+        "max_abs_difference_cm": 1.2790555615538324e-05,
+        "tolerance_cm": 0.001
+      }
     }
   },
   "static_comparator": {
