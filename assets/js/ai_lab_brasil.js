@@ -8,6 +8,8 @@
   var AUTO_TRAIN_FALLBACK_RAW = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/auto_training_latest.json';
   var SHADOW_MANIFEST_LOCAL = 'assets/data/ai_lab/shadow_bundle_manifest.json';
   var SHADOW_MANIFEST_RAW = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/shadow_bundle_manifest.json';
+  var SHADOW_LIVE_LOCAL = 'assets/data/ai_lab/shadow_live_latest.json';
+  var SHADOW_LIVE_RAW = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/shadow_live_latest.json';
   var SHADOW_PACKAGE_LOCAL = 'assets/data/ai_lab/shadow/shadow_manifest_latest.json';
   var SHADOW_PACKAGE_RAW = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/shadow/shadow_manifest_latest.json';
   var BRAZIL_BOUNDS = [[-34.8,-74.2],[5.7,-34.0]];
@@ -306,6 +308,42 @@
     text('shadow-source-hash','fonte '+shortHash(source.sha256));
     text('shadow-package-note','Pacote de pesquisa para inferência em sombra. Pesos e normalizadores ficam no artefato do Actions; o site publica apenas este manifesto auditável.');
   }
+  function metricMini(metric){
+    metric=metric || {};
+    var n=Number(metric.n_conferidas || 0);
+    if(!n) return '0 conferidas';
+    return n+' conferidas · MAE '+fmtNumber(metric.mae_cm,1)+' cm';
+  }
+  function renderShadowLive(data){
+    var pred=data.prediction || {};
+    var metrics=data.live_audit_metrics || {};
+    var running=data.status==='SHADOW_RUNNING';
+    setPill(el('shadow-live-status'),{label:running?'rodando':'aguardando',cls:running?'good':'warn'});
+    text('shadow-live-current',pred.nivel_atual_cm!==undefined ? fmtLevel(pred.nivel_atual_cm) : '—');
+    text('shadow-live-base-time',pred.hora_modelo ? 'base '+fmtTime(pred.hora_modelo) : '—');
+    text('shadow-live-temporal',pred.temporal_previsto_cm!==undefined ? fmtLevel(pred.temporal_previsto_cm) : '—');
+    text('shadow-live-temporal-delta',pred.temporal_delta_cm!==undefined ? 'Δ '+(Number(pred.temporal_delta_cm)>=0?'+':'')+fmtNumber(pred.temporal_delta_cm,1)+' cm' : '—');
+    text('shadow-live-static',pred.static_previsto_cm!==undefined ? fmtLevel(pred.static_previsto_cm) : '—');
+    text('shadow-live-operational',pred.modelo_operacional_previsto_cm!==undefined && pred.modelo_operacional_previsto_cm!==null ? fmtLevel(pred.modelo_operacional_previsto_cm) : '—');
+    text('shadow-live-target',pred.hora_alvo ? 'Alvo: '+fmtTime(pred.hora_alvo)+'. Resultado experimental; não entra no alerta nem substitui o modelo operacional.' : (data.note || 'Aguardando janela válida.'));
+    text('shadow-audit-temporal',metricMini(metrics.temporal));
+    text('shadow-audit-static',metricMini(metrics.static));
+    text('shadow-audit-operational',metricMini(metrics.operational_reference));
+  }
+  async function loadShadowLive(){
+    var sources=[SHADOW_LIVE_RAW,SHADOW_LIVE_LOCAL], lastError=null;
+    for(var i=0;i<sources.length;i++){
+      try{
+        var response=await fetch(sources[i],{cache:'no-store'});
+        if(!response.ok) throw new Error('HTTP '+response.status);
+        renderShadowLive(await response.json());
+        return;
+      }catch(err){lastError=err;}
+    }
+    setPill(el('shadow-live-status'),{label:'sem rodada',cls:'neutral'});
+    if(lastError) console.warn('AI Lab live shadow:',lastError);
+  }
+
   async function loadShadowPackage(){
     var sources=[SHADOW_MANIFEST_RAW,SHADOW_MANIFEST_LOCAL], lastError=null;
     for(var i=0;i<sources.length;i++){
@@ -398,6 +436,7 @@
     loadFeed();
     loadAutoTraining();
     loadShadowPackage();
+    loadShadowLive();
     updateTrainingRequest();
   });
 })();
