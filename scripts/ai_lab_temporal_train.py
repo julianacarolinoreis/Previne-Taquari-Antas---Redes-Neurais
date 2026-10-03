@@ -182,8 +182,10 @@ def temporal_profiles(config: dict[str, Any]) -> list[dict[str, Any]]:
     if supplied:
         return [dict(item) for item in supplied]
     return [
-        {"id": "short_4h", "lookback_h": 4, "width": 32, "learning_rate": 0.0010},
-        {"id": "long_8h", "lookback_h": 8, "width": 48, "learning_rate": 0.0007},
+        {"id": "short_4h_level", "lookback_h": 4, "width": 32, "learning_rate": 0.0010, "target_mode": "level"},
+        {"id": "long_8h_level", "lookback_h": 8, "width": 48, "learning_rate": 0.0007, "target_mode": "level"},
+        {"id": "short_4h_delta", "lookback_h": 4, "width": 32, "learning_rate": 0.0010, "target_mode": "delta"},
+        {"id": "long_8h_delta", "lookback_h": 8, "width": 48, "learning_rate": 0.0007, "target_mode": "delta"},
     ]
 
 
@@ -232,17 +234,27 @@ def fit_temporal_profile(
     epochs = int(temporal_cfg.get("epochs", 16))
     patience = int(temporal_cfg.get("patience", 3))
     weight_decay = float(temporal_cfg.get("weight_decay", 1e-4))
-    train_x, train_y = sequence_arrays(train, lookback)
-    val_x, val_y = sequence_arrays(validation, lookback)
+    target_mode = str(profile.get("target_mode", "level"))
+    train_x, train_y_abs = sequence_arrays(train, lookback)
+    val_x, val_y_abs = sequence_arrays(validation, lookback)
     test_x, _ = sequence_arrays(test, lookback)
+    train_current = np.asarray([row["current"] for row in train], dtype=np.float32)
+    val_current = np.asarray([row["current"] for row in validation], dtype=np.float32)
+    test_current = np.asarray([row["current"] for row in test], dtype=np.float32)
 
     train_x, val_x, x_mean, x_std = scale_sequence(train_x, val_x)
     test_x = (test_x - x_mean) / x_std
-    y_mean = float(train_y.mean())
-    y_std = float(train_y.std())
+    if target_mode == "delta":
+        train_y_model = train_y_abs - train_current
+    elif target_mode == "level":
+        train_y_model = train_y_abs
+    else:
+        raise RuntimeError(f"target_mode inválido: {target_mode}")
+    y_mean = float(train_y_model.mean())
+    y_std = float(train_y_model.std())
     if y_std < 1e-6:
         y_std = 1.0
-    train_y_scaled = (train_y - y_mean) / y_std
+    train_y_scaled = (train_y_model - y_mean) / y_std
 
     model = build_temporal_model(name, feature_count, profile)
     optimizer = torch.optim.AdamW(
@@ -270,8 +282,9 @@ def fit_temporal_profile(
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=2.0)
             optimizer.step()
             losses.append(float(loss.detach().cpu()))
-        val_pred = predict_torch(model, val_x, y_mean, y_std, batch_size)
-        val_mae = float(np.mean(np.abs(val_pred - val_y)))
+        val_model_pred = predict_torch(model, val_x, y_mean, y_std, batch_size)
+        val_pred = val_model_pred + val_current if target_mode == "delta" else val_model_pred
+        val_mae = float(np.mean(np.abs(val_pred - val_y_abs)))
         history.append({"epoch": epoch, "train_mse_scaled": float(np.mean(losses)), "validation_mae_cm": val_mae})
         if val_mae + 1e-6 < best_val_mae:
             best_val_mae = val_mae
@@ -285,8 +298,10 @@ def fit_temporal_profile(
     if best_state is None:
         raise RuntimeError(f"{name}/{profile['id']}: nenhum estado de validação")
     model.load_state_dict(best_state)
-    val_pred = predict_torch(model, val_x, y_mean, y_std, batch_size)
-    test_pred = predict_torch(model, test_x, y_mean, y_std, batch_size)
+    val_model_pred = predict_torch(model, val_x, y_mean, y_std, batch_size)
+    test_model_pred = predict_torch(model, test_x, y_mean, y_std, batch_size)
+    val_pred = val_model_pred + val_current if target_mode == "delta" else val_model_pred
+    test_pred = test_model_pred + test_current if target_mode == "delta" else test_model_pred
     validation_metric = phase1.metric(validation, val_pred)
     selection_score = (
         validation_metric["mae_cm"]
@@ -295,6 +310,7 @@ def fit_temporal_profile(
     )
     return {
         "profile": dict(profile),
+        "target_mode": target_mode,
         "best_epoch": best_epoch,
         "epochs_run": len(history),
         "parameter_count": int(sum(p.numel() for p in model.parameters())),
@@ -467,6 +483,7 @@ def run_experiment(config: dict[str, Any]) -> dict[str, Any]:
                 "selected_profile": best["profile"]["id"],
                 "selected_lookback_h": int(best["profile"]["lookback_h"]),
                 "selected_width": int(best["profile"]["width"]),
+                "selected_target_mode": str(best["profile"].get("target_mode", "level")),
                 "best_epoch": int(best["best_epoch"]),
                 "parameter_count": int(best["parameter_count"]),
                 "validation_selection_score": float(best["validation_selection_score"]),
@@ -522,6 +539,7 @@ def run_experiment(config: dict[str, Any]) -> dict[str, Any]:
             "static_representation": "somente vetor do horário-alvo de origem, nas mesmas linhas elegíveis da coorte temporal",
             "temporal_representation": "sequência histórica encerrando no horário de emissão",
             "temporal_profile_selection": "somente evento de validação; evento de teste não participa da escolha",
+            "temporal_target_search": "nível absoluto e delta de nível (nível futuro - nível atual) competem como perfis; delta é reconstruído para nível antes das métricas",
             "temporal_profile_score": "MAE_validacao + 0.25*erro_pico_validacao + 2*atraso_pico_validacao",
             "causal_event_folds": True,
             "future_columns_in_features": False,
