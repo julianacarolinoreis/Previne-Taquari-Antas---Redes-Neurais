@@ -1,0 +1,102 @@
+name: PREVINE AI Lab - sombra ao vivo STZ
+
+on:
+  repository_dispatch:
+    types:
+      - previne-santa-live-complete
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/ai_lab_shadow_live_infer.py"
+      - ".github/workflows/ai-lab-shadow-live.yml"
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: previne-ai-lab-shadow-live-stz
+  cancel-in-progress: true
+
+jobs:
+  infer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: |
+            scripts/ai_lab_auto_train.py
+            scripts/ai_lab_temporal_train.py
+            scripts/ai_lab_shadow_live_infer.py
+            assets/data/ai_lab
+            previsao_ao_vivo.json
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install shadow inference runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "numpy==2.5.3" "scikit-learn==1.9.1" "joblib==1.6.0"
+          python -m pip install "torch==2.10.0" --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Download latest AI Lab shadow model artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN_ID="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ai-lab-shadow-bundle.yml/runs?branch=main&status=success&per_page=10" --jq '.workflow_runs[0].id')"
+          if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+            echo "No successful shadow bundle workflow found." >&2
+            exit 1
+          fi
+          URL="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts" --jq '.artifacts[] | select(.name=="previne-ai-lab-shadow-bundle" and .expired==false) | .archive_download_url' | head -n1)"
+          if [ -z "$URL" ]; then
+            echo "Shadow bundle artifact not found." >&2
+            exit 1
+          fi
+          mkdir -p shadow_artifact
+          curl --fail-with-body --location --silent --show-error             --header "Authorization: Bearer ${GH_TOKEN}"             --header "Accept: application/vnd.github+json"             "$URL" -o shadow_bundle.zip
+          unzip -q shadow_bundle.zip -d shadow_artifact
+          find shadow_artifact -maxdepth 5 -type f -print
+
+      - name: Run research-only live shadow inference
+        run: |
+          python -B scripts/ai_lab_shadow_live_infer.py --artifact-dir shadow_artifact
+
+      - name: Publish shadow-only outputs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/data/ai_lab/shadow_live_latest.json
+          if [ -f assets/data/ai_lab/shadow_live_history.json ]; then
+            git add assets/data/ai_lab/shadow_live_history.json
+          fi
+          if git diff --cached --quiet; then
+            echo "No shadow live changes."
+          else
+            git commit -m "Update AI Lab STZ shadow-only inference"
+            for attempt in 1 2 3 4; do
+              git fetch origin main
+              if git rebase origin/main && git push origin HEAD:main; then
+                exit 0
+              fi
+              git rebase --abort || true
+              sleep 3
+            done
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: previne-ai-lab-shadow-live
+          path: |
+            assets/data/ai_lab/shadow_live_latest.json
+            assets/data/ai_lab/shadow_live_history.json
+          if-no-files-found: ignore
