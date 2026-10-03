@@ -233,6 +233,15 @@
     var version=data.engine_version ? 'Motor '+data.engine_version+'. ' : '';
     text('training-message',version+'Rodada concluída. O leaderboard é evidência de pesquisa; candidatos aprovados seguem apenas para a próxima etapa de modo sombra.');
     var body=el('training-table-body');
+    var allRows=(data.leaderboard || []);
+    var bestOverall=allRows.length ? allRows[0] : null;
+    var bestTemporal=allRows.find(function(row){return row.representation==='temporal_sequence';});
+    var baseline=allRows.find(function(row){return row.model==='Persistência';});
+    text('training-best-overall',bestOverall ? bestOverall.model : '—');
+    text('training-best-overall-metric',bestOverall ? 'MAE '+fmtNumber(bestOverall.median_mae_cm,2)+' cm · '+(bestOverall.shadow_eligible?'gate sombra':'retido') : '—');
+    text('training-best-temporal',bestTemporal ? bestTemporal.model : '—');
+    text('training-best-temporal-metric',bestTemporal ? 'MAE '+fmtNumber(bestTemporal.median_mae_cm,2)+' cm · '+(bestTemporal.dominant_profile || 'perfil variável')+' · '+(bestTemporal.shadow_eligible?'gate sombra':'retido') : '—');
+    text('training-baseline',baseline ? fmtNumber(baseline.median_mae_cm,2)+' cm MAE' : '—');
     var rows=(data.leaderboard || []).slice(0,16);
     if(!rows.length){
       body.innerHTML='<tr><td colspan="10" class="empty-cell">A rodada não publicou modelos.</td></tr>';
