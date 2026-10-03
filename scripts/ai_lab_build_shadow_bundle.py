@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -24,6 +25,8 @@ import ai_lab_temporal_train as temporal
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "previne" / "robo"))
+import ai_lab_shadow_tcn as numpy_shadow  # noqa: E402
 REGISTRY = ROOT / "assets" / "data" / "ai_lab" / "experiments.json"
 RESULT = ROOT / "assets" / "data" / "ai_lab" / "auto_training_v2_latest.json"
 MANIFEST = ROOT / "assets" / "data" / "ai_lab" / "shadow_bundle_manifest.json"
@@ -163,6 +166,51 @@ def refit_temporal(config: dict, result: dict, samples: list[dict], feature_name
         "source_sha256": result["data_audit"]["source_sha256"],
     }
     torch.save(payload, path)
+
+    # Export the same TCN state in a small NumPy-only format for live shadow
+    # inference. The live cycle must not need PyTorch merely to evaluate one
+    # already-trained candidate.
+    npz_path = OUTDIR / f"{config['id']}__{model_name.lower().replace(' ','_')}__shadow.npz"
+    arrays = {
+        "normalization__x_mean": np.asarray(x_mean, dtype=np.float32),
+        "normalization__x_std": np.asarray(x_std, dtype=np.float32),
+        "normalization__y_mean": np.asarray([y_mean], dtype=np.float32),
+        "normalization__y_std": np.asarray([y_std], dtype=np.float32),
+    }
+    state_key_map = {}
+    for index, (state_name, tensor) in enumerate(model.state_dict().items()):
+        stored = f"state__{index:03d}"
+        arrays[stored] = tensor.detach().cpu().numpy()
+        state_key_map[stored] = state_name
+    np.savez_compressed(npz_path, **arrays)
+    numpy_package = {
+        "profile": profile,
+        "weights": {
+            "path": str(npz_path.relative_to(ROOT)),
+            "sha256": file_sha256(npz_path),
+            "bytes": npz_path.stat().st_size,
+            "format": "numpy savez compressed; TCN state_dict tensors + normalization",
+            "state_key_map": state_key_map,
+        },
+    }
+
+    # Cross-check several historical probes against the PyTorch model before
+    # the bundle is allowed to publish.
+    probe_errors = []
+    model.eval()
+    for sample in samples[-8:]:
+        sequence = np.asarray(sample["sequence"][-lookback:], dtype=np.float32)
+        numpy_result = numpy_shadow.predict_package(ROOT, numpy_package, sequence, sample["current"])
+        scaled = (sequence - x_mean) / x_std
+        with torch.no_grad():
+            pred_scaled = float(model(torch.as_tensor(scaled[None, :, :], dtype=torch.float32)).item())
+        raw = pred_scaled * y_std + y_mean
+        torch_level = float(sample["current"]) + raw if target_mode == "delta" else raw
+        probe_errors.append(abs(torch_level - float(numpy_result["level_forecast_cm"])))
+    max_numpy_diff = max(probe_errors) if probe_errors else 0.0
+    if max_numpy_diff > 1e-3:
+        raise RuntimeError(f"NumPy shadow runtime diverged from PyTorch by {max_numpy_diff:.8f} cm")
+
     return {
         "path": str(path.relative_to(ROOT)),
         "sha256": file_sha256(path),
@@ -174,6 +222,13 @@ def refit_temporal(config: dict, result: dict, samples: list[dict], feature_name
         "target_mode": target_mode,
         "loss": loss_name,
         "last_train_loss_scaled": history[-1] if history else None,
+        "numpy_package": numpy_package,
+        "numpy_runtime_validation": {
+            "status": "OK",
+            "probe_count": len(probe_errors),
+            "max_abs_difference_cm": max_numpy_diff,
+            "tolerance_cm": 1e-3,
+        },
     }
 
 
