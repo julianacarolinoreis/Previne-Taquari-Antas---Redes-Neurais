@@ -334,7 +334,7 @@
   .station-chart-title small{color:var(--muted);font-size:10.5px;font-weight:400;text-align:right}
   .station-chart{height:265px;margin-top:5px;min-width:0}
   .station-chart svg{display:block;width:100%;height:100%;overflow:visible}
-  .station-chart text{font-family:inherit;fill:var(--muted);font-size:10px}
+  .station-chart text{font-family:inherit;fill:var(--muted);font-size:12px}
   .station-chart .grid-line{stroke:var(--border);stroke-width:1}
   .station-chart .axis-line{stroke:var(--muted);stroke-width:1}
   .station-chart .forecast-boundary{stroke:var(--chrome);stroke-width:1.25;stroke-dasharray:4 4;opacity:.8}
@@ -361,6 +361,7 @@
   .station-timeline-table td:nth-child(3){font-variant-numeric:tabular-nums;font-weight:750;color:var(--ink)}
   .station-timeline-type{display:inline-flex;align-items:center;border-radius:999px;padding:3px 6px;font-size:9px;font-weight:800;letter-spacing:.03em}
   .station-timeline-type.observed{background:#e5f1ee;color:#216758}
+  .station-timeline-type.partial{background:var(--warn-bg);color:#8a6100}
   .station-timeline-type.forecast{background:#e8eef8;color:#245886}
   .station-timeline-empty{padding:11px;color:var(--muted);font-size:10.5px;line-height:1.45}
   .station-timeline-note{margin:8px 0 0;color:var(--muted);font-size:10px;line-height:1.45}
@@ -391,6 +392,15 @@
     .station-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
     .station-timeline-summary{grid-template-columns:1fr}
     .station-chart{height:230px}
+  }
+  @media (max-width:480px){
+    .station-summary{grid-template-columns:minmax(0,1fr)}
+    .station-metric{padding:11px 12px}
+    .station-metric-label{font-size:11.5px}
+    .station-metric-value{white-space:normal;overflow:visible;text-overflow:clip}
+    .station-metric-note{font-size:10.5px}
+    .station-chart-title{flex-direction:column;align-items:flex-start;gap:5px}
+    .station-chart-title small{text-align:left}
   }
   .map-note{font-size:12px;color:var(--muted);margin-top:10px;text-align:center;line-height:1.5}
   .mancha-link{display:flex;align-items:center;gap:12px;max-width:520px;margin:14px auto 0;
@@ -724,7 +734,7 @@
   <section class="sec">
     <span class="kicker">a bacia</span>
     <h2>Onde ficam as estações</h2>
-    <p class="sec-sub">A estação-alvo em Santa Tereza, a estação de montante e as estações/municípios de apoio usados nas rodadas de modelagem. Quando a identificação ou a coordenada ainda precisa ser confirmada, o cartão indica isso e abre o HidroWeb para conferência.</p>
+    <p class="sec-sub">Estações de toda a bacia Taquari–Antas (G040), com observação publicada e previsão por ponto. Busque por nome, código ou UPG e filtre por rede ou disponibilidade; os detalhes distinguem série horária, acumulado CEMADEN de 24h e previsão experimental.</p>
     <div class="map-grid">
       <div class="map-stage">
         <div class="map-status" id="map-status" role="status">
@@ -1626,7 +1636,7 @@
      extra:'Município de apoio usado nas rodadas; conferir código e coordenada oficial'},
     {name:'Cotiporã', code:'—', papel:'Identificação e coordenada a confirmar no HidroWeb/ANA', grp:'conv', lat:-28.987, lon:-51.697, hidro:true,
      extra:'Município de apoio usado nas rodadas; conferir código e coordenada oficial'}
-  ];
+  ].map((station,index)=>Object.assign({id:'fallback:'+index},station));
   const BASIN_MODEL_DEFAULTS=[
     {id:'ecmwf_ifs025',label:'ECMWF IFS',provider:'ECMWF',color:'#1769aa'},
     {id:'gfs_seamless',label:'GFS',provider:'NOAA',color:'#d97706'},
@@ -1658,6 +1668,8 @@
   let BASIN_SUBBASIN_LAYER=null;
   let BASIN_LAYER_CONTROL=null;
   const BASIN_MARKERS={};
+  let BASIN_CHART_OBSERVER=null;
+  let BASIN_CHART_RESIZE_FRAME=0;
   let BASIN_SELECTED=null;
   let BASIN_FILTER='all';
   let BASIN_QUERY='';
@@ -1666,9 +1678,13 @@
   const basinById=id=>document.getElementById(id);
   const basinFinite=value=>value!==null && value!=='' && Number.isFinite(Number(value));
   const basinNumber=value=>basinFinite(value)?Number(value):null;
+  // Research quality gate, also applied to legacy snapshots before the new
+  // producer is deployed. Unknown vertical datums are not converted to stage.
+  const basinLevelNumber=value=>{const n=basinNumber(value);return n!==null&&n>=0&&n<=5000?n:null;};
+  const basinSourceObservationUsable=item=>!!(item&&String(item.source_status)==='0'&&basinFinite(item.value)&&(item.metric!=='chuva_acumulada_24h_mm'||Number(item.value)>=0));
   const basinFold=value=>String(value==null?'':value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   const basinEscape=value=>String(value==null?'':value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-  const basinStationId=st=>String(st.id || ((st.network || 'ANA')+':'+(st.code || st.name || 'station')));
+  const basinStationId=st=>String(st.id || ((st.network || 'ANA')+':'+(st.code&&st.code!=='—'?st.code:[st.name||'station',st.latitude??st.lat,st.longitude??st.lon].join('|'))));
   const basinCoord=(value,pos,neg)=>{
     const n=basinNumber(value);
     return n===null?'—':(Math.abs(n).toFixed(4)+'° '+(n>=0?pos:neg));
@@ -1692,10 +1708,8 @@
   const basinNextCycle=value=>{
     if(!value)return 'ciclo automático ativo';
     const d=new Date(value);
-    if(Number.isNaN(d.getTime()))return 'ciclo automático ativo';
-    return d.getTime()<Date.now()
-      ?'nova rodada em processamento'
-      :'próxima janela automática '+basinDate(value);
+    if(Number.isNaN(d.getTime()))return String(value);
+    return 'referência nominal '+basinDate(value)+(d.getTime()<Date.now()?' · referência já passada':'')+' · execução sujeita a atraso';
   };
   const basinFeedAgeHours=()=>{
     const generated=BASIN_FEED&&BASIN_FEED.generated_at_utc?Date.parse(BASIN_FEED.generated_at_utc):NaN;
@@ -1781,11 +1795,25 @@
     return item&&String(item.source_status)==='0'&&basinFinite(item.value)&&Number(item.value)>=0?item:null;
   };
   const basinHasObservedRain=st=>!!(st&&st.observed_rain&&st.observed_rain.state==='available')||!!basinCemadenRain24(st);
+  const basinObservedAge=(timestamp,minutes,label)=>{
+    const observedMs=Date.parse(timestamp);
+    const publishedMinutes=basinNumber(minutes);
+    const ageMinutes=Number.isFinite(observedMs)?(Date.now()-observedMs)/60000:publishedMinutes===null?null:publishedMinutes+(basinFeedAgeHours()||0)*60;
+    if(ageMinutes===null)return 'idade não informada';
+    if(ageMinutes<0)return 'carimbo posterior ao relógio local';
+    const prefix=label||'último intervalo encerrado no calendário há ';
+    if(ageMinutes<60)return prefix+Math.floor(ageMinutes)+' min';
+    if(ageMinutes<1440)return prefix+(ageMinutes/60).toFixed(1).replace('.',',')+' h';
+    return prefix+(ageMinutes/1440).toFixed(1).replace('.',',')+' dias';
+  };
+  const basinObservedRainAge=obs=>obs&&obs.timestamp_role==='interval_start'
+    ?basinObservedAge(obs.last_closed_interval_end_utc,obs.closed_interval_age_minutes)
+    :basinObservedAge(obs&&obs.last_observed_at_utc,obs&&obs.observed_age_minutes,'último carimbo disponível há ');
   const basinHasAnyObserved=st=>{
     if(!st)return false;
     if(st.observed_rain&&st.observed_rain.state==='available')return true;
-    if(st.level&&['available','partial'].includes(st.level.state))return true;
-    return Array.isArray(st.source_observations)&&st.source_observations.some(item=>item&&basinFinite(item.value));
+    if(st.level&&basinLevelNumber(st.level.current_cm)!==null&&['available','partial'].includes(st.level.state))return true;
+    return Array.isArray(st.source_observations)&&st.source_observations.some(basinSourceObservationUsable);
   };
   const basinSourceObservationLabel=metric=>({
     chuva_acumulada_24h_mm:'Chuva acumulada observada · 24h',
@@ -1794,12 +1822,16 @@
   const basinSourceObservationValue=item=>{
     if(!item||!basinFinite(item.value))return 'indisponível';
     const value=Number(item.value).toLocaleString('pt-BR',{maximumFractionDigits:3});
-    return value+(item.unit?' '+item.unit:'');
+    const measured=value+(item.unit?' '+item.unit:'');
+    return basinSourceObservationUsable(item)?measured:'indisponível · valor bruto '+measured+' (não utilizável)';
   };
-  const basinObservedWindowNote=window=>{
-    if(!window)return 'janela observada não publicada';
+  const basinObservedWindowNote=(window,obs)=>{
+    if(!window)return 'janela observada não publicada · intervalo não publicado · '+basinObservedRainAge(obs);
     const coverage=Math.round(Number(window.coverage_ratio||0)*100);
-    return (window.valid_points||0)+'/'+(window.expected_points||0)+' pontos válidos · cobertura '+coverage+'%'+(window.complete?'':' · janela parcial');
+    const period=window.start_utc&&window.end_utc
+      ?' · período '+basinDateTime(window.start_utc)+' → '+basinDateTime(window.end_utc)+' · '+basinObservedAge(window.end_utc,obs&&obs.closed_interval_age_minutes)
+      :' · intervalo não publicado · '+basinObservedAge(obs&&obs.last_observed_at_utc,obs&&obs.observed_age_minutes,'último carimbo disponível há ');
+    return (window.valid_points||0)+'/'+(window.expected_points||0)+' pontos válidos · cobertura '+coverage+'%'+(window.complete?'':' · janela parcial')+(window.unconfirmed_points?' · '+window.unconfirmed_points+' pontos sem consulta confirmada após o término':'')+period;
   };
   const basinMinutesNote=minutes=>{
     const n=basinNumber(minutes);
@@ -1814,17 +1846,17 @@
     if(isLevel)return {category:'flow',label:'fluviométrica',color:'#1b7a5a',isLevel:true,isRain:isRain};
     return {category:'rain',label:'pluviométrica',color:'#2878c8',isLevel:false,isRain:true};
   };
-  const basinHasData=st=>(st.forecast&&st.forecast.state==='available')||(st.observed_rain&&st.observed_rain.state==='available')||(st.level&&st.level.state==='available')||(Array.isArray(st.source_observations)&&st.source_observations.some(item=>basinFinite(item&&item.value)));
+  const basinHasData=st=>(st.forecast&&st.forecast.state==='available')||basinHasAnyObserved(st);
   const basinStateSummary=st=>{
     const bits=[];
     if(st.forecast&&st.forecast.state==='available')bits.push('previsão: '+Object.keys(st.forecast.models||{}).length+' modelos');
     else if(st.forecast)bits.push('previsão indisponível');
-    if(st.observed_rain&&st.observed_rain.state==='available')bits.push('chuva observada · '+basinMinutesNote(st.observed_rain.observed_age_minutes));
+    if(st.observed_rain&&st.observed_rain.state==='available')bits.push('chuva observada · '+basinObservedRainAge(st.observed_rain));
     const cemaden=basinCemadenRain24(st);
     if(cemaden)bits.push('CEMADEN 24h: '+basinFormat(cemaden.value,'precipitation')+' · horário da leitura não informado');
-    if(st.level&&st.level.state==='available')bits.push('nível: '+basinFormat(st.level.current_cm,'level_cm'));
+    if(st.level&&st.level.state==='available'&&basinLevelNumber(st.level.current_cm)!==null)bits.push('nível: '+basinFormat(st.level.current_cm,'level_cm'));
     const extraObserved=Array.isArray(st.source_observations)
-      ?st.source_observations.filter(item=>item&&basinFinite(item.value)&&item.metric!=='chuva_acumulada_24h_mm')
+      ?st.source_observations.filter(item=>basinSourceObservationUsable(item)&&item.metric!=='chuva_acumulada_24h_mm')
       :[];
     if(extraObserved.length)bits.push(extraObserved.slice(0,2).map(item=>basinSourceObservationLabel(item.metric)+': '+basinSourceObservationValue(item)).join(' · '));
     return bits.join(' · ')||'sem série observada no feed atual';
@@ -1850,7 +1882,11 @@
   };
   const basinRefreshSelection=()=>{
     const id=BASIN_SELECTED&&basinStationId(BASIN_SELECTED);
-    document.querySelectorAll('#stations .station').forEach(card=>card.classList.toggle('sel',card.dataset.stationId===id));
+    document.querySelectorAll('#stations .station').forEach(card=>{
+      const selected=card.dataset.stationId===id;
+      card.classList.toggle('sel',selected);
+      card.setAttribute('aria-pressed',String(selected));
+    });
   };
   function basinRenderStationList(){
     const list=basinById('stations');
@@ -1872,6 +1908,7 @@
       card.type='button';
       card.className='station';
       card.dataset.stationId=basinStationId(st);
+      card.setAttribute('aria-pressed',String(Boolean(BASIN_SELECTED&&basinStationId(BASIN_SELECTED)===basinStationId(st))));
       card.title='Abrir métricas de '+(st.name||'estação');
       const dot=document.createElement('span');
       dot.className='st-dot';
@@ -1897,7 +1934,7 @@
       const quality=document.createElement('span');
       quality.className='st-quality';
       const observedAge=st.observed_rain&&st.observed_rain.state==='available'
-        ?'chuva '+basinMinutesNote(st.observed_rain.observed_age_minutes)
+        ?'chuva · '+basinObservedRainAge(st.observed_rain)
         :'série horária de chuva indisponível';
       const levelAge=st.level&&st.level.state==='available'
         ?'nível '+basinMinutesNote(st.level.observed_age_minutes)
@@ -2012,9 +2049,8 @@
     if(!obs||obs.state!=='available')return {value:null,count:0};
     const published=basinObservedWindow(st,72);
     if(published&&basinFinite(published.mm))return {value:Number(published.mm),count:Number(published.valid_points||0)};
-    if(!Array.isArray(obs.rows))return {value:null,count:0};
-    const values=obs.rows.map(row=>row&&row.mm).filter(basinFinite).map(Number);
-    return {value:values.length?values.reduce((sum,value)=>sum+value,0):null,count:values.length};
+    // Only a published closed-hour window establishes a 72 h accumulation.
+    return {value:null,count:0};
   };
   const basinMetricStatusLabel=status=>({
     complete:'COMPLETO',
@@ -2055,23 +2091,27 @@
   const basinTimelineObservedRows=(st,metric)=>{
     if(metric==='level_cm'){
       const rows=st&&st.level&&Array.isArray(st.level.series)?st.level.series:[];
-      return rows.filter(row=>row&&row.time&&basinFinite(row.cm)).slice(-6).map(row=>({time:row.time,value:Number(row.cm),unit:'cm'}));
+      return rows.filter(row=>row&&Number.isFinite(Date.parse(row.time))&&basinLevelNumber(row.cm)!==null).sort((a,b)=>Date.parse(a.time)-Date.parse(b.time)).slice(-6).map(row=>({time:row.time,value:basinLevelNumber(row.cm),unit:'cm'}));
     }
     if(metric!=='precipitation')return [];
     const rows=st&&st.observed_rain&&Array.isArray(st.observed_rain.rows)?st.observed_rain.rows:[];
-    return rows.filter(row=>row&&row.time&&basinFinite(row.mm)).slice(-6).map(row=>({time:row.time,value:Number(row.mm),unit:'mm'}));
+    return rows.filter(row=>row&&Number.isFinite(Date.parse(row.time))&&basinFinite(row.mm)).sort((a,b)=>Date.parse(a.time)-Date.parse(b.time)).slice(-6).map(row=>({time:row.time,value:Number(row.mm),unit:'mm',interval_end_utc:row.interval_end_utc,partial:row.partial===true,confirmation:row.confirmation}));
   };
+  const basinObservedRowTime=(row,obs)=>obs&&obs.timestamp_role==='interval_start'&&row.interval_end_utc
+    ?basinDateTime(row.time)+' → '+basinDateTime(row.interval_end_utc)+(row.partial?' · acumulado parcial; aguarda confirmação':row.confirmation==='unknown'?' · intervalo encerrado; consulta não confirmada':' · intervalo encerrado')
+    :basinDateTime(row.time)+' · carimbo; intervalo não publicado';
   const basinTimelineForecastRows=(st,metric,limit)=>{
     if(metric==='level_cm'){
       const level=st&&st.level;
       const raw=level&&Array.isArray(level.forecasts)?level.forecasts:[];
       const observed=level&&Array.isArray(level.series)?level.series:[];
-      const lastObservedMs=observed.length?Date.parse(observed[observed.length-1]&&observed[observed.length-1].time):NaN;
+      const validTimes=observed.filter(row=>row&&basinLevelNumber(row.cm)!==null).map(row=>Date.parse(row.time)).filter(Number.isFinite);
+      const lastObservedMs=validTimes.length?Math.max.apply(null,validTimes):NaN;
       const floorMs=Math.max(Date.now(),Number.isFinite(lastObservedMs)?lastObservedMs:0);
       const groups={};
       raw.forEach(item=>{
         const ms=Date.parse(item&&item.time);
-        const value=basinNumber(item&&item.cm);
+        const value=basinLevelNumber(item&&item.cm);
         if(!Number.isFinite(ms)||ms<=floorMs||value===null)return;
         const key=new Date(ms).toISOString();
         if(!groups[key])groups[key]=[];
@@ -2090,72 +2130,121 @@
     const rows=[];
     times.slice(start,start+(limit||6)).forEach((time,offset)=>{
       const index=start+offset;
-      const values=models.map(modelId=>{
+      if(!Number.isFinite(Date.parse(time)))return;
+      const items=models.map(modelId=>{
         const series=forecast.models&&forecast.models[modelId]&&forecast.models[modelId][metric];
-        return Array.isArray(series)?series[index]:null;
-      }).filter(basinFinite).map(Number);
-      rows.push({time:time,value:values.length?basinMedian(values):null,min:values.length?Math.min.apply(null,values):null,max:values.length?Math.max.apply(null,values):null,count:values.length,total:models.length,unit:'mm'});
+        return {value:Array.isArray(series)?series[index]:null,label:(basinModelSpecs().find(spec=>spec.id===modelId)||{}).label||modelId};
+      }).filter(item=>basinFinite(item.value));
+      const values=items.map(item=>Number(item.value));
+      rows.push({time:time,value:values.length?basinMedian(values):null,min:values.length?Math.min.apply(null,values):null,max:values.length?Math.max.apply(null,values):null,count:values.length,total:models.length,unit:basinMetricDef(metric).unit,labels:items.map(item=>item.label)});
     });
     return rows;
   };
-  const basinTimelineDetail=metric=>metric==='level_cm'?'nível em cm':'chuva em mm';
+  const basinTimelineDetail=metric=>{const def=basinMetricDef(metric);return def.label+(def.unit?' em '+def.unit:'');};
   function basinRenderTimeline(st,metric){
     const isLevel=metric==='level_cm';
     const isRain=metric==='precipitation';
-    if(!isLevel&&!isRain){
-      return '<div class="station-timeline"><div class="station-timeline-heading"><span>Linha do tempo</span><small>'+basinEscape(basinTimelineDetail(metric))+'</small></div><div class="station-timeline-empty">A observação direta desta métrica não está publicada para esta estação. A previsão continua disponível no gráfico, com data e hora de cada horizonte.</div></div>';
-    }
-    const observedSource=isLevel?(st&&st.level&&Array.isArray(st.level.series)?st.level.series:[]):(st&&st.observed_rain&&Array.isArray(st.observed_rain.rows)?st.observed_rain.rows:[]);
+    const obs=st&&st.observed_rain;
+    const observedSource=isLevel?(st&&st.level&&Array.isArray(st.level.series)?st.level.series:[]):isRain&&obs&&Array.isArray(obs.rows)?obs.rows:[];
     const observedRows=basinTimelineObservedRows(st,metric);
     const forecastRows=basinTimelineForecastRows(st,metric,6);
     const cemadenRain=isRain?basinCemadenRain24(st):null;
     const cemadenPanelTime=cemadenRain&&cemadenRain.updated_at_utc?String(cemadenRain.updated_at_utc).replace(' UTC','Z').replace(' ','T'):null;
-    const observedValid=observedSource.filter(row=>row&&basinFinite(isLevel?row.cm:row.mm));
-    const observedUnit=isLevel?'cm':'mm';
-    const observedValue=observedRows.length?basinFormat(observedRows[observedRows.length-1].value,isLevel?'level_cm':'precipitation'):(cemadenRain?basinFormat(cemadenRain.value,'precipitation'):'não publicado');
+    const observedValid=observedSource.filter(row=>row&&(isLevel?basinLevelNumber(row.cm)!==null:basinFinite(row.mm)));
+    const observedUnit=basinMetricDef(metric).unit||'';
+    const lastObserved=observedRows[observedRows.length-1];
+    const observedValue=lastObserved?basinFormat(lastObserved.value,metric):(cemadenRain?basinFormat(cemadenRain.value,'precipitation'):'não publicado');
     const observedNote=observedSource.length
-      ?basinTimelinePeriod(observedSource)+' · '+observedValid.length+'/'+observedSource.length+' horários válidos'
-      :(cemadenRain?'acumulado CEMADEN de 24h · horário individual da leitura não informado':'nenhum horário observado publicado para esta estação');
-    const observedTimeNote=observedRows.length?'último valor horário válido · '+basinDateTime(observedRows[observedRows.length-1].time):(cemadenRain?'painel CEMADEN atualizado '+basinDateTime(cemadenPanelTime):'sem horário válido');
+      ?'carimbos publicados '+basinTimelinePeriod(observedSource)+' · '+observedValid.length+'/'+observedSource.length+' horários válidos'+(isRain?' · '+basinObservedRainAge(obs):'')
+      :(cemadenRain?'acumulado CEMADEN de 24h · horário individual da leitura não informado':'observação direta não publicada para esta estação');
+    const observedTimeNote=lastObserved
+      ?(isRain?basinObservedRowTime(lastObserved,obs):'última leitura válida · '+basinDateTime(lastObserved.time))
+      :cemadenRain?'painel CEMADEN atualizado '+basinDateTime(cemadenPanelTime):'sem horário observado válido';
     const forecastValue=forecastRows.length&&forecastRows[0].value!==null
-      ?basinFormat(forecastRows[0].value,isLevel?'level_cm':'precipitation')
+      ?basinFormat(forecastRows[0].value,metric)
       :'indisponível';
     const forecastNote=forecastRows.length
       ?(isLevel
         ?'primeiro alvo '+basinDateTime(forecastRows[0].time)+' · '+forecastRows[0].count+' RNA(s) atual(is)'
         :'primeiro horário '+basinDateTime(forecastRows[0].time)+' · '+forecastRows[0].count+'/'+forecastRows[0].total+' modelo(s)')
-      :'não há horário futuro válido no snapshot';
-    const rangeText=row=>row.value===null?'indisponível':basinFormat(row.value,isLevel?'level_cm':'precipitation')+(row.count?(isLevel?' · '+row.count+' RNA(s)':' · '+row.count+'/'+row.total+' modelo(s)'):'');
+      :basinFeedIsStale()&&!isLevel?'snapshot expirado · aguardando nova rodada':'não há horário futuro válido no snapshot';
+    const rangeText=row=>row.value===null?'indisponível':basinFormat(row.value,metric)+(row.count?(isLevel?' · '+row.count+' RNA(s)':' · '+row.count+'/'+row.total+' modelo(s)'):'');
     let html='<div class="station-timeline"><div class="station-timeline-heading"><span>Linha do tempo · '+basinEscape(basinTimelineDetail(metric))+'</span><small>datas e horários em Brasília (BRT)</small></div>';
-    html+='<div class="station-timeline-summary"><div class="station-timeline-card observed"><span class="station-timeline-card-label">Observado'+(observedRows.length?' · horário':(cemadenRain?' · 24h':''))+'</span><strong class="station-timeline-card-value">'+basinEscape(observedValue)+'</strong><span class="station-timeline-card-note">'+basinEscape(observedTimeNote)+'<br>'+basinEscape(observedNote)+'</span></div>';
+    html+='<div class="station-timeline-summary"><div class="station-timeline-card observed"><span class="station-timeline-card-label">Observado'+(lastObserved?(lastObserved.partial?' · PARCIAL':' · horário'):(cemadenRain?' · CEMADEN 24h':''))+'</span><strong class="station-timeline-card-value">'+basinEscape(observedValue)+'</strong><span class="station-timeline-card-note">'+basinEscape(observedTimeNote)+'<br>'+basinEscape(observedNote)+'</span></div>';
     html+='<div class="station-timeline-card forecast"><span class="station-timeline-card-label">Previsto</span><strong class="station-timeline-card-value">'+basinEscape(forecastValue)+'</strong><span class="station-timeline-card-note">'+basinEscape(forecastNote)+'<br>'+basinEscape(forecastRows.length?'próximos '+forecastRows.length+' horários exibidos · último '+basinDateTime(forecastRows[forecastRows.length-1].time):'')+'</span></div></div>';
     if(!observedRows.length&&!cemadenRain&&!forecastRows.length){
       html+='<div class="station-timeline-empty">Não há valores observados ou previstos válidos para esta métrica no snapshot atual.</div></div>';
       return html;
     }
-    html+='<div class="station-timeline-table-wrap"><table class="station-timeline-table"><thead><tr><th>Data e hora</th><th>Estado</th><th>Valor</th><th>Fonte / modelos</th></tr></thead><tbody>';
+    html+='<div class="station-timeline-table-wrap" tabindex="0" role="region" aria-label="Tabela rolável de '+basinEscape(basinTimelineDetail(metric))+'"><table class="station-timeline-table" aria-label="'+basinEscape(basinTimelineDetail(metric))+' observado quando publicado e previsto; datas em BRT"><thead><tr><th scope="col">Data e hora / intervalo</th><th scope="col">Estado</th><th scope="col">Valor</th><th scope="col">Fonte / modelos</th></tr></thead><tbody>';
     observedRows.forEach(row=>{
-      html+='<tr><td>'+basinEscape(basinDateTime(row.time))+'</td><td><span class="station-timeline-type observed">OBSERVADO</span></td><td>'+basinEscape(basinFormat(row.value,isLevel?'level_cm':'precipitation'))+'</td><td>'+basinEscape(isLevel?'telemetria publicada':'chuva observada publicada')+'</td></tr>';
+      const observedSourceLabel=isLevel?(st.level.source||'telemetria publicada'):(obs&&obs.source||'chuva observada publicada');
+      html+='<tr><td>'+basinEscape(isRain?basinObservedRowTime(row,obs):basinDateTime(row.time))+'</td><td><span class="station-timeline-type '+(row.partial?'partial':'observed')+'">OBSERVADO'+(row.partial?' · PARCIAL':'')+'</span></td><td>'+basinEscape(basinFormat(row.value,metric))+'</td><td>'+basinEscape(observedSourceLabel)+'</td></tr>';
     });
     if(cemadenRain){
       html+='<tr><td>painel '+basinEscape(basinDateTime(cemadenPanelTime))+'; leitura sem hora</td><td><span class="station-timeline-type observed">OBSERVADO · 24H</span></td><td>'+basinEscape(basinFormat(cemadenRain.value,'precipitation'))+'</td><td>CEMADEN · acumulado de 24h, não série horária</td></tr>';
     }
     forecastRows.forEach(row=>{
-      const detail=row.value===null?'sem valor válido nesta hora':rangeText(row)+(row.min!==null&&row.max!==null?' · faixa '+basinFormat(row.min,isLevel?'level_cm':'precipitation')+'–'+basinFormat(row.max,isLevel?'level_cm':'precipitation'):'');
-      html+='<tr><td>'+basinEscape(basinDateTime(row.time))+'</td><td><span class="station-timeline-type forecast">PREVISTO</span></td><td>'+basinEscape(row.value===null?'indisponível':basinFormat(row.value,isLevel?'level_cm':'precipitation'))+'</td><td>'+basinEscape(detail)+'</td></tr>';
+      const detail=row.value===null?'sem valor válido nesta hora':(isLevel?'RNA experimental':'Open-Meteo')+' · mediana · '+rangeText(row)+(row.min!==null&&row.max!==null?' · faixa '+basinFormat(row.min,metric)+'–'+basinFormat(row.max,metric):'')+' · '+(row.labels||[]).join(', ');
+      html+='<tr><td>'+basinEscape(basinDateTime(row.time))+'</td><td><span class="station-timeline-type forecast">PREVISTO</span></td><td>'+basinEscape(row.value===null?'indisponível':basinFormat(row.value,metric))+'</td><td>'+basinEscape(detail)+'</td></tr>';
     });
-    html+='</tbody></table></div><p class="station-timeline-note">Observado e previsto não são a mesma coisa: “observado” é a leitura publicada pela fonte; “previsto” é o valor do modelo para o horário futuro. O acumulado CEMADEN de 24h não é uma leitura horária e o horário do painel não é o horário individual do sensor. Valores ausentes permanecem como indisponíveis, não como zero. Unidade: '+basinEscape(observedUnit)+'.</p></div>';
+    const rainNote=isRain?' Na chuva observada, o carimbo marca o início da hora; a hora aberta é acumulado parcial e não integra as janelas de horas fechadas. O último carimbo publicado não comprova sensor em tempo real. Intervalos não publicados em snapshots legados permanecem desconhecidos. Apenas a precipitação prevista Open-Meteo corresponde a mm da hora anterior ao horário do modelo. O acumulado CEMADEN de 24h é outro produto; a hora do painel não é a hora individual do sensor.':'';
+    html+='</tbody></table></div><p class="station-timeline-note">Observado é o valor publicado pela fonte; previsto é o valor do modelo para o horário futuro.'+rainNote+' Valores ausentes permanecem como indisponíveis, não como zero. Unidade: '+basinEscape(observedUnit)+'.</p></div>';
     return html;
   }
   const basinModelModelsForChart=st=>basinModelSpecs().filter(spec=>st&&st.forecast&&st.forecast.models&&st.forecast.models[spec.id]);
+  const basinChartSize=host=>({width:Math.max(1,host.getBoundingClientRect().width),height:Math.max(1,host.clientHeight)});
+  const basinChartInterval=times=>{
+    const sorted=Array.from(new Set(times.map(time=>Date.parse(time)).filter(Number.isFinite))).sort((a,b)=>a-b);
+    const steps=sorted.slice(1).map((ms,index)=>ms-sorted[index]).filter(step=>step>0);
+    return basinMedian(steps)||3600000;
+  };
+  const basinChartBoundary=(svg,pos,label,width,right,top)=>{
+    svg.appendChild(basinMakeSvg('line',{x1:pos,y1:top,x2:pos,y2:Number(svg.getAttribute('data-axis-y')),class:'forecast-boundary'}));
+    const alignRight=pos+5+label.length*7>width-right;
+    const text=basinMakeSvg('text',{x:alignRight?pos-5:pos+5,y:top+14,'text-anchor':alignRight?'end':'start'});
+    text.textContent=label;
+    svg.appendChild(text);
+  };
+  const basinChartTimeLabels=(svg,times,x,width,height,left,right)=>{
+    const sorted=Array.from(new Set(times.filter(time=>Number.isFinite(Date.parse(time))))).sort((a,b)=>Date.parse(a)-Date.parse(b));
+    if(!sorted.length)return;
+    const labels=[sorted[0]];
+    if(sorted.length>1)labels.push(sorted[sorted.length-1]);
+    sorted.slice(1,-1).forEach(time=>{if(labels.every(other=>Math.abs(x(time)-x(other))>=115))labels.push(time);});
+    labels.forEach(time=>{
+      const pos=x(time);
+      const text=basinMakeSvg('text',{x:pos,y:height-10,'text-anchor':pos<=left+2?'start':pos>=width-right-2?'end':'middle'});
+      text.textContent=basinChartTime(time);
+      const title=basinMakeSvg('title');title.textContent=basinDateTime(time);text.appendChild(title);
+      svg.appendChild(text);
+    });
+  };
+  function basinObserveChartSize(host){
+    if(BASIN_CHART_OBSERVER)BASIN_CHART_OBSERVER.disconnect();
+    cancelAnimationFrame(BASIN_CHART_RESIZE_FRAME);
+    if(!host||!window.ResizeObserver)return;
+    let previous=basinChartSize(host);
+    BASIN_CHART_OBSERVER=new ResizeObserver(()=>{
+      const size=basinChartSize(host);
+      if(Math.abs(size.width-previous.width)<.1&&size.height===previous.height)return;
+      previous=size;
+      cancelAnimationFrame(BASIN_CHART_RESIZE_FRAME);
+      BASIN_CHART_RESIZE_FRAME=requestAnimationFrame(()=>{
+        if(host.isConnected&&size.width>0&&BASIN_SELECTED)basinRenderChart(BASIN_SELECTED,BASIN_DETAIL_METRIC,host,basinById('station-chart-legend'));
+      });
+    });
+    BASIN_CHART_OBSERVER.observe(host);
+  }
   function basinRenderLevelChart(st,chartHost,legendHost){
     chartHost.replaceChildren();
     if(legendHost)legendHost.replaceChildren();
     const level=st&&st.level;
-    const observed=level&&Array.isArray(level.series)?level.series.map(row=>({
+    const observedSeries=level&&Array.isArray(level.series)?level.series.map(row=>({
       time:row&&row.time,
-      value:basinNumber(row&&row.cm)
-    })).filter(row=>row.value!==null&&basinChartTime(row.time)):[];
+      value:basinLevelNumber(row&&row.cm)
+    })).filter(row=>Number.isFinite(Date.parse(row.time))).sort((a,b)=>Date.parse(a.time)-Date.parse(b.time)):[];
+    const observed=observedSeries.filter(row=>row.value!==null);
     const levelForecastFloor=Math.max(
       Date.now(),
       observed.length&&Number.isFinite(Date.parse(observed[observed.length-1].time))
@@ -2163,7 +2252,7 @@
     );
     const forecasts=level&&Array.isArray(level.forecasts)?level.forecasts.map(item=>({
       time:item&&item.time,
-      value:basinNumber(item&&item.cm),
+      value:basinLevelNumber(item&&item.cm),
       label:item&&item.label||'RNA',
       color:item&&item.color||'#64748b'
     })).filter(item=>{
@@ -2188,11 +2277,11 @@
     const pad=Math.max(1,(max-min)*.08);
     min-=pad; max+=pad;
     if(max<=min)max=min+1;
-    const width=760,height=260,left=54,right=14,top=14,bottom=34;
+    const {width,height}=basinChartSize(chartHost),left=54,right=14,top=24,bottom=40;
     const plotW=width-left-right,plotH=height-top-bottom;
     const xTime=value=>left+((new Date(value).getTime()-firstMs)/spanMs)*plotW;
     const y=value=>top+(max-Number(value))/(max-min)*plotH;
-    const svg=basinMakeSvg('svg',{viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'Nível observado e previsão experimental de nível'});
+    const svg=basinMakeSvg('svg',{viewBox:'0 0 '+width+' '+height,width:width,height:height,preserveAspectRatio:'none',role:'img','data-axis-y':top+plotH,'aria-label':observed.length?'Nível observado'+(forecasts.length?' e previsão experimental de nível':''):'Previsão experimental de nível; observação direta não publicada'});
     for(let i=0;i<=3;i++){
       const value=min+(max-min)*(i/3),yy=y(value);
       svg.appendChild(basinMakeSvg('line',{x1:left,y1:yy,x2:width-right,y2:yy,class:'grid-line'}));
@@ -2203,19 +2292,20 @@
     svg.appendChild(basinMakeSvg('line',{x1:left,y1:top+plotH,x2:width-right,y2:top+plotH,class:'axis-line'}));
     const lastObserved=observed.length?observed[observed.length-1]:null;
     if(lastObserved&&forecasts.length){
-      const boundary=xTime(lastObserved.time);
-      svg.appendChild(basinMakeSvg('line',{x1:boundary,y1:top,x2:boundary,y2:top+plotH,class:'forecast-boundary'}));
-      const label=basinMakeSvg('text',{x:boundary+5,y:top+12});
-      label.textContent='agora';
-      svg.appendChild(label);
+      basinChartBoundary(svg,xTime(lastObserved.time),'última leitura',width,right,top);
     }
     if(observed.length){
-      let path='',started=false;
-      observed.forEach(item=>{
-        path+=(started?' L ':'M ')+xTime(item.time)+' '+y(item.value);
-        started=true;
+      let path='',previousMs=null;
+      const step=basinChartInterval(observedSeries.map(item=>item.time));
+      const flush=()=>{if(path)svg.appendChild(basinMakeSvg('path',{d:path,fill:'none',stroke:'#1b7a5a','stroke-width':2.6}));path='';};
+      observedSeries.forEach(item=>{
+        const ms=Date.parse(item.time);
+        if(item.value===null){flush();previousMs=null;return;}
+        if(previousMs!==null&&ms-previousMs>step*1.5)flush();
+        path+=(path?' L ':'M ')+xTime(item.time)+' '+y(item.value);
+        previousMs=ms;
       });
-      svg.appendChild(basinMakeSvg('path',{d:path,fill:'none',stroke:'#1b7a5a','stroke-width':2.6}));
+      flush();
     }
     forecasts.forEach(item=>{
       const color=item.color||'#64748b';
@@ -2227,20 +2317,11 @@
     });
     const labels=[];
     if(observed.length)labels.push(observed[0]);
-    // A linha vertical já marca o último observado como "agora". Não repetir
+    // A linha vertical já marca a última leitura observada. Não repetir
     // o mesmo horário no eixo quando o primeiro alvo RNA está muito próximo.
     if(!forecasts.length&&lastObserved)labels.push(lastObserved);
     if(forecasts.length)labels.push(forecasts[forecasts.length-1]);
-    const seen=new Set();
-    labels.forEach(item=>{
-      const key=item.time+'|'+item.value;
-      if(seen.has(key))return;
-      seen.add(key);
-      const pos=xTime(item.time);
-      const text=basinMakeSvg('text',{x:pos,y:height-9,'text-anchor':pos<=left+2?'start':(pos>=width-right-2?'end':'middle')});
-      text.textContent=basinChartTime(item.time);
-      svg.appendChild(text);
-    });
+    basinChartTimeLabels(svg,labels.map(item=>item.time),xTime,width,height,left,right);
     chartHost.appendChild(svg);
     if(legendHost){
       if(observed.length){
@@ -2271,7 +2352,7 @@
     const observed=metric==='precipitation'&&st&&st.observed_rain&&st.observed_rain.state==='available'&&Array.isArray(st.observed_rain.rows)
       ?st.observed_rain.rows:[];
     const hasObserved=observed.some(row=>basinFinite(row&&row.mm));
-    const observedRows=hasObserved?observed:[];
+    const observedRows=hasObserved?observed.filter(row=>row&&Number.isFinite(Date.parse(row.time))).sort((a,b)=>Date.parse(a.time)-Date.parse(b.time)):[];
     const allTimes=forecast&&forecast.state==='available'&&Array.isArray(forecast.times)?forecast.times:[];
     const forecastStart=basinForecastIndex(st);
     const times=forecastStart>=0?allTimes.slice(forecastStart):[];
@@ -2279,8 +2360,8 @@
     const series=selected.map(spec=>{
       const values=forecast&&forecast.models&&forecast.models[spec.id]&&Array.isArray(forecast.models[spec.id][metric])
         ?forecast.models[spec.id][metric].slice(seriesStart):[];
-      return {spec:spec,values:values};
-    }).filter(item=>item.values.some(basinFinite));
+      return {spec:spec,values:values.slice(0,times.length)};
+    }).filter(item=>item.values.some((value,index)=>basinFinite(value)&&Number.isFinite(Date.parse(times[index]))));
     if(!observedRows.length&&!series.length){
       const empty=document.createElement('div');
       empty.className='station-empty';
@@ -2288,9 +2369,11 @@
       chartHost.appendChild(empty);
       return;
     }
-    const offset=observedRows.length;
-    const maxForecast=series.reduce((max,item)=>Math.max(max,item.values.length),0);
-    const total=Math.max(2,offset+Math.max(maxForecast,times.length));
+    const intervalStart=st&&st.observed_rain&&st.observed_rain.timestamp_role==='interval_start';
+    const plotTimes=observedRows.flatMap(row=>intervalStart&&row.interval_end_utc?[row.time,row.interval_end_utc]:[row.time]).concat(times).map(time=>Date.parse(time)).filter(Number.isFinite);
+    if(!plotTimes.length)return;
+    const firstMs=Math.min.apply(null,plotTimes),lastMs=Math.max.apply(null,plotTimes);
+    const spanMs=Math.max(3600000,lastMs-firstMs);
     const allValues=[];
     observedRows.forEach(row=>{if(basinFinite(row&&row.mm))allValues.push(Number(row.mm));});
     series.forEach(item=>item.values.forEach(value=>{if(basinFinite(value))allValues.push(Number(value));}));
@@ -2300,60 +2383,54 @@
     if(!Number.isFinite(min))min=0;
     if(!Number.isFinite(max))max=min+1;
     if(max<=min)max=min+(metric==='precipitation'?1:(Math.abs(min)*.1+1));
-    const width=760,height=260,left=45,right=14,top=14,bottom=34;
+    const {width,height}=basinChartSize(chartHost),left=54,right=14,top=24,bottom=40;
     const plotW=width-left-right,plotH=height-top-bottom;
-    const x=index=>left+(index/Math.max(1,total-1))*plotW;
+    const x=time=>left+((Date.parse(time)-firstMs)/spanMs)*plotW;
     const y=value=>top+(max-Number(value))/(max-min)*plotH;
-    const svg=basinMakeSvg('svg',{viewBox:'0 0 '+width+' '+height,role:'img','aria-label':def.label+' observado e previsto'});
+    const svg=basinMakeSvg('svg',{viewBox:'0 0 '+width+' '+height,width:width,height:height,preserveAspectRatio:'none',role:'img','data-axis-y':top+plotH,'aria-label':def.label+(hasObserved?' observado'+(series.length?' e previsto':''):' previsto; observação direta não publicada')});
     for(let i=0;i<=3;i++){
       const value=min+(max-min)*(i/3),yy=y(value);
       svg.appendChild(basinMakeSvg('line',{x1:left,y1:yy,x2:width-right,y2:yy,class:'grid-line'}));
       const text=basinMakeSvg('text',{x:left-7,y:yy+3,'text-anchor':'end'});
-      text.textContent=Number(value).toLocaleString('pt-BR',{maximumFractionDigits:1});
+      text.textContent=Number(value).toLocaleString('pt-BR',{maximumFractionDigits:metric==='soil_moisture_0_to_7cm'?3:1});
       svg.appendChild(text);
     }
     svg.appendChild(basinMakeSvg('line',{x1:left,y1:top+plotH,x2:width-right,y2:top+plotH,class:'axis-line'}));
-    if(offset&&series.length){
-      const boundary=x(Math.max(0,offset-.5));
-      svg.appendChild(basinMakeSvg('line',{x1:boundary,y1:top,x2:boundary,y2:top+plotH,class:'forecast-boundary'}));
-      const label=basinMakeSvg('text',{x:boundary+5,y:top+12});
-      label.textContent='agora';
-      svg.appendChild(label);
+    if(hasObserved&&series.length){
+      const firstForecast=times.find(time=>Number.isFinite(Date.parse(time)));
+      if(firstForecast)basinChartBoundary(svg,x(firstForecast),'início previsto',width,right,top);
     }
     if(observedRows.length){
-      const barWidth=Math.max(2,(plotW/total)*.72);
-      observedRows.forEach((row,index)=>{
+      observedRows.forEach(row=>{
         if(!basinFinite(row&&row.mm))return;
         const value=Number(row.mm),yy=y(value);
-        svg.appendChild(basinMakeSvg('rect',{x:x(index)-barWidth/2,y:yy,width:barWidth,height:Math.max(0,top+plotH-yy),rx:1,fill:'#5b8f86',opacity:.55}));
+        const endMs=intervalStart?Date.parse(row.interval_end_utc):NaN;
+        const hasInterval=Number.isFinite(endMs)&&endMs>Date.parse(row.time);
+        const barWidth=hasInterval?(endMs-Date.parse(row.time))/spanMs*plotW:Math.min(6,3600000/spanMs*plotW*.72);
+        const rect=basinMakeSvg('rect',{x:hasInterval?x(row.time):Math.max(left,x(row.time)-barWidth/2),y:yy,width:barWidth,height:Math.max(0,top+plotH-yy),rx:1,fill:row.partial?'#b7791f':'#5b8f86',opacity:.6,'data-time':row.time,'data-partial':String(row.partial===true)});
+        const title=basinMakeSvg('title');title.textContent=basinObservedRowTime(row,st.observed_rain)+' · '+basinFormat(value,metric);rect.appendChild(title);
+        svg.appendChild(rect);
       });
     }
     series.forEach(item=>{
-      let path='',started=false;
+      let path='',previousMs=null;
+      const step=basinChartInterval(times);
+      const flush=()=>{if(path)svg.appendChild(basinMakeSvg('path',{d:path,fill:'none',stroke:item.spec.color||'#1769aa','stroke-width':2,class:'forecast-series','data-model':item.spec.id}));path='';};
       item.values.forEach((value,index)=>{
-        if(!basinFinite(value)){
-          if(path){
-            svg.appendChild(basinMakeSvg('path',{d:path,fill:'none',stroke:item.spec.color||'#1769aa','stroke-width':2}));
-            path='';
-          }
-          started=false;
-          return;
-        }
-        path+=(started?' L ':'M ')+x(offset+index)+' '+y(value);
-        started=true;
+        const ms=Date.parse(times[index]);
+        if(!basinFinite(value)||!Number.isFinite(ms)){flush();previousMs=null;return;}
+        if(previousMs!==null&&ms-previousMs>step*1.5)flush();
+        path+=(path?' L ':'M ')+x(times[index])+' '+y(value);
+        previousMs=ms;
+        const dot=basinMakeSvg('circle',{cx:x(times[index]),cy:y(value),r:2,fill:item.spec.color||'#1769aa',class:'forecast-point','data-model':item.spec.id,'data-time':times[index]});
+        const title=basinMakeSvg('title');title.textContent=item.spec.label+' · '+basinDateTime(times[index])+' · '+basinFormat(value,metric);dot.appendChild(title);svg.appendChild(dot);
       });
-      if(path)svg.appendChild(basinMakeSvg('path',{d:path,fill:'none',stroke:item.spec.color||'#1769aa','stroke-width':2}));
+      flush();
     });
     const timeLabels=[];
-    if(observedRows.length)timeLabels.push({index:0,value:observedRows[0].time});
-    if(offset&&times.length)timeLabels.push({index:offset,value:times[0]});
-    if(times.length)timeLabels.push({index:offset+times.length-1,value:times[times.length-1]});
-    if(!observedRows.length&&!times.length&&series.length)timeLabels.push({index:0,value:''});
-    timeLabels.forEach(item=>{
-      const text=basinMakeSvg('text',{x:x(item.index),y:height-9,'text-anchor':item.index===0?'start':(item.index>=total-1?'end':'middle')});
-      text.textContent=basinChartTime(item.value);
-      svg.appendChild(text);
-    });
+    if(observedRows.length)timeLabels.push(observedRows[0].time,observedRows[observedRows.length-1].time);
+    if(times.length)timeLabels.push(times[0],times[times.length-1]);
+    basinChartTimeLabels(svg,timeLabels,x,width,height,left,right);
     chartHost.appendChild(svg);
     if(legendHost){
       if(observedRows.length){
@@ -2373,6 +2450,9 @@
   function basinRenderDetail(st){
     const panel=basinById('station-detail');
     if(!panel)return;
+    const active=document.activeElement;
+    const focusedModel=panel.contains(active)&&active.getAttribute('data-basin-model');
+    const focusedMetric=panel.contains(active)&&active.getAttribute('data-basin-metric');
     if(!st){panel.hidden=true;panel.replaceChildren();return;}
     panel.hidden=false;
     const kind=basinStationKind(st);
@@ -2389,7 +2469,7 @@
     const rain=basinObservedRainTotal(st);
     const observedRain24=basinObservedWindow(st,24);
     const observedRain72=basinObservedWindow(st,72);
-    const observedStatus=window=>!window||!Number(window.valid_points||0)?'unavailable':window.complete?'complete':'partial';
+    const observedStatus=window=>!window||!Number(window.valid_points||0)?'unavailable':window.complete&&st.observed_rain&&st.observed_rain.timestamp_role==='interval_start'&&window.unconfirmed_points===0?'complete':'partial';
 
     const cemadenRain=basinSourceObservation(st,'chuva_acumulada_24h_mm');
     const cemadenApplicable=!!cemadenRain||basinHasSource(st,'CEMADEN');
@@ -2422,9 +2502,10 @@
     const rnaFallbackApplicable=['86472600','86510000'].includes(String(st.code||''));
     const rnaApplicable=level&&typeof level.forecast_applicable==='boolean'?level.forecast_applicable:rnaFallbackApplicable;
     const rnaForecasts=level&&Array.isArray(level.forecasts)?level.forecasts:[];
-    const rnaFallback=rnaForecasts.find(item=>item&&basinFinite(item.cm))||null;
-    const rnaValue=level&&basinNumber(level.forecast_cm)!==null?basinNumber(level.forecast_cm):(rnaFallback?basinNumber(rnaFallback.cm):null);
-    const rnaTime=level&&level.forecast_at_utc?level.forecast_at_utc:(rnaFallback&&rnaFallback.time||null);
+    const rnaFallback=rnaForecasts.filter(item=>item&&basinLevelNumber(item.cm)!==null&&Date.parse(item.time)>Date.now()).sort((a,b)=>Date.parse(a.time)-Date.parse(b.time))[0]||null;
+    const topRnaCurrent=level&&basinLevelNumber(level.forecast_cm)!==null&&Date.parse(level.forecast_at_utc)>Date.now();
+    const rnaValue=topRnaCurrent?basinLevelNumber(level.forecast_cm):(rnaFallback?basinLevelNumber(rnaFallback.cm):null);
+    const rnaTime=topRnaCurrent?level.forecast_at_utc:(rnaFallback&&rnaFallback.time||null);
     const rnaAvailable=rnaValue!==null;
     const forecastLevel=rnaAvailable?basinFormat(rnaValue,'level_cm'):(rnaApplicable?'indisponível':'—');
     const rnaNote=rnaAvailable
@@ -2447,7 +2528,8 @@
     const pressure=pressureStats.value;
     const probability=probabilityStats.value;
     const soil=soilStats.value;
-    const levelNote=level&&level.state==='available'
+    const observedLevelUsable=level&&level.state==='available'&&basinLevelNumber(level.current_cm)!==null;
+    const levelNote=observedLevelUsable
       ?(level.observed_at_utc?'observado em '+basinDate(level.observed_at_utc)+' · '+basinMinutesNote(level.observed_age_minutes):'idade não informada')
       :'telemetria indisponível';
     const selectedCount=basinModelIdsForSelection().length;
@@ -2456,25 +2538,25 @@
     const code=st.code&&st.code!=='—'?'código '+st.code:'código não informado';
     const coordinate=basinCoord(st.latitude!==undefined?st.latitude:st.lat,'N','S')+' · '+basinCoord(st.longitude!==undefined?st.longitude:st.lon,'E','O');
     const currentMetricNote=(stats,extra)=>forecastTime?(extra?extra+' · ':'')+'horário '+basinDate(forecastTime)+' · '+basinCoverageText(stats):forecastUnavailableNote;
-    let html='<div class="station-detail-header"><div><h3 class="station-detail-title">'+basinEscape(st.name||'Estação')+'</h3><p class="station-detail-subtitle">'+basinEscape(st.papel||kind.label)+' · '+basinEscape(coordinate)+'</p><div class="station-detail-badges"><span class="station-detail-badge">'+basinEscape(code)+'</span><span class="station-detail-badge">'+basinEscape(basinSourceLabel(st))+'</span><span class="station-detail-badge">'+basinEscape(kind.label)+'</span><span class="station-detail-badge research">pesquisa · não é alerta oficial</span>'+(basinFeedIsStale()?'<span class="station-detail-badge stale">snapshot atrasado</span>':'')+'</div></div><div class="station-detail-update">Feed gerado: '+basinEscape(generated)+'<br>Próximo ciclo: '+basinEscape(next)+'</div></div>';
+    let html='<div class="station-detail-header"><div><h3 class="station-detail-title">'+basinEscape(st.name||'Estação')+'</h3><p class="station-detail-subtitle">'+basinEscape(st.papel||kind.label)+' · '+basinEscape(coordinate)+'</p><div class="station-detail-badges"><span class="station-detail-badge">'+basinEscape(code)+'</span><span class="station-detail-badge">'+basinEscape(basinSourceLabel(st))+'</span><span class="station-detail-badge">'+basinEscape(kind.label)+'</span><span class="station-detail-badge research">pesquisa · não é alerta oficial</span>'+(basinFeedIsStale()?'<span class="station-detail-badge stale">snapshot atrasado</span>':'')+'</div></div><div class="station-detail-update">Feed gerado: '+basinEscape(generated)+'<br>Próximo ciclo nominal: '+basinEscape(next)+'</div></div>';
     if(st.sace_report_url)html+='<p class="station-detail-source-link"><a href="'+basinEscape(st.sace_report_url)+'" target="_blank" rel="noopener">Abrir relatório hidrotelemétrico SGB/SACE desta estação</a></p>';
-    html+='<div class="station-detail-controls"><div class="station-control-group"><span class="station-control-label">Modelos meteorológicos</span><div class="station-model-toggle">';
+    html+='<div class="station-detail-controls"><div class="station-control-group"><span class="station-control-label">Modelos meteorológicos</span><div class="station-model-toggle" role="group" aria-label="Selecionar modelos meteorológicos">';
     specs.forEach(spec=>{
       const on=BASIN_DETAIL_MODELS.includes(spec.id);
-      html+='<button type="button" class="station-model'+(on?' on':'')+'" data-basin-model="'+basinEscape(spec.id)+'" style="--model-color:'+basinEscape(spec.color||'#1769aa')+'">'+basinEscape(spec.label)+'</button>';
+      html+='<button type="button" aria-pressed="'+String(on)+'" class="station-model'+(on?' on':'')+'" data-basin-model="'+basinEscape(spec.id)+'" style="--model-color:'+basinEscape(spec.color||'#1769aa')+'">'+basinEscape(spec.label)+'</button>';
     });
-    html+='</div></div><div class="station-control-group"><span class="station-control-label">Métrica do gráfico</span><div class="station-metric-tabs">';
+    html+='</div></div><div class="station-control-group"><span class="station-control-label">Métrica do gráfico</span><div class="station-metric-tabs" role="group" aria-label="Selecionar métrica do gráfico">';
     metrics.forEach(metric=>{
       const metricCount=stationMetricCounts[metric.id]||0;
       const metricTitle=metric.label+' · '+metricCount+'/'+specs.length+' modelo(s) com algum valor nesta estação';
-      html+='<button type="button" title="'+basinEscape(metricTitle)+'" aria-label="'+basinEscape(metricTitle)+'" class="station-metric-tab'+(metric.id===BASIN_DETAIL_METRIC?' on':'')+'" data-basin-metric="'+basinEscape(metric.id)+'">'+basinEscape(metric.label)+'</button>';
+      html+='<button type="button" aria-pressed="'+String(metric.id===BASIN_DETAIL_METRIC)+'" title="'+basinEscape(metricTitle)+'" aria-label="'+basinEscape(metricTitle)+'" class="station-metric-tab'+(metric.id===BASIN_DETAIL_METRIC?' on':'')+'" data-basin-metric="'+basinEscape(metric.id)+'">'+basinEscape(metric.label)+'</button>';
     });
     html+='</div></div></div>';
 
     html+='<div class="station-summary">'+
-      basinMetricCard('Chuva observada · 24h (série horária)',observedRain24&&basinFinite(observedRain24.mm)?basinFormat(observedRain24.mm,'precipitation'):'indisponível',basinObservedWindowNote(observedRain24),observedStatus(observedRain24))+
+      basinMetricCard('Chuva observada · 24h (série horária)',observedRain24&&basinFinite(observedRain24.mm)?basinFormat(observedRain24.mm,'precipitation'):'indisponível',basinObservedWindowNote(observedRain24,st.observed_rain),observedStatus(observedRain24))+
       basinMetricCard('CEMADEN · acumulado observado 24h',cemadenRainValue,cemadenRainNote,cemadenStatus)+
-      basinMetricCard('Chuva observada · 72h (série horária)',rainValue,rain.count?basinObservedWindowNote(observedRain72):'sem pontos válidos',observedStatus(observedRain72))+
+      basinMetricCard('Chuva observada · 72h (série horária)',rainValue,basinObservedWindowNote(observedRain72,st.observed_rain),observedStatus(observedRain72))+
       basinMetricCard('Chuva prevista · próximo horário',forecastRain===null?'indisponível':basinFormat(forecastRain,'precipitation'),forecastRainNote,basinStatsStatus(forecastRainStats))+
       basinMetricCard('Chuva prevista · 3 h',forecastRain3Stats.value===null?'indisponível':basinFormat(forecastRain3Stats.value,'precipitation'),windowNote(forecastRain3Stats,3),basinStatsStatus(forecastRain3Stats))+
       basinMetricCard('Chuva prevista · 6 h',forecastRain6Stats.value===null?'indisponível':basinFormat(forecastRain6Stats.value,'precipitation'),windowNote(forecastRain6Stats,6),basinStatsStatus(forecastRain6Stats))+
@@ -2483,7 +2565,7 @@
       basinMetricCard('Chuva prevista · 48 h',forecastRain48Stats.value===null?'indisponível':basinFormat(forecastRain48Stats.value,'precipitation'),windowNote(forecastRain48Stats,48),basinStatsStatus(forecastRain48Stats))+
       basinMetricCard('Chuva prevista · 72 h',forecastRain72Stats.value===null?'indisponível':basinFormat(forecastRain72Stats.value,'precipitation'),windowNote(forecastRain72Stats,72),basinStatsStatus(forecastRain72Stats))+
       basinMetricCard('Probabilidade de chuva',probability===null?'indisponível':basinFormat(probability,'precipitation_probability'),currentMetricNote(probabilityStats,''),basinStatsStatus(probabilityStats))+
-      basinMetricCard('Nível observado',level&&level.state==='available'?basinFormat(level.current_cm,'level_cm'):'indisponível',levelNote+(level&&level.trend_label?' · '+level.trend_label:'')+(level&&level.trend_cm_per_hour!==null&&level.trend_cm_per_hour!==undefined?' · '+basinFormat(level.trend_cm_per_hour,'level_cm')+'/h':''),level&&level.state==='available'?'complete':'unavailable')+
+      basinMetricCard('Nível observado',observedLevelUsable?basinFormat(level.current_cm,'level_cm'):'indisponível',levelNote+(observedLevelUsable&&level.trend_label?' · '+level.trend_label:'')+(observedLevelUsable&&level.trend_cm_per_hour!==null&&level.trend_cm_per_hour!==undefined?' · '+basinFormat(level.trend_cm_per_hour,'level_cm')+'/h':''),observedLevelUsable?'complete':'unavailable')+
       basinMetricCard('Nível previsto · RNA',forecastLevel,rnaNote,rnaStatus)+
       basinMetricCard('Temperatura prevista',temp===null?'indisponível':basinFormat(temp,'temperature_2m'),currentMetricNote(tempStats,''),basinStatsStatus(tempStats))+
       basinMetricCard('Umidade prevista',humidity===null?'indisponível':basinFormat(humidity,'relative_humidity_2m'),currentMetricNote(humidityStats,''),basinStatsStatus(humidityStats))+
@@ -2501,7 +2583,7 @@
         '<p>Valores trazidos diretamente dos painéis/fontes complementares da estação. O horário abaixo é o horário de atualização informado pela fonte; quando a fonte não publica o instante individual da medição, isso é mantido explícito.</p>'+
         '<div class="station-source-table-wrap"><table class="station-source-table"><thead><tr><th>Fonte</th><th>Variável</th><th>Valor</th><th>Atualização da fonte</th><th>Estado</th></tr></thead><tbody>';
       sourceObservations.forEach(item=>{
-        const ok=String(item.source_status)==='0'&&basinFinite(item.value);
+        const ok=basinSourceObservationUsable(item);
         const updated=item.updated_at_utc?String(item.updated_at_utc).replace(' UTC','')+' UTC':'não informado';
         html+='<tr><td>'+basinEscape(item.source||'fonte não informada')+'</td>'+
           '<td>'+basinEscape(basinSourceObservationLabel(item.metric))+'</td>'+
@@ -2520,7 +2602,7 @@
     }).length;
     const currentRnas=level&&Array.isArray(level.forecasts)?level.forecasts.filter(item=>{
       const ms=Date.parse(item&&item.time);
-      return basinFinite(item&&item.cm)&&Number.isFinite(ms)&&ms>Date.now();
+      return basinLevelNumber(item&&item.cm)!==null&&Number.isFinite(ms)&&ms>Date.now();
     }):[];
     const chartCoverage=BASIN_DETAIL_METRIC==='level_cm'
       ?currentRnas.length+' RNA(s) com alvo futuro nesta estação'
@@ -2543,8 +2625,8 @@
       :(forecast&&forecast.message?forecast.message:'Previsão meteorológica indisponível para este ponto.');
     const rainMessage=st.observed_rain&&st.observed_rain.message?st.observed_rain.message:'Chuva observada não publicada para esta estação.';
     const levelMessage=level&&level.message?level.message:'Telemetria de nível não publicada para esta estação.';
-    const freshnessMessage=basinFeedIsStale()?' O snapshot está atrasado em relação ao contrato de cinco minutos; a previsão antiga foi retirada até a próxima rodada.':'';
-     html+='<p class="station-detail-note"><strong>Leitura dos dados:</strong> '+basinEscape(forecastMessage)+' '+basinEscape(rainMessage)+' '+basinEscape(levelMessage)+basinEscape(freshnessMessage)+' A série horária observada e o acumulado CEMADEN de 24h são produtos diferentes; o horário de atualização do painel CEMADEN não comprova o horário da última leitura de cada sensor. Os pontos horários de chuva são mm da hora anterior; cada acumulado previsto mostra explicitamente o início e o fim da janela. Zero previsto é saída dos modelos consultados, não confirmação de ausência de chuva ou risco. Ausência de dado nunca é convertida em zero. A umidade do solo é proxy modelado, não sensor local. Os horários estão em Brasília (BRT) na interface; o feed mantém UTC. A atualização é automática e encadeada, mas a publicação depende do tempo necessário para consultar e validar toda a rede.</p>';
+    const freshnessMessage=basinFeedIsStale()?' O snapshot ultrapassou a tolerância de atualização da meta nominal de cinco minutos; a previsão antiga foi retirada até a próxima rodada.':'';
+     html+='<p class="station-detail-note"><strong>Leitura dos dados:</strong> '+basinEscape(forecastMessage)+' '+basinEscape(rainMessage)+' '+basinEscape(levelMessage)+basinEscape(freshnessMessage)+' A série horária observada e o acumulado CEMADEN de 24h são produtos diferentes; o horário de atualização do painel CEMADEN não comprova o horário da última leitura de cada sensor. Na chuva observada, o carimbo marca o início do intervalo; valores coletados durante a hora permanecem parciais até nova consulta após o término. Apenas a precipitação prevista Open-Meteo representa mm da hora anterior ao horário do modelo; cada acumulado previsto mostra o início e o fim da janela. Zero previsto é saída dos modelos consultados, não confirmação de ausência de chuva ou risco. Ausência de dado nunca é convertida em zero. A umidade do solo é proxy modelado, não sensor local. Os horários estão em Brasília (BRT) na interface; o feed mantém UTC. A atualização tem meta nominal de cinco minutos e é encadeada, sujeita a filas, consultas e validação de toda a rede.</p>';
     panel.innerHTML=html;
     panel.querySelectorAll('[data-basin-model]').forEach(button=>button.addEventListener('click',()=>{
       const id=button.getAttribute('data-basin-model');
@@ -2555,12 +2637,17 @@
         BASIN_DETAIL_MODELS=BASIN_DETAIL_MODELS.concat(id);
       }
       basinRenderDetail(BASIN_SELECTED);
+      panel.querySelector('[data-basin-model="'+id+'"]').focus({preventScroll:true});
     }));
     panel.querySelectorAll('[data-basin-metric]').forEach(button=>button.addEventListener('click',()=>{
       BASIN_DETAIL_METRIC=button.getAttribute('data-basin-metric')||'precipitation';
       basinRenderDetail(BASIN_SELECTED);
+      panel.querySelector('[data-basin-metric="'+BASIN_DETAIL_METRIC+'"]').focus({preventScroll:true});
     }));
     basinRenderChart(st,BASIN_DETAIL_METRIC,basinById('station-chart'),basinById('station-chart-legend'));
+    basinObserveChartSize(basinById('station-chart'));
+    const restore=focusedModel?panel.querySelector('[data-basin-model="'+focusedModel+'"]'):focusedMetric?panel.querySelector('[data-basin-metric="'+focusedMetric+'"]'):null;
+    if(restore)restore.focus({preventScroll:true});
   }
 
   function basinSelectStation(st,center){
@@ -2593,8 +2680,8 @@
     const kind=basinStationKind(st);
     const code=st.code&&st.code!=='—'?'Código '+st.code:'código não informado';
     const forecast=st.forecast&&st.forecast.state==='available'?'previsão disponível':'previsão indisponível';
-    const level=st.level&&st.level.state==='available'?('nível '+basinFormat(st.level.current_cm,'level_cm')+' · '+basinMinutesNote(st.level.observed_age_minutes)):'nível indisponível';
-    const rain=st.observed_rain&&st.observed_rain.state==='available'?('chuva observada · '+basinMinutesNote(st.observed_rain.observed_age_minutes)):'chuva horária indisponível';
+    const level=st.level&&st.level.state==='available'&&basinLevelNumber(st.level.current_cm)!==null?('nível '+basinFormat(st.level.current_cm,'level_cm')+' · '+basinMinutesNote(st.level.observed_age_minutes)):'nível indisponível';
+    const rain=st.observed_rain&&st.observed_rain.state==='available'?('chuva observada · '+basinObservedRainAge(st.observed_rain)):'chuva horária indisponível';
     return '<div class="basin-popup"><strong>'+basinEscape(st.name||'Estação')+'</strong>'+
       '<span>'+basinEscape(kind.label)+' · '+basinEscape(code)+'</span>'+
       '<span>'+basinEscape(basinSourceLabel(st))+'</span>'+
@@ -2677,11 +2764,32 @@
         });
         const marker=L.marker([lat,lon],{icon,keyboard:true,title:group.length+' estações nesta área'}).addTo(BASIN_MARKER_LAYER);
         marker.bindTooltip(group.length+' estações · '+observedCount+' com observado · clique para aproximar',{direction:'top',className:'basin-station-tip'});
-        marker.on('click',()=>{
+        const zoomCluster=fromKeyboard=>{
+          if(fromKeyboard)BASIN_MAP.once('moveend',()=>requestAnimationFrame(()=>{
+            const container=BASIN_MAP.getContainer(), bounds=container.getBoundingClientRect();
+            const icons=Array.from(container.querySelectorAll('.basin-cluster-icon')).filter(node=>{
+              const rect=node.getBoundingClientRect();
+              return rect.right>bounds.left&&rect.left<bounds.right&&rect.bottom>bounds.top&&rect.top<bounds.bottom;
+            });
+            const distance=node=>(Number(node.dataset.clusterLat)-lat)**2+(Number(node.dataset.clusterLon)-lon)**2;
+            icons.sort((a,b)=>distance(a)-distance(b));
+            (icons[0]||container).focus({preventScroll:true});
+          }));
           const groupBounds=L.latLngBounds(group.map(item=>item.position));
           const ne=groupBounds.getNorthEast(), sw=groupBounds.getSouthWest();
           if(ne.equals(sw))BASIN_MAP.setView([lat,lon],Math.min(13,zoom+2));
           else BASIN_MAP.fitBounds(groupBounds,{padding:[34,34],maxZoom:Math.min(13,zoom+3)});
+          if(BASIN_MAP.getZoom()<=zoom&&zoom<13)BASIN_MAP.setView([lat,lon],zoom+1);
+        };
+        marker.on('click',()=>zoomCluster(false));
+        const clusterNode=marker.getElement();
+        clusterNode.dataset.clusterLat=String(lat);
+        clusterNode.dataset.clusterLon=String(lon);
+        clusterNode.setAttribute('aria-label',group.length+' estações nesta área; Enter ou espaço para aproximar');
+        L.DomEvent.on(clusterNode,'keydown',event=>{
+          if(event.key!=='Enter'&&event.key!==' '&&event.key!=='Spacebar')return;
+          L.DomEvent.stop(event);
+          if(!event.repeat)zoomCluster(true);
         });
         return;
       }

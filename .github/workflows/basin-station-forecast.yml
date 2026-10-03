@@ -4,11 +4,16 @@ on:
   push:
     branches: [main]
     paths:
+      - '.gitattributes'
       - 'scripts/build_basin_station_forecast.py'
       - 'scripts/archive_basin_station_forecast.py'
       - 'scripts/test_basin_station_forecast.py'
       - 'scripts/test_basin_station_catalog.py'
       - 'scripts/test_basin_station_forecast_archive.py'
+      - 'scripts/test_rain_observation_provenance.py'
+      - 'scripts/test_rain_workflow_publication.py'
+      - 'codigo_python/10_chuvas/baixar_chuvas_horarias.py'
+      - 'previne/robo/fontes_chuva_8h.py'
       - '.github/workflows/basin-station-forecast.yml'
   workflow_dispatch:
   repository_dispatch:
@@ -36,22 +41,56 @@ jobs:
     # provedor não pode cancelar o job antes que ele publique ou se recupere.
     timeout-minutes: 20
     steps:
+      - name: Marca início da rodada (UTC)
+        id: cycle-clock
+        shell: bash
+        run: echo "started=$(date -u +%s)" >> "$GITHUB_OUTPUT"
+
       - name: Checkout main
         uses: actions/checkout@v7
         with:
           ref: main
-          fetch-depth: 0
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          # Somente os insumos desta rodada; o arquivo histórico permanece
+          # no Git sem baixar milhares de snapshots antigos a cada consulta.
+          sparse-checkout: |
+            /.gitattributes
+            /.github/workflows/basin-station-forecast.yml
+            /.github/workflows/chuvas-horarias.yml
+            /scripts/
+            /previne/
+            /codigo_python/10_chuvas/
+            /dashboard_bacia.html
+            /assets/js/bacia_dashboard.js
+            /assets/data/chuvas_horarias.csv
+            /assets/data/chuvas_horarias.csv.provenance.json
+            /assets/data/basin_station_forecast_latest.json
+            /assets/data/basin_station_status_latest.json
+            /assets/data/estudo_bacia_taquari_antas/postos_g040.geojson
+            /assets/data/estudo_bacia_taquari_antas/pluviometria_g040.geojson
+            /assets/data/estudo_bacia_taquari_antas/ugs_g040.geojson
+            /previsao_ao_vivo.json
+            /previsao_ao_vivo_mucum.json
 
       - name: Configura Python
         uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
+      - name: Consulta a chuva horária observada antes de montar o feed
+        # Uma falha de fonte preserva o CSV anterior. A idade da leitura
+        # continua visível; a previsão meteorológica ainda pode ser atualizada.
+        continue-on-error: true
+        timeout-minutes: 2
+        run: python -B codigo_python/10_chuvas/baixar_chuvas_horarias.py
+
       - name: Atualiza o catálogo completo e o feed multi-modelo da bacia
         run: python -B scripts/build_basin_station_forecast.py
 
       - name: Testa o contrato do feed
-        run: python -m unittest scripts.test_basin_station_forecast scripts.test_basin_station_catalog -v
+        run: python -B -m unittest scripts.test_basin_station_forecast scripts.test_basin_station_catalog scripts.test_rain_observation_provenance scripts.test_rain_workflow_publication -v
 
       - name: Arquiva a rodada para avaliação futura dos modelos
         run: python -B scripts/archive_basin_station_forecast.py
@@ -59,35 +98,47 @@ jobs:
       - name: Testa o contrato do arquivo histórico
         run: python -m unittest scripts.test_basin_station_forecast_archive -v
 
-      - name: Publica somente o feed da bacia
+      - name: Publica chuva observada e o feed da bacia
         shell: bash
         run: |
           git config user.name 'previne-basin-station-bot'
           git config user.email 'previne-basin-station-bot@users.noreply.github.com'
-          git add assets/data/basin_station_forecast_latest.json assets/data/basin_station_status_latest.json assets/data/basin_station_forecast_archive
+          python -B scripts/test_rain_workflow_publication.py --validate-pair --allow-legacy-unchanged
+          git add --sparse assets/data/chuvas_horarias.csv assets/data/basin_station_forecast_latest.json assets/data/basin_station_status_latest.json assets/data/basin_station_forecast_archive
+          if [ -f assets/data/chuvas_horarias.csv.provenance.json ]; then
+            git add --sparse assets/data/chuvas_horarias.csv.provenance.json
+          fi
           if git diff --cached --quiet; then
             echo 'Nenhuma mudança no feed.'
             exit 0
           fi
-          git commit -m 'bot: atualiza feed multi-modelo das estações da bacia'
+          git commit -m 'bot: atualiza observações e feed multi-modelo da bacia'
           for attempt in 1 2 3 4 5; do
+            python -B scripts/test_rain_workflow_publication.py --validate-pair --git-ref HEAD --allow-legacy-unchanged
             if git push origin HEAD:main; then
               exit 0
             fi
-            echo "Push ocupado; reconstruindo sobre a main (tentativa \${attempt}/5)."
+            if [ "$attempt" -eq 5 ]; then break; fi
+            echo "Push ocupado; reconstruindo sobre a main (tentativa ${attempt}/5)."
             git fetch origin main
-            git rebase origin/main || {
-              git rebase --abort || true
-              git reset --keep origin/main
-              python -B scripts/build_basin_station_forecast.py
-              python -m unittest scripts.test_basin_station_forecast scripts.test_basin_station_catalog -v
-              git add assets/data/basin_station_forecast_latest.json assets/data/basin_station_status_latest.json assets/data/basin_station_forecast_archive
-              if git diff --cached --quiet; then
-                echo 'Feed já publicado por outra execução.'
-                exit 0
-              fi
-              git commit -m 'bot: atualiza feed multi-modelo das estações da bacia'
-            }
+            # Runner descartável: o par e o feed nunca passam por automerge.
+            # reset --keep preserva alterações locais inesperadas recusando
+            # sobrescrevê-las; os snapshots já em origin/main são mantidos.
+            git reset --keep origin/main
+            timeout 120s python -B codigo_python/10_chuvas/baixar_chuvas_horarias.py || echo 'Coleta indisponível; preservando a série observada anterior.'
+            python -B scripts/build_basin_station_forecast.py
+            python -B scripts/archive_basin_station_forecast.py
+            python -B -m unittest scripts.test_basin_station_forecast scripts.test_basin_station_catalog scripts.test_basin_station_forecast_archive scripts.test_rain_observation_provenance scripts.test_rain_workflow_publication -v
+            python -B scripts/test_rain_workflow_publication.py --validate-pair --allow-legacy-unchanged
+            git add --sparse assets/data/chuvas_horarias.csv assets/data/basin_station_forecast_latest.json assets/data/basin_station_status_latest.json assets/data/basin_station_forecast_archive
+            if [ -f assets/data/chuvas_horarias.csv.provenance.json ]; then
+              git add --sparse assets/data/chuvas_horarias.csv.provenance.json
+            fi
+            if git diff --cached --quiet; then
+              echo 'Feed já publicado por outra execução.'
+              exit 0
+            fi
+            git commit -m 'bot: atualiza observações e feed multi-modelo da bacia'
             sleep $((attempt * 2))
           done
           echo 'Não foi possível publicar após 5 tentativas.'
@@ -101,9 +152,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PREVIOUS_JOB_STATUS: ${{ job.status }}
+          CYCLE_STARTED_AT: ${{ steps.cycle-clock.outputs.started }}
         run: |
           if [ "${PREVIOUS_JOB_STATUS}" = "success" ]; then
-            sleep 120
+            elapsed=$(( $(date -u +%s) - CYCLE_STARTED_AT ))
+            remaining=$((300 - elapsed))
+            if [ "$remaining" -gt 0 ]; then
+              echo "Aguardando ${remaining}s para completar o ciclo nominal de 5 min desde o início da rodada."
+              sleep "$remaining"
+            else
+              echo "A rodada levou ${elapsed}s; encadeando a próxima imediatamente."
+            fi
           else
             echo "rodada anterior falhou; nova tentativa com backoff de 5 min"
             sleep 300

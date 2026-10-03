@@ -31,8 +31,9 @@ class BasinDashboardTests(unittest.TestCase):
         self.assertTrue(self.page.exists())
         self.assertTrue((ROOT / "assets/css/bacia_dashboard.css").exists())
         self.assertTrue((ROOT / "assets/js/bacia_dashboard.js").exists())
-        for token in ("data-bacia-dashboard", "assets/css/bacia_dashboard.css", "assets/js/bacia_dashboard.js", "dashboard_bacia.html"):
+        for token in ("data-bacia-dashboard", "assets/css/bacia_dashboard.css", "assets/js/bacia_dashboard.js?v=", "dashboard_bacia.html"):
             self.assertIn(token, self.text)
+        self.assertRegex(self.text, r'assets/js/bacia_dashboard\.js\?v=\d{8}-[a-z0-9-]+')
 
     def test_controls_cover_basin_stations_and_horizons(self) -> None:
         for token in ('data-station="basin"', 'data-station="santa"', 'data-station="mucum"', 'data-horizon="24"', 'data-horizon="72"', 'data-horizon="168"'):
