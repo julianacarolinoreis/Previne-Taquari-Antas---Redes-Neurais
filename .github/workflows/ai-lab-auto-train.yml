@@ -13,7 +13,6 @@ on:
       - "assets/data/ai_lab/experiments.json"
       - "scripts/ai_lab_auto_train.py"
       - "scripts/ai_lab_temporal_train.py"
-      - "scripts/ai_lab_build_shadow_package.py"
       - ".github/workflows/ai-lab-auto-train.yml"
   schedule:
     - cron: "17 6 * * 1"
@@ -38,7 +37,6 @@ jobs:
           sparse-checkout: |
             scripts/ai_lab_auto_train.py
             scripts/ai_lab_temporal_train.py
-            scripts/ai_lab_build_shadow_package.py
             assets/data/ai_lab
             assets/audit_workbooks
           sparse-checkout-cone-mode: false
@@ -63,16 +61,11 @@ jobs:
           EXPERIMENT="${{ github.event.inputs.experiment || 'stz_2h_auto_v1' }}"
           python -B scripts/ai_lab_temporal_train.py --experiment "$EXPERIMENT"
 
-      - name: Build research shadow package
-        run: |
-          EXPERIMENT="${{ github.event.inputs.experiment || 'stz_2h_auto_v1' }}"
-          python -B scripts/ai_lab_build_shadow_package.py --experiment "$EXPERIMENT"
-
       - name: Publish auditable leaderboard
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/data/ai_lab/auto_training_latest.json assets/data/ai_lab/auto_training_leaderboard.csv assets/data/ai_lab/auto_training_v2_latest.json assets/data/ai_lab/auto_training_v2_leaderboard.csv assets/data/ai_lab/shadow
+          git add assets/data/ai_lab/auto_training_latest.json assets/data/ai_lab/auto_training_leaderboard.csv assets/data/ai_lab/auto_training_v2_latest.json assets/data/ai_lab/auto_training_v2_leaderboard.csv
           if git diff --cached --quiet; then
             echo "No AI Lab result changes."
           else
@@ -100,4 +93,3 @@ jobs:
             assets/data/ai_lab/auto_training_leaderboard.csv
             assets/data/ai_lab/auto_training_v2_latest.json
             assets/data/ai_lab/auto_training_v2_leaderboard.csv
-            assets/data/ai_lab/shadow
