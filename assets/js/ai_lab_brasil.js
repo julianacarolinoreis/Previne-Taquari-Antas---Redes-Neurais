@@ -236,25 +236,27 @@
     var allRows=(data.leaderboard || []);
     var bestOverall=allRows.length ? allRows[0] : null;
     var bestTemporal=allRows.find(function(row){return row.representation==='temporal_sequence';});
+    var bestEligible=allRows.find(function(row){return row.shadow_eligible;});
+    var bestTemporalEligible=allRows.find(function(row){return row.representation==='temporal_sequence' && row.shadow_eligible;});
+    var bestStaticEligible=allRows.find(function(row){return row.representation==='static_current_row' && row.shadow_eligible;});
     var baseline=allRows.find(function(row){return row.model==='Persistência';});
     text('training-best-overall',bestOverall ? bestOverall.model : '—');
-    text('training-best-overall-metric',bestOverall ? 'MAE '+fmtNumber(bestOverall.median_mae_cm,2)+' cm · '+(bestOverall.shadow_eligible?'gate sombra':'retido') : '—');
-    text('training-best-temporal',bestTemporal ? bestTemporal.model : '—');
-    text('training-best-temporal-metric',bestTemporal ? 'MAE '+fmtNumber(bestTemporal.median_mae_cm,2)+' cm · '+(bestTemporal.dominant_profile || 'perfil variável')+' · '+(bestTemporal.shadow_eligible?'gate sombra':'retido') : '—');
+    text('training-best-overall-metric',bestOverall ? 'MAE '+fmtNumber(bestOverall.median_mae_cm,2)+' cm · '+(bestOverall.shadow_eligible?'gate sombra':'retido pelo gate') : '—');
+    text('training-best-temporal',bestTemporalEligible ? bestTemporalEligible.model : (bestTemporal ? bestTemporal.model : '—'));
+    text('training-best-temporal-metric',bestTemporalEligible ? 'elegível · MAE '+fmtNumber(bestTemporalEligible.median_mae_cm,2)+' cm · '+(bestTemporalEligible.dominant_profile || 'perfil variável') : (bestTemporal ? 'melhor mediana: '+fmtNumber(bestTemporal.median_mae_cm,2)+' cm · retido pelo gate' : '—'));
     text('training-baseline',baseline ? fmtNumber(baseline.median_mae_cm,2)+' cm MAE' : '—');
     var rec=el('training-recommendation');
     if(rec && bestOverall){
-      var temporalWins=bestTemporal && bestTemporal.rank===1;
-      var temporalPasses=bestTemporal && bestTemporal.shadow_eligible;
       var copy='';
-      if(temporalWins && temporalPasses){
-        copy='<strong>Rede temporal prioritária para sombra</strong><p>'+escapeHtml(bestTemporal.model)+' liderou a coorte e passou aos gates básicos. Deve seguir para inferência em sombra; ainda não é modelo operacional.</p>';
-      }else if(bestTemporal && temporalPasses){
-        copy='<strong>Rede temporal candidata, mas não líder</strong><p>'+escapeHtml(bestTemporal.model)+' passou aos gates, porém '+escapeHtml(bestOverall.model)+' foi mais robusto no ranking geral. Recomenda-se manter ambos em sombra para comparação ao vivo.</p>';
-      }else if(bestTemporal){
-        copy='<strong>Não forçar rede neural</strong><p>'+escapeHtml(bestOverall.model)+' é a opção mais robusta nesta coorte. A melhor rede temporal ('+escapeHtml(bestTemporal.model)+') ainda não passou ao gate de sombra; deve permanecer em pesquisa.</p>';
+      if(bestOverall.shadow_eligible && bestOverall.representation==='temporal_sequence'){
+        copy='<strong>Rede temporal prioritária para sombra</strong><p>'+escapeHtml(bestOverall.model)+' liderou a coorte e também passou aos gates. Deve seguir para inferência em sombra; ainda não é modelo operacional.</p>';
+      }else if(bestTemporalEligible){
+        var staticText=bestStaticEligible ? ' '+escapeHtml(bestStaticEligible.model)+' deve acompanhar como comparador estático.' : '';
+        copy='<strong>Rede temporal aprovada para sombra, com ressalva</strong><p>'+escapeHtml(bestOverall.model)+' lidera as métricas medianas, mas foi retido por robustez em pelo menos um evento. '+escapeHtml(bestTemporalEligible.model)+' é a melhor rede temporal que passou integralmente aos gates e deve seguir para sombra.'+staticText+'</p>';
+      }else if(bestEligible){
+        copy='<strong>Não forçar rede neural</strong><p>'+escapeHtml(bestOverall.model)+' lidera o ranking bruto, mas nenhuma rede temporal passou ao gate. '+escapeHtml(bestEligible.model)+' é o melhor candidato elegível para sombra nesta coorte.</p>';
       }else{
-        copy='<strong>Sem rede temporal avaliada</strong><p>'+escapeHtml(bestOverall.model)+' lidera o conjunto disponível; falta uma rodada temporal comparável.</p>';
+        copy='<strong>Nenhum modelo pronto para sombra</strong><p>Há modelos com bom desempenho mediano, mas nenhum passou a todos os gates de robustez. A rodada deve permanecer em pesquisa.</p>';
       }
       rec.innerHTML=copy;
     }
