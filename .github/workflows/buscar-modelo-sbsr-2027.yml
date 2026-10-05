@@ -115,7 +115,7 @@ jobs:
               for t in soup(["script", "style", "noscript"]): t.decompose()
               txt = limpa(soup.get_text(" "))
               rel = re.search(r"templat|modelo|norma|formata|submiss|instru|página|pages|autor", txt, re.I)
-              print(f"\n----- PAGINA {u}\n{txt[:6000 if rel else 1200]}\n-----")
+              print(f"\n----- PAGINA {u}\n{txt[:5000 if rel else 600]}\n-----")
               for a in soup.find_all("a", href=True):
                   h = urljoin(r.url, a["href"]).split("#")[0]
                   t = limpa(a.get_text(" "))
@@ -128,28 +128,34 @@ jobs:
                   elif host.endswith("proceedings.science") and "sbsr-2027" in h and re.search(r"templat|modelo|norma|instru|submiss|page", t + h, re.I) and h not in fila:
                       fila.append(h)
 
-          print("\nARQUIVOS BAIXADOS:", [(u, len(r.content), r.headers.get("content-type")) for u, r in arquivos])
+          import hashlib
+          print("\nARQUIVOS BAIXADOS:")
+          unicos = {}
           for u, r in arquivos:
+              h = hashlib.md5(r.content).hexdigest()
+              print("  ", u, len(r.content), r.headers.get("content-type"), h)
+              unicos.setdefault(h, (u, r))
+          for h, (u, r) in unicos.items():
               c = r.content
               nome = urlparse(r.url).path.split("/")[-1] or "arquivo"
+              print(f"\n>>> ARQUIVO {u} ({nome}, {len(c)} B)")
               if c[:4] == b"%PDF":
-                  analisa_pdf(nome, c)
+                  doc = pymupdf.open(stream=c, filetype="pdf")
+                  t0 = doc[0].get_text("text")
+                  print("PDF", len(doc), "páginas; início:", limpa(t0)[:800])
+                  if re.search(r"SBSR|Sensoriamento|Simp.sio", t0, re.I):
+                      analisa_pdf(nome, c)
               elif c[:2] == b"PK":
-                  try:
-                      z = zipfile.ZipFile(io.BytesIO(c))
-                      nomes = z.namelist()
-                      if "word/document.xml" in nomes:
-                          analisa_docx(nome, c)
-                      else:
-                          print("ZIP", nome, nomes[:50])
-                          for n in nomes:
-                              if n.lower().endswith((".docx", ".dotx")):
-                                  analisa_docx(n, z.read(n)); despeja(n, z.read(n))
-                              elif n.lower().endswith(".pdf"):
-                                  analisa_pdf(n, z.read(n))
-                              elif n.lower().endswith((".tex", ".cls", ".sty")):
-                                  print(f"---- {n}\n" + z.read(n).decode("utf-8", "replace")[:6000])
-                  except Exception as e:
-                      print("ERRO zip", e)
-              if len(c) < 3_000_000 and (c[:2] == b"PK" or c[:4] == b"%PDF" or c[:4] == b"\xd0\xcf\x11\xe0"):
-                  despeja(nome, c)
+                  z = zipfile.ZipFile(io.BytesIO(c))
+                  nomes = z.namelist()
+                  if "word/document.xml" in nomes:
+                      analisa_docx(nome, c); despeja(nome, c)
+                  else:
+                      print("ZIP", nome, nomes[:50])
+                      for n in nomes:
+                          if n.lower().endswith((".docx", ".dotx")):
+                              analisa_docx(n, z.read(n)); despeja(n, z.read(n))
+                          elif n.lower().endswith((".tex", ".cls", ".sty")):
+                              print(f"---- {n}\n" + z.read(n).decode("utf-8", "replace")[:6000])
+              elif c[:4] == b"\xd0\xcf\x11\xe0":
+                  print("DOC antigo (OLE)"); despeja(nome, c)
