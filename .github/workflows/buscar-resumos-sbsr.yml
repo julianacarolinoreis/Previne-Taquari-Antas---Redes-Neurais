@@ -1,0 +1,120 @@
+name: Buscar resumos SBSR (temporário)
+
+# Workflow temporário: o ambiente de edição não acessa o proceedings.science.
+# Baixa páginas e PDFs de trabalhos do SBSR sobre inundação/HAND/LiDAR e
+# imprime no log título, autores, resumo, palavras-chave e o início do PDF.
+# Nada é gravado no repositório. Remover após o uso.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/elegant-gauss-fhl22a]
+    paths: ['.github/workflows/buscar-resumos-sbsr.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  buscar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pymupdf requests beautifulsoup4
+      - name: Baixar e imprimir resumos
+        shell: python
+        run: |
+          import re, json
+          from urllib.parse import urljoin
+          import requests, pymupdf
+          from bs4 import BeautifulSoup
+
+          S = requests.Session()
+          S.headers.update({"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36",
+                            "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8"})
+          B = "https://proceedings.science/"
+          URLS = [
+            "sbsr-2025/papers/inundacao-de-maio-de-2024-no-rio-grande-do-sul-levantamento-dos-niveis-maximos-d",
+            "sbsr-2025/papers/mapeamento-de-areas-suscetiveis-a-inundacao-com-o-modelo-hand-model-no-distrito",
+            "sbsr-2025/papers/analise-do-tempo-de-retorno-de-inundacoes-na-cidade-de-goias-usando-o-modelo-de",
+            "sbsr-2025/papers/mancha-de-inundacao-para-eldorado-do-sulrs-e-guaibars-por-meio-de-indices-espect",
+            "sbsr-2025/papers/geomorphological-factors-driving-flood-susceptibility-in-recife-identifying-high",
+            "sbsr-2023/papers/avaliacao-de-diferentes-modelos-digitais-de-elevacao-e-terreno-para-classificaca",
+            "sbsr-2023/papers/simulacao-de-area-suscetivel-a-inundacao-em-regiao-costeira-empregando-dados-fot",
+            "sbsr-2023/trabalhos/cenarios-de-inundacao-em-areas-costeiras-provocadas-pelo-aquecimento-global-da-t",
+            "sbsr-2023/papers/reducao-do-efeito-da-vegetacao-em-modelos-digitais-de-superficie-gratuitos-utili",
+            "sbsr-2019/papers/avaliacao-do-modelo-digital-de-elevacao-topodata-a-partir-de-dados-lidar-em-uma",
+            "sbsr-2019/papers/evento-de-inundacao-em-itaquirs-no-rio-uruguai",
+          ]
+
+          def limpa(t):
+              return re.sub(r"\s+", " ", t).strip()
+
+          def pdf_inicio(nome, data):
+              doc = pymupdf.open(stream=data, filetype="pdf")
+              print(f"  PDF: {len(doc)} páginas; página 1 {doc[0].rect.width:.0f}x{doc[0].rect.height:.0f} pt")
+              txt = ""
+              for p in doc[:2]:
+                  txt += p.get_text("text") + "\n"
+              i = max(txt.find("Abstract"), txt.find("ABSTRACT"), txt.find("Resumo"), txt.find("RESUMO"))
+              print("  PDF-TEXTO-INICIO >>>")
+              print(txt[:5500])
+              print("  <<< PDF-TEXTO-FIM")
+              for b in doc[0].get_text("dict")["blocks"][:40]:
+                  for l in b.get("lines", []):
+                      sp = [s for s in l["spans"] if s["text"].strip()]
+                      if sp:
+                          s0 = sp[0]
+                          print(f"   fmt {s0['font'][:24]:24s} {s0['size']:4.1f} {'B' if s0['flags'] & 16 else ' '}{'I' if s0['flags'] & 2 else ' '} x={s0['bbox'][0]:4.0f} | {''.join(s['text'] for s in sp)[:70]}")
+
+          for path in URLS:
+              u = B + path + "?lang=pt-br"
+              print("\n" + "=" * 100 + f"\nURL {u}", flush=True)
+              try:
+                  r = S.get(u, timeout=60)
+              except Exception as e:
+                  print("ERRO", e); continue
+              print("status", r.status_code, len(r.content))
+              if r.status_code != 200:
+                  continue
+              soup = BeautifulSoup(r.text, "html.parser")
+              metas = {}
+              for m in soup.find_all("meta"):
+                  k = m.get("name") or m.get("property")
+                  if k and m.get("content"):
+                      metas.setdefault(k, []).append(m.get("content"))
+              for k in ["citation_title", "og:title", "citation_author", "citation_publication_date",
+                        "citation_keywords", "keywords", "citation_pdf_url", "citation_abstract", "description", "og:description"]:
+                  if k in metas:
+                      print(f"META {k}: {' | '.join(metas[k])[:3000]}")
+              for s in soup.find_all("script", type="application/ld+json"):
+                  try:
+                      j = json.loads(s.string or "{}")
+                      print("LDJSON", json.dumps(j, ensure_ascii=False)[:3000])
+                  except Exception:
+                      pass
+              for t in soup(["script", "style", "noscript"]):
+                  t.decompose()
+              corpo = limpa(soup.get_text(" "))
+              for chave in ["Resumo", "Abstract", "RESUMO", "ABSTRACT"]:
+                  i = corpo.find(chave)
+                  if i >= 0:
+                      print(f"TEXTO a partir de '{chave}': {corpo[i:i + 3500]}")
+                      break
+              else:
+                  print("TEXTO (início):", corpo[:3000])
+              pdfs = list(dict.fromkeys(metas.get("citation_pdf_url", []) +
+                         [urljoin(r.url, a["href"]) for a in soup.find_all("a", href=True)
+                          if re.search(r"\.pdf($|\?)|/download|pdf", a["href"], re.I)]))
+              print("PDF-LINKS", pdfs[:8])
+              for p in pdfs[:3]:
+                  try:
+                      rp = S.get(p, timeout=60)
+                      print("  GET", p, rp.status_code, rp.headers.get("content-type"), len(rp.content))
+                      if rp.content[:4] == b"%PDF":
+                          pdf_inicio(path, rp.content)
+                          break
+                  except Exception as e:
+                      print("  ERRO PDF", e)
