@@ -1,0 +1,155 @@
+name: Buscar modelo SBSR 2027 (temporário)
+
+# Workflow temporário: o ambiente de edição não acessa o site do SBSR.
+# Percorre as páginas do SBSR 2027, baixa o modelo de trabalho (docx/dotx/pdf/zip)
+# e imprime no log o texto das normas, a análise do modelo e o arquivo em base64.
+# Nada é gravado no repositório. Remover após o uso.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/elegant-gauss-fhl22a]
+    paths: ['.github/workflows/buscar-modelo-sbsr-2027.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  buscar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pymupdf requests beautifulsoup4 python-docx
+      - name: Baixar modelo e normas
+        shell: python
+        run: |
+          import base64, io, re, zipfile
+          from urllib.parse import urljoin, urlparse
+          import requests, pymupdf, docx
+          from bs4 import BeautifulSoup
+
+          S = requests.Session()
+          S.headers.update({"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36",
+                            "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8"})
+          limpa = lambda t: re.sub(r"\s+", " ", t).strip()
+
+          def get(u):
+              try:
+                  r = S.get(u, timeout=60, allow_redirects=True)
+                  print(f"GET {u} -> {r.status_code} {r.headers.get('content-type')} {len(r.content)} final={r.url}", flush=True)
+                  return r
+              except Exception as e:
+                  print("ERRO", u, e, flush=True)
+
+          def analisa_docx(nome, data):
+              d = docx.Document(io.BytesIO(data))
+              print(f"\n######## DOCX {nome}")
+              for i, s in enumerate(d.sections):
+                  cm = lambda v: round(v.cm, 2) if v is not None else None
+                  print(f"  SECAO {i}: {cm(s.page_width)}x{cm(s.page_height)} cm; margens sup={cm(s.top_margin)} inf={cm(s.bottom_margin)} esq={cm(s.left_margin)} dir={cm(s.right_margin)}; cab={cm(s.header_distance)} rod={cm(s.footer_distance)}")
+                  for p in s.header.paragraphs:
+                      if p.text.strip(): print("  CABECALHO:", p.text)
+                  for p in s.footer.paragraphs:
+                      if p.text.strip(): print("  RODAPE:", p.text)
+              for st in d.styles:
+                  try:
+                      f = st.font; pf = st.paragraph_format
+                      print(f"  ESTILO {st.name!r} base={st.base_style.name if st.base_style else None}: fonte={f.name} tam={f.size.pt if f.size else None} N={f.bold} I={f.italic} alinh={pf.alignment} recuo1={pf.first_line_indent.cm if pf.first_line_indent else None} esq={pf.left_indent.cm if pf.left_indent else None} antes={pf.space_before.pt if pf.space_before else None} depois={pf.space_after.pt if pf.space_after else None} entrelinha={pf.line_spacing}")
+                  except Exception:
+                      pass
+              for p in d.paragraphs:
+                  pf = p.paragraph_format
+                  runs = [(r.text[:25], r.font.name, r.font.size.pt if r.font.size else None, r.bold, r.italic, r.font.superscript) for r in p.runs[:4]]
+                  print(f"  [P {p.style.name} | al={p.alignment} r1={pf.first_line_indent.cm if pf.first_line_indent else None} antes={pf.space_before.pt if pf.space_before else None} depois={pf.space_after.pt if pf.space_after else None} ent={pf.line_spacing}] {p.text[:700]!r} RUNS={runs}")
+              for ti, t in enumerate(d.tables):
+                  print(f"  TABELA {ti}: {len(t.rows)}x{len(t.columns)}")
+                  for row in t.rows[:6]:
+                      print("    |", " | ".join(c.text[:40] for c in row.cells))
+
+          def analisa_pdf(nome, data):
+              doc = pymupdf.open(stream=data, filetype="pdf")
+              print(f"\n######## PDF {nome}: {len(doc)} páginas {doc[0].rect.width:.0f}x{doc[0].rect.height:.0f}")
+              for pno in range(min(len(doc), 6)):
+                  page = doc[pno]; xs = []; ys = []
+                  print(f"=== página {pno+1}")
+                  for b in page.get_text("dict")["blocks"]:
+                      if b.get("type") == 1:
+                          print("  [IMG]", [round(v) for v in b["bbox"]]); continue
+                      for l in b.get("lines", []):
+                          sp = [s for s in l["spans"] if s["text"].strip()]
+                          if not sp: continue
+                          for s in sp: xs += [s["bbox"][0], s["bbox"][2]]; ys += [s["bbox"][1], s["bbox"][3]]
+                          s0 = sp[0]
+                          est = "".join(sorted({("B" if s["flags"] & 16 else "") + ("I" if s["flags"] & 2 else "") for s in sp}))
+                          print(f"  {s0['font'][:24]:24s} {s0['size']:4.1f} [{est:3s}] x={s0['bbox'][0]:4.0f} y={s0['bbox'][1]:4.0f} | {''.join(s['text'] for s in sp)[:150]}")
+                  if xs:
+                      print(f"  MARGENS esq={min(xs):.0f} dir={page.rect.width-max(xs):.0f} topo={min(ys):.0f} base={page.rect.height-max(ys):.0f}")
+
+          def despeja(nome, data):
+              b64 = base64.b64encode(data).decode()
+              print(f"\nB64-INICIO {nome} {len(data)}")
+              for i in range(0, len(b64), 4000):
+                  print("B64|" + b64[i:i + 4000])
+              print(f"B64-FIM {nome}")
+
+          ARQ = re.compile(r"\.(docx?|dotx?|odt|pdf|zip|tex|rtf)($|\?)", re.I)
+          vistos, arquivos = set(), []
+          fila = ["https://www.sbsr.com.br/sbsr-2027/page/8162-inicio?lang=pt-br",
+                  "https://www.sbsr.com.br/sbsr-2027/?lang=pt-br",
+                  "https://proceedings.science/cfp/sbsr-2027?lang=pt-br",
+                  "https://proceedings.science/sbsr-2027?lang=pt-br"]
+          k = 0
+          while k < len(fila) and k < 45:
+              u = fila[k]; k += 1
+              if u in vistos: continue
+              vistos.add(u)
+              r = get(u)
+              if r is None or r.status_code != 200: continue
+              ct = r.headers.get("content-type", "")
+              if "html" not in ct:
+                  arquivos.append((u, r)); continue
+              soup = BeautifulSoup(r.text, "html.parser")
+              for t in soup(["script", "style", "noscript"]): t.decompose()
+              txt = limpa(soup.get_text(" "))
+              rel = re.search(r"templat|modelo|norma|formata|submiss|instru|página|pages|autor", txt, re.I)
+              print(f"\n----- PAGINA {u}\n{txt[:6000 if rel else 1200]}\n-----")
+              for a in soup.find_all("a", href=True):
+                  h = urljoin(r.url, a["href"]).split("#")[0]
+                  t = limpa(a.get_text(" "))
+                  host = urlparse(h).netloc
+                  if ARQ.search(h) or re.search(r"templat|modelo", t + h, re.I) or "docs.google" in h or "drive.google" in h:
+                      print("  ARQ-LINK", t[:90], "->", h)
+                      if h not in fila: fila.insert(k, h)
+                  elif host.endswith("sbsr.com.br") and "sbsr-2027" in h and h not in fila:
+                      fila.append(h)
+                  elif host.endswith("proceedings.science") and "sbsr-2027" in h and re.search(r"templat|modelo|norma|instru|submiss|page", t + h, re.I) and h not in fila:
+                      fila.append(h)
+
+          print("\nARQUIVOS BAIXADOS:", [(u, len(r.content), r.headers.get("content-type")) for u, r in arquivos])
+          for u, r in arquivos:
+              c = r.content
+              nome = urlparse(r.url).path.split("/")[-1] or "arquivo"
+              if c[:4] == b"%PDF":
+                  analisa_pdf(nome, c)
+              elif c[:2] == b"PK":
+                  try:
+                      z = zipfile.ZipFile(io.BytesIO(c))
+                      nomes = z.namelist()
+                      if "word/document.xml" in nomes:
+                          analisa_docx(nome, c)
+                      else:
+                          print("ZIP", nome, nomes[:50])
+                          for n in nomes:
+                              if n.lower().endswith((".docx", ".dotx")):
+                                  analisa_docx(n, z.read(n)); despeja(n, z.read(n))
+                              elif n.lower().endswith(".pdf"):
+                                  analisa_pdf(n, z.read(n))
+                              elif n.lower().endswith((".tex", ".cls", ".sty")):
+                                  print(f"---- {n}\n" + z.read(n).decode("utf-8", "replace")[:6000])
+                  except Exception as e:
+                      print("ERRO zip", e)
+              if len(c) < 3_000_000 and (c[:2] == b"PK" or c[:4] == b"%PDF" or c[:4] == b"\xd0\xcf\x11\xe0"):
+                  despeja(nome, c)
