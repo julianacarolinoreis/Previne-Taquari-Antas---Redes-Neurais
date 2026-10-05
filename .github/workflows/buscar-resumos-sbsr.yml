@@ -69,52 +69,74 @@ jobs:
                           s0 = sp[0]
                           print(f"   fmt {s0['font'][:24]:24s} {s0['size']:4.1f} {'B' if s0['flags'] & 16 else ' '}{'I' if s0['flags'] & 2 else ' '} x={s0['bbox'][0]:4.0f} | {''.join(s['text'] for s in sp)[:70]}")
 
-          for path in URLS:
-              u = B + path + "?lang=pt-br"
-              print("\n" + "=" * 100 + f"\nURL {u}", flush=True)
+          # 2ª rodada: relatório do SGB e espelho do INPE dos Anais 2025
+          URLS = []
+          def get(u):
               try:
-                  r = S.get(u, timeout=60)
+                  r = S.get(u, timeout=90, allow_redirects=True)
+                  print(f"GET {u} -> {r.status_code} {r.headers.get('content-type')} {len(r.content)} final={r.url}", flush=True)
+                  return r
               except Exception as e:
-                  print("ERRO", e); continue
-              print("status", r.status_code, len(r.content))
-              if r.status_code != 200:
+                  print("ERRO", u, e, flush=True)
+
+          r = get("https://rigeo.sgb.gov.br/server/api/core/bitstreams/fc1b8a76-deae-4913-96de-3b25cd3f9845/content")
+          if r is not None and r.content[:4] == b"%PDF":
+              doc = pymupdf.open(stream=r.content, filetype="pdf")
+              print("SGB-PDF", len(doc), "páginas", doc.metadata)
+              for pno in range(min(3, len(doc))):
+                  print(f"--- SGB página {pno+1} ---\n" + doc[pno].get_text("text")[:4000])
+              for pno in range(len(doc)):
+                  t = doc[pno].get_text("text")
+                  for chave in ["86472600", "Santa Tereza", "SANTA TEREZA"]:
+                      j = t.find(chave)
+                      if j >= 0:
+                          print(f"SGB-ACHADO pág {pno+1} '{chave}': {limpa(t[max(0, j-600):j+900])}")
+                          break
+
+          for u in ["http://marte2.sid.inpe.br/rep/sid.inpe.br/marte2/2025/09.17.19.06/capa.htm",
+                    "http://marte2.sid.inpe.br/rep/sid.inpe.br/marte2/2025/09.17.19.06"]:
+              r = get(u)
+              if r is None or r.status_code != 200:
                   continue
               soup = BeautifulSoup(r.text, "html.parser")
-              metas = {}
-              for m in soup.find_all("meta"):
-                  k = m.get("name") or m.get("property")
-                  if k and m.get("content"):
-                      metas.setdefault(k, []).append(m.get("content"))
-              for k in ["citation_title", "og:title", "citation_author", "citation_publication_date",
-                        "citation_keywords", "keywords", "citation_pdf_url", "citation_abstract", "description", "og:description"]:
-                  if k in metas:
-                      print(f"META {k}: {' | '.join(metas[k])[:3000]}")
-              for s in soup.find_all("script", type="application/ld+json"):
-                  try:
-                      j = json.loads(s.string or "{}")
-                      print("LDJSON", json.dumps(j, ensure_ascii=False)[:3000])
-                  except Exception:
-                      pass
-              for t in soup(["script", "style", "noscript"]):
-                  t.decompose()
-              corpo = limpa(soup.get_text(" "))
-              for chave in ["Resumo", "Abstract", "RESUMO", "ABSTRACT"]:
-                  i = corpo.find(chave)
-                  if i >= 0:
-                      print(f"TEXTO a partir de '{chave}': {corpo[i:i + 3500]}")
+              print("CAPA-TEXTO", limpa(soup.get_text(" "))[:2500])
+              ls = [(limpa(a.get_text(" "))[:80], urljoin(r.url, a["href"])) for a in soup.find_all(["a", "frame", "iframe"], href=True)]
+              ls += [("frame", urljoin(r.url, f["src"])) for f in soup.find_all(["frame", "iframe"], src=True)]
+              for t, h in ls[:80]:
+                  print("  LINK", t, "->", h)
+              break
+
+          # PDFs dos anais 2025 no INPE: tenta achar os trabalhos por palavras do título
+          alvos = {"marcuzzo": "NÍVEIS MÁXIMOS", "hand": "Cacau Pir", "eldorado": "ELDORADO"}
+          vistos = set()
+          fila = [h for _, h in ls] if 'ls' in dir() else []
+          achados = 0
+          k = 0
+          while k < len(fila) and k < 120:
+              h = fila[k]; k += 1
+              if h in vistos or not h.startswith("http"):
+                  continue
+              vistos.add(h)
+              r2 = get(h)
+              if r2 is None or r2.status_code != 200:
+                  continue
+              if r2.content[:4] == b"%PDF":
+                  doc = pymupdf.open(stream=r2.content, filetype="pdf")
+                  print("PDF-ANAIS", h, len(doc), "páginas")
+                  for pno in range(min(2, len(doc))):
+                      print(doc[pno].get_text("text")[:3000])
+                  achados += 1
+                  if achados >= 2:
                       break
-              else:
-                  print("TEXTO (início):", corpo[:3000])
-              pdfs = list(dict.fromkeys(metas.get("citation_pdf_url", []) +
-                         [urljoin(r.url, a["href"]) for a in soup.find_all("a", href=True)
-                          if re.search(r"\.pdf($|\?)|/download|pdf", a["href"], re.I)]))
-              print("PDF-LINKS", pdfs[:8])
-              for p in pdfs[:3]:
-                  try:
-                      rp = S.get(p, timeout=60)
-                      print("  GET", p, rp.status_code, rp.headers.get("content-type"), len(rp.content))
-                      if rp.content[:4] == b"%PDF":
-                          pdf_inicio(path, rp.content)
-                          break
-                  except Exception as e:
-                      print("  ERRO PDF", e)
+                  continue
+              s2 = BeautifulSoup(r2.text, "html.parser")
+              txt = limpa(s2.get_text(" "))
+              print("SUBPAG", h, "::", txt[:600])
+              for a in s2.find_all("a", href=True):
+                  tt = limpa(a.get_text(" "))
+                  hh = urljoin(r2.url, a["href"])
+                  if any(v.lower() in tt.lower() for v in alvos.values()) or re.search(r"\.pdf($|\?)", hh, re.I):
+                      print("   CAND", tt[:100], "->", hh)
+                      if hh not in fila:
+                          fila.append(hh)
+
