@@ -69,8 +69,7 @@ jobs:
                           s0 = sp[0]
                           print(f"   fmt {s0['font'][:24]:24s} {s0['size']:4.1f} {'B' if s0['flags'] & 16 else ' '}{'I' if s0['flags'] & 2 else ' '} x={s0['bbox'][0]:4.0f} | {''.join(s['text'] for s in sp)[:70]}")
 
-          # 2ª rodada: relatório do SGB e espelho do INPE dos Anais 2025
-          URLS = []
+          # 3ª rodada: sumário dos Anais 2025 no INPE e PDFs de trabalhos de inundação
           def get(u):
               try:
                   r = S.get(u, timeout=90, allow_redirects=True)
@@ -79,64 +78,54 @@ jobs:
               except Exception as e:
                   print("ERRO", u, e, flush=True)
 
-          r = get("https://rigeo.sgb.gov.br/server/api/core/bitstreams/fc1b8a76-deae-4913-96de-3b25cd3f9845/content")
-          if r is not None and r.content[:4] == b"%PDF":
-              doc = pymupdf.open(stream=r.content, filetype="pdf")
-              print("SGB-PDF", len(doc), "páginas", doc.metadata)
-              for pno in range(min(3, len(doc))):
-                  print(f"--- SGB página {pno+1} ---\n" + doc[pno].get_text("text")[:4000])
-              for pno in range(len(doc)):
-                  t = doc[pno].get_text("text")
-                  for chave in ["86472600", "Santa Tereza", "SANTA TEREZA"]:
-                      j = t.find(chave)
-                      if j >= 0:
-                          print(f"SGB-ACHADO pág {pno+1} '{chave}': {limpa(t[max(0, j-600):j+900])}")
-                          break
-
-          for u in ["http://marte2.sid.inpe.br/rep/sid.inpe.br/marte2/2025/09.17.19.06/capa.htm",
-                    "http://marte2.sid.inpe.br/rep/sid.inpe.br/marte2/2025/09.17.19.06"]:
-              r = get(u)
-              if r is None or r.status_code != 200:
-                  continue
+          base = "http://marte2.sid.inpe.br/col/sid.inpe.br/marte2/2025/09.17.19.06/doc/"
+          r = get(base + "sumario.htm")
+          ls = []
+          if r is not None and r.status_code == 200:
+              r.encoding = r.apparent_encoding
               soup = BeautifulSoup(r.text, "html.parser")
-              print("CAPA-TEXTO", limpa(soup.get_text(" "))[:2500])
-              ls = [(limpa(a.get_text(" "))[:80], urljoin(r.url, a["href"])) for a in soup.find_all(["a", "frame", "iframe"], href=True)]
-              ls += [("frame", urljoin(r.url, f["src"])) for f in soup.find_all(["frame", "iframe"], src=True)]
-              for t, h in ls[:80]:
-                  print("  LINK", t, "->", h)
-              break
-
-          # PDFs dos anais 2025 no INPE: tenta achar os trabalhos por palavras do título
-          alvos = {"marcuzzo": "NÍVEIS MÁXIMOS", "hand": "Cacau Pir", "eldorado": "ELDORADO"}
-          vistos = set()
-          fila = [h for _, h in ls] if 'ls' in dir() else []
-          achados = 0
-          k = 0
-          while k < len(fila) and k < 120:
-              h = fila[k]; k += 1
-              if h in vistos or not h.startswith("http"):
+              print("SUMARIO-TEXTO", limpa(soup.get_text(" "))[:1500])
+              ls = [(limpa(a.get_text(" ")), urljoin(r.url, a["href"])) for a in soup.find_all("a", href=True)]
+              print("N-LINKS", len(ls))
+              for t, h in ls[:25]:
+                  print("  L", t[:100], "->", h)
+          padrao = re.compile(r"inunda|cheia|HAND|LiDAR|enchente|flood", re.I)
+          cands = [(t, h) for t, h in ls if padrao.search(t)]
+          print("CANDIDATOS", len(cands))
+          for t, h in cands[:40]:
+              print("  C", t[:140], "->", h)
+          feitos = 0
+          for t, h in cands:
+              if feitos >= 3:
+                  break
+              if not re.search(r"N.VEIS M.XIMOS|Hand|ELDORADO|LiDAR|profundidade", t, re.I):
                   continue
-              vistos.add(h)
               r2 = get(h)
               if r2 is None or r2.status_code != 200:
                   continue
-              if r2.content[:4] == b"%PDF":
-                  doc = pymupdf.open(stream=r2.content, filetype="pdf")
-                  print("PDF-ANAIS", h, len(doc), "páginas")
-                  for pno in range(min(2, len(doc))):
-                      print(doc[pno].get_text("text")[:3000])
-                  achados += 1
-                  if achados >= 2:
-                      break
+              pdf = r2.content if r2.content[:4] == b"%PDF" else None
+              if pdf is None:
+                  s2 = BeautifulSoup(r2.text, "html.parser")
+                  for a in s2.find_all(["a", "frame", "iframe"]):
+                      hh = a.get("href") or a.get("src")
+                      if not hh:
+                          continue
+                      hh = urljoin(r2.url, hh)
+                      if re.search(r"\.pdf($|\?)", hh, re.I):
+                          r3 = get(hh)
+                          if r3 is not None and r3.content[:4] == b"%PDF":
+                              pdf = r3.content
+                              break
+              if pdf is None:
+                  print("  sem PDF para", t[:80])
                   continue
-              s2 = BeautifulSoup(r2.text, "html.parser")
-              txt = limpa(s2.get_text(" "))
-              print("SUBPAG", h, "::", txt[:600])
-              for a in s2.find_all("a", href=True):
-                  tt = limpa(a.get_text(" "))
-                  hh = urljoin(r2.url, a["href"])
-                  if any(v.lower() in tt.lower() for v in alvos.values()) or re.search(r"\.pdf($|\?)", hh, re.I):
-                      print("   CAND", tt[:100], "->", hh)
-                      if hh not in fila:
-                          fila.append(hh)
-
+              doc = pymupdf.open(stream=pdf, filetype="pdf")
+              print(f"\n######## PDF-ANAIS {t[:120]} :: {len(doc)} páginas {doc[0].rect.width:.0f}x{doc[0].rect.height:.0f}")
+              print(doc[0].get_text("text")[:4500])
+              for b in doc[0].get_text("dict")["blocks"][:30]:
+                  for l in b.get("lines", []):
+                      sp = [x for x in l["spans"] if x["text"].strip()]
+                      if sp:
+                          s0 = sp[0]
+                          print(f"   fmt {s0['font'][:24]:24s} {s0['size']:4.1f} {'B' if s0['flags'] & 16 else ' '}{'I' if s0['flags'] & 2 else ' '} x={s0['bbox'][0]:4.0f} y={s0['bbox'][1]:4.0f} | {''.join(x['text'] for x in sp)[:70]}")
+              feitos += 1
