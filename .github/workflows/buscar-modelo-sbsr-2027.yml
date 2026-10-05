@@ -95,67 +95,25 @@ jobs:
                   print("B64|" + b64[i:i + 4000])
               print(f"B64-FIM {nome}")
 
-          ARQ = re.compile(r"\.(docx?|dotx?|odt|pdf|zip|tex|rtf)($|\?)", re.I)
-          vistos, arquivos = set(), []
-          fila = ["https://www.sbsr.com.br/sbsr-2027/page/8162-inicio?lang=pt-br",
-                  "https://www.sbsr.com.br/sbsr-2027/?lang=pt-br",
-                  "https://proceedings.science/cfp/sbsr-2027?lang=pt-br",
-                  "https://proceedings.science/sbsr-2027?lang=pt-br"]
-          k = 0
-          while k < len(fila) and k < 45:
-              u = fila[k]; k += 1
-              if u in vistos: continue
-              vistos.add(u)
-              r = get(u)
-              if r is None or r.status_code != 200: continue
-              ct = r.headers.get("content-type", "")
-              if "html" not in ct:
-                  arquivos.append((u, r)); continue
-              soup = BeautifulSoup(r.text, "html.parser")
-              for t in soup(["script", "style", "noscript"]): t.decompose()
-              txt = limpa(soup.get_text(" "))
-              rel = re.search(r"templat|modelo|norma|formata|submiss|instru|página|pages|autor", txt, re.I)
-              print(f"\n----- PAGINA {u}\n{txt[:5000 if rel else 600]}\n-----")
-              for a in soup.find_all("a", href=True):
-                  h = urljoin(r.url, a["href"]).split("#")[0]
-                  t = limpa(a.get_text(" "))
-                  host = urlparse(h).netloc
-                  if ARQ.search(h) or re.search(r"templat|modelo", t + h, re.I) or "docs.google" in h or "drive.google" in h:
-                      print("  ARQ-LINK", t[:90], "->", h)
-                      if h not in fila: fila.insert(k, h)
-                  elif host.endswith("sbsr.com.br") and "sbsr-2027" in h and h not in fila:
-                      fila.append(h)
-                  elif host.endswith("proceedings.science") and "sbsr-2027" in h and re.search(r"templat|modelo|norma|instru|submiss|page", t + h, re.I) and h not in fila:
-                      fila.append(h)
-
           import hashlib
-          print("\nARQUIVOS BAIXADOS:")
-          unicos = {}
-          for u, r in arquivos:
-              h = hashlib.md5(r.content).hexdigest()
-              print("  ", u, len(r.content), r.headers.get("content-type"), h)
-              unicos.setdefault(h, (u, r))
-          for h, (u, r) in unicos.items():
+          for u in ["https://2023.sbsr.com.br/wp-content/uploads/2022/05/ODT_Template_SBSR_Portugues-1-20maio22-2.odt",
+                    "https://www.overleaf.com/latex/templates/template-para-o-sbsr-simposio-brasileiro-de-sensoriamento-remoto/jgybkbvgdczt.pdf",
+                    "https://www.overleaf.com/latex/templates/template-para-o-sbsr-simposio-brasileiro-de-sensoriamento-remoto/jgybkbvgdczt"]:
+              r = get(u)
+              if r is None or r.status_code != 200:
+                  continue
               c = r.content
-              nome = urlparse(r.url).path.split("/")[-1] or "arquivo"
-              print(f"\n>>> ARQUIVO {u} ({nome}, {len(c)} B)")
+              nome = urlparse(r.url).path.split("/")[-1]
+              print(">>>", u, len(c), hashlib.md5(c).hexdigest())
               if c[:4] == b"%PDF":
-                  doc = pymupdf.open(stream=c, filetype="pdf")
-                  t0 = doc[0].get_text("text")
-                  print("PDF", len(doc), "páginas; início:", limpa(t0)[:800])
-                  if re.search(r"SBSR|Sensoriamento|Simp.sio", t0, re.I):
-                      analisa_pdf(nome, c)
+                  analisa_pdf(nome, c)
               elif c[:2] == b"PK":
                   z = zipfile.ZipFile(io.BytesIO(c))
-                  nomes = z.namelist()
-                  if "word/document.xml" in nomes:
-                      analisa_docx(nome, c); despeja(nome, c)
-                  else:
-                      print("ZIP", nome, nomes[:50])
-                      for n in nomes:
-                          if n.lower().endswith((".docx", ".dotx")):
-                              analisa_docx(n, z.read(n)); despeja(n, z.read(n))
-                          elif n.lower().endswith((".tex", ".cls", ".sty")):
-                              print(f"---- {n}\n" + z.read(n).decode("utf-8", "replace")[:6000])
-              elif c[:4] == b"\xd0\xcf\x11\xe0":
-                  print("DOC antigo (OLE)"); despeja(nome, c)
+                  print("ZIP", z.namelist())
+                  xml = z.read("content.xml").decode("utf-8", "replace") if "content.xml" in z.namelist() else ""
+                  print("CONTENT-XML-TEXTO:", limpa(re.sub(r"<[^>]+>", " ", xml))[:8000])
+                  despeja(nome, c)
+              else:
+                  soup = BeautifulSoup(r.text, "html.parser")
+                  for t in soup(["script", "style", "noscript"]): t.decompose()
+                  print("PAGINA-OVERLEAF:", limpa(soup.get_text(" "))[:2500])
