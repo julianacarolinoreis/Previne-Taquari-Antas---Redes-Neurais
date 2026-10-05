@@ -14,6 +14,7 @@ A análise sustenta o trabalho para o SBSR 2027 e o artigo em preparação.
 | `figuras/` | Figuras 1–3 (300 dpi) e figuras do manuscrito (`fig_manuscrito_*`). |
 | `estatisticas_manuscrito.py` / `.json` | IC 95% (bootstrap e t), z0 por evento, sensibilidade à fonte do pico (telemetria × SGB), Δz celular × RTK, plano horizontal como modelo nulo. |
 | `figuras_manuscrito.py` | Gera as figuras do manuscrito (precisa da planilha e de um GeoJSON de UFs). |
+| `analises_adicionais.py` / `.json` | Concordância (NSE, KGE), classes de perigo com kappa, teste da premissa de linha d'água paralela (cota observada × cota do trecho de drenagem), validação cruzada HAND × plano horizontal, erro horizontal da borda, MDTs nos vértices RTK, orçamento de erros e sensibilidade aos pontos excluídos. Gera `figuras/fig_adicional_cheia_vs_drenagem.png`. |
 
 A planilha original (`sumario_erros_hand.xlsx`) não é versionada porque traz as
 coordenadas exatas dos pontos de campo. Para reproduzir:
@@ -44,6 +45,23 @@ python pesquisas/validacao-campo-hand-santa-tereza/analise_erros_campo.py caminh
 
 O zero que anula o viés de set/2023 é 1,601 m, ou seja, o 1,60 m operacional
 equivale a uma calibração com esses pontos.
+
+Análises adicionais (`analises_adicionais.json`):
+
+- Concordância das 22 profundidades: NSE 0,65 e KGE 0,80. O HAND acerta a
+  classe de perigo (< 0,5; 0,5–1; 1–2; > 2 m) em 15 de 22 observações e erra por
+  no máximo uma classe em 20 (kappa ponderado 0,72).
+- Em set/2023, o HAND refere os pontos com RTK a trechos do rio com cotas de
+  52,8 e 53,8 m no LiDAR, mas a cota observada da cheia não acompanha essa
+  diferença: inclinação −0,14 (IC 95% −0,88 a 0,60); a premissa de paralelismo
+  (inclinação 1) é rejeitada com p = 0,005.
+- Validação cruzada leave-one-out (n = 15): plano horizontal com MAE de 0,56 m,
+  HAND com 0,76 m; a diferença tem IC de −0,42 a +0,03 m.
+- Nos 22 vértices RTK, o NMAD do terreno é de 0,30 m no MDT de drone (1 m),
+  0,72 m no LiDAR reamostrado a 10 m e 5,0 m no ANADEM (30 m). O drone difere
+  do RTK em cerca de +6,1 m, o que indica altitudes elipsoidais.
+- Incertezas de medição plausíveis explicariam MAE de cerca de 0,19 m, contra
+  0,64 m observados.
 
 ## Diferenças em relação à planilha original
 
