@@ -100,7 +100,7 @@ for hz in ("2h", "4h", "8h"):
 print("ao vivo", {hz: {k: (round(v, 3) if isinstance(v, float) else v) for k, v in m.items()} for hz, m in resumo["ao_vivo"].items()})
 
 # ---------- Figura: dispersão previsto x observado (3 painéis) ----------
-fig, axs = plt.subplots(1, 3, figsize=(15.6, 5.15), constrained_layout=True)
+fig, axs = plt.subplots(1, 3, figsize=(15.6, 5.9), constrained_layout=True)
 estilos = [(1, "Treino", GRAY, 10), (2, "Validação", BLUE, 14), (3, "Teste", ORANGE, 18)]
 for ax, hz in zip(axs, ("2h", "4h", "8h")):
     d = MODELOS[hz][1]
@@ -110,10 +110,9 @@ for ax, hz in zip(axs, ("2h", "4h", "8h")):
         s = d["X"] == code
         ax.scatter(d["obs"][s] / 100, d["pred"][s] / 100, s=sz, color=cor, edgecolor="white", linewidth=0.4, label=nome, zorder=2 + code)
     t = resumo[hz]["teste"]
-    ax.set_title(f"ALT {hz}  ·  NSE teste = {t['NSE']:.3f}".replace(".", ","), loc="left")
+    ax.set_title(f"ALT {hz}\nNSE {t['NSE']:.3f} · PME {t['PME']:.3f} · EAM {t['EAM']:.1f} cm".replace(".", ","), loc="left", fontsize=17, linespacing=1.3)
     ax.set_xlim(0, lim); ax.set_ylim(0, lim)
     ax.set_xlabel("Nível observado (m)")
-    ax.set_aspect("equal")
 axs[0].set_ylabel("Nível previsto (m)")
 axs[0].legend(loc="upper left", markerscale=1.6, handletextpad=0.2)
 fig.savefig(OUT / "dispersao.png", dpi=300)
@@ -123,10 +122,10 @@ plt.close(fig)
 d = MODELOS["8h"][1]
 s = np.where(d["X"] == 3)[0]
 horas = np.arange(len(s))
-fig, ax = plt.subplots(figsize=(10.4, 5.0), constrained_layout=True)
+fig, ax = plt.subplots(figsize=(8.6, 4.15), constrained_layout=True)
 ax.plot(horas, d["obs"][s] / 100, color=NAVY, lw=2.6, label="Observado")
 ax.plot(horas, d["pred"][s] / 100, color=ORANGE, lw=2.2, label="RNA ALT 8h")
-ax.plot(horas, d["cur"][s] / 100, color=MUTED, lw=1.6, ls=(0, (4, 3)), label="Persistência (nível atual)")
+ax.plot(horas, d["cur"][s] / 100, color=MUTED, lw=1.6, ls=(0, (4, 3)), label="Persistência")
 ax.set_xlabel("Horas desde o início do evento de teste")
 ax.set_ylabel("Nível (m)")
 ax.legend(loc="upper right")

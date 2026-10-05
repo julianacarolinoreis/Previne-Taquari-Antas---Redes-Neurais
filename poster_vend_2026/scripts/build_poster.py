@@ -197,41 +197,48 @@ XB = L + CW + GAP
 t2, t4, t8 = (M[h]["teste"] for h in ("2h", "4h", "8h"))
 av = M["ao_vivo"]["2h"]
 
-# ------------------------------------------------------------------ linha A
+
+def tile(x, y, w, h, big, small, fill=PALE, big_color=NAVY, small_color=INK, big_size=40, name="Destaque"):
+    b = box(x, y, w, h, fill, name)
+    tf = b.text_frame
+    tf.word_wrap = True
+    tf.margin_left = tf.margin_right = mm(3)
+    tf.margin_top = tf.margin_bottom = mm(1)
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    p = tf.paragraphs[0]; p.alignment = PP_ALIGN.CENTER
+    r = p.add_run(); r.text = big; _style_run(r, big_size, True, big_color)
+    p = tf.add_paragraph(); p.alignment = PP_ALIGN.CENTER
+    r = p.add_run(); r.text = small; _style_run(r, 18, False, small_color)
+    return b
+
+
+# ------------------------------------------------------------------ linha A: introdução + área
 y = 252
 header(L, y, "INTRODUÇÃO")
-text(L, y + 19, CW, 68, [
-    [("As cheias de 2023 e 2024 na bacia do Taquari-Antas mostraram a necessidade de previsões de nível "
-      "com antecedência útil para o alerta. Este trabalho aplica ", {}),
-     ("Redes Neurais Artificiais", {"bold": True}),
-     (" do tipo Perceptron Multicamadas (MLP) para prever o nível do rio Taquari em ", {}),
-     ("Santa Tereza", {"bold": True}),
-     (" com ", {}), ("2, 4 e 8 horas", {"bold": True}), (" de antecedência, pela ", {}),
+text(L, y + 19, CW, 48, [
+    [("Previsão do nível do rio Taquari em ", {}), ("Santa Tereza (RS)", {"bold": True}),
+     (" com RNA do tipo MLP, ", {}), ("2, 4 e 8 h", {"bold": True}), (" à frente. Na ", {}),
      ("abordagem alternativa (ALT)", {"bold": True, "color": ORANGE}),
-     (": a RNA prevê só a variação do nível.", {})],
+     (" a rede prevê só a ", {}), ("variação", {"bold": True}), (" do nível.", {})],
 ], name="Texto introducao")
+ty, tw, th = y + 72, (CW - 2 * 8) / 3, 46
+for i, (big, small) in enumerate([("15.800 km²", "bacia até Santa Tereza"),
+                                  ("2022–2025", "dados horários ANA/SGB"),
+                                  ("3 grupos", "eventos de cheia: treino, validação e teste")]):
+    tile(L + i * (tw + 8), ty, tw, th, big, small, big_size=30, name=f"Dado {i + 1}")
 
-y2 = y + 91
-header(L, y2, "ÁREA DE ESTUDO E DADOS")
-text(L, y2 + 19, CW, 52, [
-    {"bullet": True, "runs": [("Bacia do rio Taquari até a estação 86472600 (≈15.800 km²)", {})]},
-    {"bullet": True, "runs": [("Dados horários de nível e chuva (2022–2025) do portal HidroTelemetria (ANA/SGB)", {})]},
-    {"bullet": True, "runs": [("Amostras agrupadas por ", {}), ("eventos de cheia", {"bold": True}),
-                              (", separados em treino, validação e teste", {})]},
-], name="Texto area de estudo")
-
-mw, mh = picture(FIG / "mapa.png", XB + (CW - 232) / 2, y, w=232, name="Mapa da bacia")
+mw, mh = picture(FIG / "mapa.png", XB + (CW - 205) / 2, y, w=205, name="Mapa da bacia")
 text(XB, y + mh + 2, CW, 8, ["Figura 1 – Bacia do rio Taquari até Santa Tereza e postos fluviométricos."],
-     size=CAP, color=MUTED, name="Legenda mapa")
+     size=CAP, color=MUTED, align=PP_ALIGN.CENTER, name="Legenda mapa")
 
-# ------------------------------------------------------------------ linha B: metodologia
-y = 428
-header(L, y, "METODOLOGIA: ABORDAGEM ALTERNATIVA (ALT)")
+# ------------------------------------------------------------------ linha B: metodologia (diagrama)
+y = 410
+header(L, y, "ABORDAGEM ALTERNATIVA (ALT)")
 yb, hb = y + 20, 44
 etapas = [
-    ("Entradas", "níveis, diferenças e acelerações em Santa Tereza e a montante; chuva acumulada", PALE, INK),
-    ("RNA MLP", "1 camada oculta · sigmoide · retropropagação com gradiente adaptativo", PALE, INK),
-    ("Saída da RNA", "variação do nível ΔH = H(t+h) − H(t)", PALE, INK),
+    ("Entradas", "níveis, diferenças e acelerações (local e montante) + chuva", PALE, INK),
+    ("RNA MLP", "1 camada oculta · sigmoide · retropropagação", PALE, INK),
+    ("Saída da RNA", "ΔH = H(t+h) − H(t)", PALE, INK),
     ("Nível previsto", "Ĥ(t+h) = H(t) + ΔH", NAVY, WHITE),
 ]
 bw, aw = 118.0, 20.0
@@ -243,76 +250,72 @@ for i, (tit, desc, fill, fc) in enumerate(etapas):
     tf.margin_left = tf.margin_right = mm(4)
     tf.margin_top = tf.margin_bottom = mm(2)
     tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-    p = tf.paragraphs[0]
-    p.alignment = PP_ALIGN.CENTER
+    p = tf.paragraphs[0]; p.alignment = PP_ALIGN.CENTER
     r = p.add_run(); r.text = tit
-    _style_run(r, 24, True, ORANGE if fc == INK else WHITE)
+    _style_run(r, 26, True, ORANGE if fc == INK else WHITE)
     p = tf.add_paragraph(); p.alignment = PP_ALIGN.CENTER
     r = p.add_run(); r.text = desc
-    _style_run(r, 18, False, fc)
+    _style_run(r, 19, False, fc)
     if i < len(etapas) - 1:
         a = shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, mm(bx + bw + 3), mm(yb + hb / 2 - 6), mm(aw - 6), mm(12))
         a.name = f"Seta {i + 1}"
         a.fill.solid(); a.fill.fore_color.rgb = ORANGE
         a.line.fill.background(); a.shadow.inherit = False
-
-yt = yb + hb + 9
-text(L, yt, CW, 62, [
-    {"bullet": True, "runs": [("Neurônios ocultos ≈ 2 × nº de entradas; 10 inicializações por rede", {})]},
-    {"bullet": True, "runs": [("Entradas escolhidas por algoritmo de busca em Python; redes treinadas no MATLAB", {})]},
-    {"bullet": True, "runs": [("Avaliação: NSE, PME (ganho sobre a persistência), EAM e E95 (erro não superado em 95%)", {})]},
-], size=SMALL, space_after=4, name="Texto metodologia")
-table(XB, yt, CW, [1.0, 1.05, 1.15, 3.6], [
-    ["Modelo", "Entradas", "Neurônios", "Variáveis de entrada"],
-    ["ALT 2h", M["2h"]["n_inputs"], M["2h"]["neuronios"], "Santa Tereza e Linha José Júlio"],
-    ["ALT 4h", M["4h"]["n_inputs"], M["4h"]["neuronios"], "+ 2 postos a montante"],
-    ["ALT 8h", M["8h"]["n_inputs"], M["8h"]["neuronios"], "7 postos fluviométricos + chuva"],
-], size=19, row_h=12.5, name="Tabela configuracao")
+yp = yb + hb + 7
+pw = (W - 2 * 10) / 3
+for i, hz in enumerate(("2h", "4h", "8h")):
+    tile(L + i * (pw + 10), yp, pw, 14, "", "", fill=WHITE, name=f"Config {hz}")
+    text(L + i * (pw + 10), yp + 2, pw, 10, [[(f"ALT {hz}: ", {"bold": True, "color": NAVY}),
+         (f"{M[hz]['n_inputs']} entradas · {M[hz]['neuronios']} neurônios", {})]],
+         size=21, align=PP_ALIGN.CENTER, name=f"Texto config {hz}")
 
 # ------------------------------------------------------------------ linha C: resultados (dispersão)
-y = 562
-header(L, y, "RESULTADOS")
-dw, dh = picture(FIG / "dispersao.png", L + (W - 430) / 2, y + 17, w=430, name="Dispersao previsto x observado")
-text(L, y + 17 + dh + 1, W, 8, ["Figura 2 – Nível previsto × observado (série completa) dos modelos ALT ao vivo em Santa Tereza."],
-     size=CAP, color=MUTED, name="Legenda dispersao")
+y = 507
+header(L, y, "RESULTADOS NO TESTE")
+dw, dh = picture(FIG / "dispersao.png", L + (W - 455) / 2, y + 17, w=455, name="Dispersao previsto x observado")
+text(L, y + 17 + dh + 1, W, 8,
+     ["Figura 2 – Nível previsto × observado. Métricas no conjunto de teste (eventos não usados no treino)."],
+     size=CAP, color=MUTED, align=PP_ALIGN.CENTER, name="Legenda dispersao")
 
-# ------------------------------------------------------------------ linha D
-y = y + 17 + dh + 12
-red = lambda t: f"−{100 * (1 - t['EAM'] / t['EAM_persistencia']):.0f}%"
-table(L, y, CW, [1.0, 1.0, 1.0, 1.05, 0.95, 1.55], [
-    ["Teste", "NSE", "PME", "EAM", "E95", "EAM × persist."],
-    ["ALT 2h", br(t2["NSE"]), br(t2["PME"]), f"{br(t2['EAM'], 1)} cm", f"{t2['E95']:.0f} cm", red(t2)],
-    ["ALT 4h", br(t4["NSE"]), br(t4["PME"]), f"{br(t4['EAM'], 1)} cm", f"{t4['E95']:.0f} cm", red(t4)],
-    ["ALT 8h", br(t8["NSE"]), br(t8["PME"]), f"{br(t8['EAM'], 1)} cm", f"{t8['E95']:.0f} cm", red(t8)],
-], size=19, row_h=12.5, name="Tabela resultados")
-text(L, y + 52, CW, 8, ["Tabela 1 – Desempenho no conjunto de teste (eventos não usados no treinamento)."],
-     size=CAP, color=MUTED, name="Legenda tabela")
-
-yc = y + 64
-header(L, yc, "CONCLUSÕES")
-text(L, yc + 19, CW, 110, [
-    {"bullet": True, "runs": [("Nos três horizontes, a abordagem ALT alcançou ", {}), ("NSE ≥ 0,979", {"bold": True}),
-                              (" e ", {}), ("PME de 0,88 a 0,97", {"bold": True}), (" no teste.", {})]},
-    {"bullet": True, "runs": [("O erro médio cai 65–81% frente à persistência e cresce com a antecedência (de 3,5 a 23 cm).", {})]},
-    {"bullet": True, "runs": [("Em tempo real, o modelo 2h acompanhou a cheia de set/2026 com erro médio de 9 cm: potencial "
-                               "de uso operacional no alerta de Santa Tereza.", {})]},
-], size=SMALL, space_after=5, name="Texto conclusoes")
-
-header(XB, y, "OPERAÇÃO EM TEMPO REAL")
-vw, vh = picture(FIG / "ao_vivo_2h.png", XB, y + 18, w=236, name="Operacao ao vivo 2h")
+# ------------------------------------------------------------------ linha D: hidrogramas
+y = y + 17 + dh + 13
+header(L, y, "CHEIA DE JUL/2023 · 8 h")
+ew, eh = picture(FIG / "teste_8h.png", L, y + 18, w=CW, name="Evento de teste 8h")
+text(L, y + 18 + eh + 1, CW, 8, ["Figura 3 – A RNA antecipa a subida; a persistência chega 8 h atrasada."],
+     size=CAP, color=MUTED, name="Legenda teste 8h")
+header(XB, y, "AO VIVO · SET/2026 · 2 h")
+vw, vh = picture(FIG / "ao_vivo_2h.png", XB, y + 18, w=CW, name="Operacao ao vivo 2h")
 text(XB, y + 18 + vh + 1, CW, 8,
-     ["Figura 3 – Previsão ao vivo 2h × telemetria (25/09 a 05/10/2026)."],
+     [f"Figura 4 – {av['n']} previsões auditadas: EAM {br(av['EAM'], 1)} cm (persistência {br(av['EAM_persistencia'], 1)} cm)."],
      size=CAP, color=MUTED, name="Legenda ao vivo")
-text(XB, y + 18 + vh + 11, CW, 40, [
-    [("Robô horário com telemetria do SGB/ANA, em teste paralelo ao alerta oficial. Em ", {}),
-     (f"{av['n']} previsões auditadas", {"bold": True}), (" (pico de ", {}),
-     (f"{br(av['pico_obs'] / 100, 1)} m", {"bold": True}), ("), o modelo 2h teve ", {}),
-     (f"EAM de {br(av['EAM'], 1)} cm", {"bold": True, "color": ORANGE}),
-     (f" (persistência: {br(av['EAM_persistencia'], 1)} cm).", {})],
-], size=SMALL, name="Texto ao vivo")
+
+# ------------------------------------------------------------------ linha E: conclusões + QR code
+y = y + 18 + eh + 14
+header(L, y, "CONCLUSÕES")
+text(L, y + 19, 380, 46, [
+    {"bullet": True, "runs": [("NSE ≥ 0,98", {"bold": True}), (" e erro ", {}), ("65–81% menor", {"bold": True}),
+                              (" que a persistência nos três horizontes.", {})]},
+    {"bullet": True, "runs": [("Em operação, o modelo 2h acompanhou a cheia de set/2026 com ", {}),
+                              ("erro médio de 9 cm", {"bold": True, "color": ORANGE}), (".", {})]},
+], size=BODY, space_after=6, name="Texto conclusoes")
+qs = 58
+qx, qy = L + W - qs, y
+qr = shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, mm(qx), mm(qy), mm(qs), mm(qs))
+qr.name = "Espaco QR code"
+qr.adjustments[0] = 0.06
+qr.fill.solid(); qr.fill.fore_color.rgb = WHITE
+qr.line.color.rgb = NAVY; qr.line.width = Pt(2.5); qr.line.dash_style = 4
+qr.shadow.inherit = False
+tf = qr.text_frame; tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+p = tf.paragraphs[0]; p.alignment = PP_ALIGN.CENTER
+r = p.add_run(); r.text = "QR CODE"; _style_run(r, 22, True, MUTED)
+text(qx - 92, qy + 12, 86, 36, [
+    [("Dashboard", {"bold": True, "color": NAVY, "size": 28})],
+    [("em tempo real →", {"bold": True, "color": ORANGE, "size": 28})],
+], align=PP_ALIGN.RIGHT, name="Chamada QR code")
 
 # ------------------------------------------------------------------ rodapé de referências
-text(L, 913, W, 12, [
+text(L, 911, W - 64, 14, [
     [("Referências: ", {"bold": True}),
      ("ALVISI, S. et al. (2006). Hydrology and Earth System Sciences, 10(1), 1-17. · RUMELHART, D. E. et al. (1986). "
       "Nature, 323, 533-536. · KUMAR, V. et al. (2023). Sustainability, 15(13), 10543.   ", {}),
