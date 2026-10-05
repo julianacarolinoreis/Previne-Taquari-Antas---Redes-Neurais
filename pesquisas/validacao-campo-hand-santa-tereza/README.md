@@ -11,7 +11,9 @@ A análise sustenta o trabalho para o SBSR 2027 e o artigo em preparação.
 | `analise_erros_campo.py` | Lê a planilha de campo e recalcula todos os erros com fórmulas únicas. |
 | `erros_campo_santa_tereza.csv` | Uma linha por ponto × evento, sem coordenadas. |
 | `metricas_validacao_campo.json` | Viés, MAE, RMSE e demais métricas por conjunto. |
-| `figuras/` | Figuras 1–3 (300 dpi). |
+| `figuras/` | Figuras 1–3 (300 dpi) e figuras do manuscrito (`fig_manuscrito_*`). |
+| `estatisticas_manuscrito.py` / `.json` | IC 95% (bootstrap e t), z0 por evento, sensibilidade à fonte do pico (telemetria × SGB), Δz celular × RTK, plano horizontal como modelo nulo. |
+| `figuras_manuscrito.py` | Gera as figuras do manuscrito (precisa da planilha e de um GeoJSON de UFs). |
 
 A planilha original (`sumario_erros_hand.xlsx`) não é versionada porque traz as
 coordenadas exatas dos pontos de campo. Para reproduzir:
