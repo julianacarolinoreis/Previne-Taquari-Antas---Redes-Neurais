@@ -14,7 +14,7 @@ import argparse
 import json
 import math
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -43,6 +43,7 @@ BASE=ROOT/"assets/data/hec_hms_g040_full_basin"
 ENDPOINT="https://single-runs-api.open-meteo.com/v1/forecast"
 MODEL_CANDIDATES=("ecmwf_ifs","ecmwf_ifs025")
 FORECAST_DAYS=10
+AVAILABILITY_LAG_H=6
 
 def parse_run(value: str) -> datetime:
     d=datetime.fromisoformat(value.replace("Z","+00:00"))
@@ -101,6 +102,7 @@ def select_model_query(run_utc,cells):
 
 def fetch_all(cells,run_utc,model_query):
     out=[]
+    usable_after=run_utc+timedelta(hours=AVAILABILITY_LAG_H)
     for i in range(0,len(cells),BATCH_SIZE):
         batch=cells[i:i+BATCH_SIZE]
         payload=request_batch(batch,run_utc,model_query)
@@ -113,10 +115,15 @@ def fetch_all(cells,run_utc,model_query):
             rows=[]
             for t,v in zip(tt,vv):
                 dt=parse_hour(t)
-                if dt<run_utc:
+                # A run is not operationally available at initialization.  For
+                # the frozen replay we conservatively expose only valid times
+                # strictly after run+6 h.  Null precipitation at initialization
+                # is therefore outside the usable forecast and must not fail the
+                # causal package.
+                if dt<=usable_after:
                     continue
                 if v is None:
-                    raise RuntimeError(f"{point['cell_id']}: missing precipitation at {t}")
+                    raise RuntimeError(f"{point['cell_id']}: missing usable precipitation at {t}")
                 x=float(v)
                 if not math.isfinite(x) or x<0:
                     raise RuntimeError(f"{point['cell_id']}: invalid precipitation {v} at {t}")
@@ -189,8 +196,8 @@ def main() -> int:
             "model_family":"ECMWF IFS",
             "run_initialization_utc":run_utc.isoformat().replace("+00:00","Z"),
             "run_is_explicit":True,
-            "availability_assumption_hours_after_initialization":6,
-            "note":"6 h availability lag is a conservative frozen backtest convention; no forecast valid before that decision time is used",
+            "availability_assumption_hours_after_initialization":AVAILABILITY_LAG_H,
+            "note":"6 h availability lag is a conservative frozen backtest convention; only valid times strictly after that decision time are exposed",
         },
         "grid":{
             **grid_contract(),
@@ -209,6 +216,7 @@ def main() -> int:
             "single_explicit_run":True,
             "missing_zero_filled":False,
             "forecast_after_decision_only_required_by_merger":True,
+            "pre_availability_hours_discarded":True,
         },
     }
     args.output.parent.mkdir(parents=True,exist_ok=True)
