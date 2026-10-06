@@ -28,7 +28,7 @@ FEED_HTML = OUT / "plataforma_hec_twin_mucum.html"
 ROOT_HTML = ROOT / "plataforma_hec_twin.html"
 
 PAGES_BASE = (
-    "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais"
+    "https://previne-taquari-antas.github.io/Previne-Taquari-Antas---Redes-Neurais"
 )
 STUDY_REL = "assets/data/estudo_bacia_taquari_antas"
 
