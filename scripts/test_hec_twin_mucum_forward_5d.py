@@ -61,6 +61,19 @@ class Forward5dTests(unittest.TestCase):
         self.assertTrue(stage["ok"])
         self.assertGreater(stage["stage_cm"], 0)
 
+        # Fail closed above the frozen 15 m research safety limit even though
+        # the official mathematical segment extends higher.
+        unsafe_q = fwd.q_to_stage_cm(6723.0, segs)
+        self.assertFalse(unsafe_q["ok"])
+        self.assertIsNone(unsafe_q["stage_cm"])
+        self.assertEqual(unsafe_q["reason"], "above_frozen_rating_curve_safety_limit")
+        self.assertEqual(unsafe_q["safety_limit_cm"], 1500.0)
+
+        unsafe_stage = fwd.stage_to_q_m3s(1600.0, segs)
+        self.assertFalse(unsafe_stage["ok"])
+        self.assertIsNone(unsafe_stage["q_m3s"])
+        self.assertEqual(unsafe_stage["reason"], "above_frozen_rating_curve_safety_limit")
+
         package = fwd.build_package(_synthetic_forcing(48), allow_network=False)
         self.assertEqual(package["status"], "research_forward_5d_ready")
         lib = json.loads((OUT / "modelo_mucum_eventwise_v1_fechado_latest.json").read_text(encoding="utf-8"))
