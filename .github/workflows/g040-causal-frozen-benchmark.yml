@@ -1,0 +1,257 @@
+name: G040 causal frozen ECMWF benchmark
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "config/g040_causal_frozen_benchmark_v1.json"
+      - "scripts/build_g040_antecedent_wetness.py"
+      - "scripts/build_g040_ecmwf_single_run_forcing.py"
+      - "scripts/build_g040_causal_case.py"
+      - "scripts/evaluate_g040_causal_benchmark.py"
+      - "scripts/run_hec_hms_g040_e1_hindcast.py"
+      - "scripts/build_g040_target_event_parameter_library.py"
+      - "scripts/select_g040_adaptive_scenario.py"
+      - "scripts/test_g040_causal_frozen_benchmark.py"
+      - ".github/workflows/g040-causal-frozen-benchmark.yml"
+  pull_request:
+    paths:
+      - "config/g040_causal_frozen_benchmark_v1.json"
+      - "scripts/build_g040_antecedent_wetness.py"
+      - "scripts/build_g040_ecmwf_single_run_forcing.py"
+      - "scripts/build_g040_causal_case.py"
+      - "scripts/evaluate_g040_causal_benchmark.py"
+      - "scripts/run_hec_hms_g040_e1_hindcast.py"
+      - "scripts/build_g040_target_event_parameter_library.py"
+      - "scripts/select_g040_adaptive_scenario.py"
+      - "scripts/test_g040_causal_frozen_benchmark.py"
+      - ".github/workflows/g040-causal-frozen-benchmark.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: g040-causal-frozen-benchmark-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Python dependencies
+        run: pip install --disable-pip-version-check numpy shapely pyproj
+
+      - name: No-leakage contract tests
+        run: |
+          python -B scripts/test_g040_causal_frozen_benchmark.py
+          python -B scripts/test_g040_adaptive_eventwise.py
+          python -B scripts/test_g040_multievent_calibration_contract.py
+
+      - name: Cache HEC-HMS 4.13
+        if: github.event_name != 'pull_request'
+        id: cache-hec
+        uses: actions/cache@v4
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+
+      - name: Download HEC-HMS 4.13
+        if: github.event_name != 'pull_request' && steps.cache-hec.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .hec
+          curl -L --fail --retry 3 --retry-delay 4 \
+            -o /tmp/HEC-HMS-4.13-linux64.tar.gz \
+            https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
+          tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
+
+      - name: Build observed validation and holdout forcing
+        if: github.event_name != 'pull_request'
+        run: |
+          python -B scripts/build_g040_historical_calibration_forcing.py \
+            --events E27_MAY2024,E28_JUN2024,E2026_JUL \
+            --max-workers 12
+
+      - name: Build true pre-event antecedent wetness
+        if: github.event_name != 'pull_request'
+        run: |
+          python -B scripts/build_g040_antecedent_wetness.py \
+            --events E22_SEP2023,E24_NOV2023,E27_MAY2024,E28_JUN2024,E2026_JUL \
+            --max-workers 12
+
+      - name: Run exact-ECMWF causal HEC replays
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          test -n "$HEC_SH"
+          export HEC_SH
+          python - <<'PY'
+          import json, os, subprocess, sys
+          from datetime import datetime, timedelta
+          from pathlib import Path
+
+          root=Path.cwd()
+          base=root/"assets/data/hec_hms_g040_full_basin"
+          cfg=json.load(open(root/"config/g040_causal_frozen_benchmark_v1.json",encoding="utf-8"))
+          cal=json.load(open(base/"g040_e1_multievent_calibration_latest.json",encoding="utf-8"))
+          best=cal.get("best_calibration_candidate") or {}
+          p=best.get("parameters") or {}
+          required=("cn","lag_min","k_g1","k_g2","k_g3","k_g4","x")
+          missing=[k for k in required if p.get(k) is None]
+          if missing:
+              raise SystemExit(f"best calibration candidate missing parameters: {missing}")
+
+          for case in cfg["cases"]:
+              cid=case["case_id"]
+              cdir=base/"causal_frozen_benchmark"/cid
+              cdir.mkdir(parents=True,exist_ok=True)
+              forecast=cdir/"ecmwf_exact_run.json"
+              run=case["ecmwf_run_utc"].replace(":00Z","")
+              subprocess.check_call([
+                  sys.executable,"-B","scripts/build_g040_ecmwf_single_run_forcing.py",
+                  "--run",run,"--output",str(forecast),
+              ])
+              subprocess.check_call([
+                  sys.executable,"-B","scripts/build_g040_causal_case.py",
+                  "--case-id",cid,"--forecast-file",str(forecast),
+              ])
+              t0=datetime.fromisoformat(case["decision_time_utc"].replace("Z","+00:00"))
+              end=t0+timedelta(hours=int(cfg["forecast_horizon_hours"]))
+              cmd=[
+                  sys.executable,"-B","scripts/run_hec_hms_g040_e1_hindcast.py",os.environ["HEC_SH"],
+                  "--candidate-id","FROZEN_BEST_CAL",
+                  "--event-id",case["event_id"],
+                  "--rain-file",str(cdir/"rain.json"),
+                  "--hydro-file",str(cdir/"hydro_forcing.json"),
+                  "--score-hydro-file",str(cdir/"hydro_scoring.json"),
+                  "--score-start-utc",case["decision_time_utc"],
+                  "--score-end-utc",end.isoformat().replace("+00:00","Z"),
+                  "--scenario-file",str(cdir/"scenario.json"),
+                  "--output-root",str(cdir/"hec_runs"),
+                  "--cn",str(p["cn"]),"--lag-min",str(p["lag_min"]),
+                  "--k-g1",str(p["k_g1"]),"--k-g2",str(p["k_g2"]),
+                  "--k-g3",str(p["k_g3"]),"--k-g4",str(p["k_g4"]),
+                  "--x",str(p["x"]),
+              ]
+              print("RUN",cid," ".join(cmd),flush=True)
+              subprocess.check_call(cmd)
+
+          subprocess.check_call([sys.executable,"-B","scripts/evaluate_g040_causal_benchmark.py"])
+          PY
+
+      - name: Rebuild analog library with true antecedent wetness
+        if: github.event_name != 'pull_request'
+        run: |
+          python -B scripts/build_g040_target_event_parameter_library.py
+          python -B scripts/select_g040_adaptive_scenario.py
+
+      - name: Verify causal benchmark gates
+        if: github.event_name != 'pull_request'
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          base=Path("assets/data/hec_hms_g040_full_basin")
+          j=json.load(open(base/"causal_frozen_benchmark/causal_frozen_benchmark_summary_latest.json",encoding="utf-8"))
+          assert j["status"]=="FROZEN_CAUSAL_REPLAY_COMPLETE"
+          assert j["no_leakage_confirmed"] is True
+          assert len(j["cases"])==3
+          print(json.dumps(j["grand_summary"],indent=2))
+          ant=json.load(open(base/"historical_antecedent_wetness/manifest_latest.json",encoding="utf-8"))
+          assert ant["future_event_rain_used"] is False
+          lib=json.load(open(base/"g040_target_event_parameter_library_latest.json",encoding="utf-8"))
+          print("TRUE_ANTECEDENT_EVENTS",lib["coverage"]["events_with_true_antecedent_wetness"])
+          assert "E22_SEP2023" in lib["coverage"]["events_with_true_antecedent_wetness"]
+          assert "E24_NOV2023" in lib["coverage"]["events_with_true_antecedent_wetness"]
+          PY
+
+      - name: Stage research evidence
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="assets/data/hec_hms_g040_full_basin"
+          TMP="/tmp/g040-causal-publish"
+          rm -rf "$TMP"
+          mkdir -p "$TMP"
+
+          cp -r "$BASE/historical_antecedent_wetness" "$TMP/"
+          cp "$BASE/g040_target_event_parameter_library_latest.json" "$TMP/"
+          cp "$BASE/g040_adaptive_scenario_latest.json" "$TMP/"
+          mkdir -p "$TMP/historical_calibration_forcing"
+          cp "$BASE/historical_calibration_forcing/manifest_latest.json" "$TMP/historical_calibration_forcing/"
+          for E in E27_MAY2024 E28_JUN2024 E2026_JUL; do
+            mkdir -p "$TMP/historical_calibration_forcing/$E"
+            cp "$BASE/historical_calibration_forcing/$E/rain.json" "$TMP/historical_calibration_forcing/$E/"
+            cp "$BASE/historical_calibration_forcing/$E/hydro.json" "$TMP/historical_calibration_forcing/$E/"
+            cp "$BASE/historical_calibration_forcing/$E/scenario.json" "$TMP/historical_calibration_forcing/$E/"
+          done
+
+          mkdir -p "$TMP/causal_frozen_benchmark"
+          cp "$BASE/causal_frozen_benchmark/causal_frozen_benchmark_summary_latest.json" "$TMP/causal_frozen_benchmark/"
+          cp "$BASE/causal_frozen_benchmark/causal_frozen_benchmark_cases.csv" "$TMP/causal_frozen_benchmark/"
+          for C in E27_MAY2024_R00 E28_JUN2024_R00 E2026_JUL_R00; do
+            SRC="$BASE/causal_frozen_benchmark/$C"
+            DST="$TMP/causal_frozen_benchmark/$C"
+            mkdir -p "$DST/hec_runs/FROZEN_BEST_CAL/project"
+            cp "$SRC/ecmwf_exact_run.json" "$DST/"
+            cp "$SRC/rain.json" "$DST/"
+            cp "$SRC/hydro_forcing.json" "$DST/"
+            cp "$SRC/hydro_scoring.json" "$DST/"
+            cp "$SRC/scenario.json" "$DST/"
+            cp "$SRC/manifest.json" "$DST/"
+            cp "$SRC/hec_runs/FROZEN_BEST_CAL/result.json" "$DST/hec_runs/FROZEN_BEST_CAL/"
+            cp "$SRC/hec_runs/FROZEN_BEST_CAL/run.log" "$DST/hec_runs/FROZEN_BEST_CAL/"
+            cp "$SRC/hec_runs/FROZEN_BEST_CAL/project/hec_output_values.csv" "$DST/hec_runs/FROZEN_BEST_CAL/project/"
+          done
+
+      - name: Publish causal benchmark evidence
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="assets/data/hec_hms_g040_full_basin"
+          TMP="/tmp/g040-causal-publish"
+          git config user.name "previne-g040-causal-benchmark-bot"
+          git config user.email "previne-g040-causal-benchmark-bot@users.noreply.github.com"
+
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            rm -rf "$BASE/historical_antecedent_wetness" "$BASE/causal_frozen_benchmark"
+            cp -r "$TMP/historical_antecedent_wetness" "$BASE/"
+            cp -r "$TMP/causal_frozen_benchmark" "$BASE/"
+            cp "$TMP/g040_target_event_parameter_library_latest.json" "$BASE/"
+            cp "$TMP/g040_adaptive_scenario_latest.json" "$BASE/"
+            mkdir -p "$BASE/historical_calibration_forcing"
+            cp "$TMP/historical_calibration_forcing/manifest_latest.json" "$BASE/historical_calibration_forcing/"
+            for E in E27_MAY2024 E28_JUN2024 E2026_JUL; do
+              mkdir -p "$BASE/historical_calibration_forcing/$E"
+              cp "$TMP/historical_calibration_forcing/$E/"*.json "$BASE/historical_calibration_forcing/$E/"
+            done
+            git add -- \
+              "$BASE/historical_antecedent_wetness" \
+              "$BASE/causal_frozen_benchmark" \
+              "$BASE/g040_target_event_parameter_library_latest.json" \
+              "$BASE/g040_adaptive_scenario_latest.json" \
+              "$BASE/historical_calibration_forcing/manifest_latest.json" \
+              "$BASE/historical_calibration_forcing/E27_MAY2024" \
+              "$BASE/historical_calibration_forcing/E28_JUN2024" \
+              "$BASE/historical_calibration_forcing/E2026_JUL"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "bot: publish G040 frozen causal ECMWF benchmark [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt*2))
+          done
+          exit 1

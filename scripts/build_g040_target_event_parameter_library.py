@@ -21,6 +21,7 @@ BASE=ROOT/"assets/data/hec_hms_g040_full_basin"
 CAL=BASE/"g040_e1_multievent_calibration_latest.json"
 REFINED=BASE/"g040_target_event_refinement_latest.json"
 FORCING=BASE/"historical_calibration_forcing"
+ANTECEDENT=BASE/"historical_antecedent_wetness"
 MUCUM=ROOT/"assets/data/estudo_bacia_taquari_antas/modelo_mucum_eventwise_v1_fechado_latest.json"
 OUT=BASE/"g040_target_event_parameter_library_latest.json"
 
@@ -107,8 +108,18 @@ def fingerprint(event_id:str)->dict[str,Any]|None:
           "start_q_m3s":q[0],"peak_q_m3s":max(q),"end_q_m3s":q[-1],
           "early_6h_delta_q_m3s":(q[min(6,len(q)-1)]-q[0]) if len(q)>1 else 0.0
         }
+    ant_path=ANTECEDENT/f"{event_id}.json"
+    ant=load(ant_path).get("summary") if ant_path.exists() else {}
     return {
       "event_id":event_id,
+      "antecedent":{
+        "rain_24h_mm":ant.get("rain_24h_mm"),
+        "rain_72h_mm":ant.get("rain_72h_mm"),
+        "rain_168h_mm":ant.get("rain_168h_mm"),
+        "api_tau_72h_mm":ant.get("api_tau_72h_mm"),
+        "strictly_pre_event":bool(ant_path.exists()),
+        "source":str(ant_path.relative_to(ROOT)) if ant_path.exists() else None,
+      },
       "rain":{
         "basin_total_mm":sum(basin) if basin else None,
         "first_24h_mm":sum(basin[:24]) if basin else None,
@@ -228,6 +239,7 @@ def main()->int:
       "coverage":{
         "targets_with_hec_eventwise_candidates":sorted({x["target_code"] for x in target_event}),
         "events_with_full_basin_fingerprints":sorted(fps),
+        "events_with_true_antecedent_wetness":sorted(k for k,v in fps.items() if (v.get("antecedent") or {}).get("strictly_pre_event")),
         "mucum_existing_eventwise_events":[x["event_id"] for x in legacy],
         "refined_target_event_rows_used":sum(x.get("selection_source")=="target_event_refinement" for x in target_event),
       }
