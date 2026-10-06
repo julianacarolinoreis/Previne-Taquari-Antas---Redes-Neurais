@@ -12,16 +12,22 @@ on:
       - '.github/workflows/mucum-weather-feed.yml'
   schedule:
     - cron: '17,47 * * * *'
+  workflow_run:
+    workflows:
+      - "Chuvas horarias (ANA + INMET + CEMADEN)"
+    types:
+      - completed
 
 permissions:
   contents: write
 
 concurrency:
   group: mucum-weather-feed
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   refresh:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

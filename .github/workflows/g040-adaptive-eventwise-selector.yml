@@ -4,6 +4,10 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "41 * * * *"
+  workflow_run:
+    workflows:
+      - "G040 full-basin operational spine"
+    types: [completed]
   push:
     branches: [main]
     paths:
@@ -29,10 +33,11 @@ permissions:
 
 concurrency:
   group: g040-adaptive-eventwise-selector-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

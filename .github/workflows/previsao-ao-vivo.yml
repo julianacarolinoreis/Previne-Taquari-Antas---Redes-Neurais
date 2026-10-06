@@ -78,7 +78,7 @@ jobs:
           python -B -m unittest scripts.test_stz_8h_excel_mother_contract
           # Gera primeiro o schema corrente; assim uma futura migração de schema
           # não fica bloqueada por um JSON antigo ainda presente no repositório.
-          timeout --signal=TERM --kill-after=20s 180s python previne/robo/gerar_previsao_ao_vivo.py
+          PYTHONUNBUFFERED=1 timeout --signal=TERM --kill-after=20s 240s python previne/robo/gerar_previsao_ao_vivo.py
           python -B scripts/validar_previsao_ao_vivo.py
           python -B -m unittest scripts.test_previsao_ao_vivo_schema
 
