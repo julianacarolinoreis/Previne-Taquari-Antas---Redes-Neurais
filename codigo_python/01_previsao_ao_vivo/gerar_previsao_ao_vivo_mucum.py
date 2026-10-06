@@ -75,6 +75,8 @@ ANA_TIMEOUT_CHUVA_S = 12
 ANA_RETRIES_NIVEL = 2
 ANA_RETRIES_CHUVA = 2
 HORIZONTES_AO_VIVO = {"2h", "4h", "4h_versao_b", "8h", "8h_versao_b"}
+HOURLY_BASE_WARN_LAG_H = 1.0
+HOURLY_BASE_STALE_LAG_H = 2.0
 
 
 # ---------- configuração dos modelos (a partir do JSON) ----------
@@ -588,6 +590,47 @@ def serie_observada_ana_publica(series, dias=7):
     ]
 
 
+def aplicar_guardrail_frescor_horizontes(horizontes, telemetria_em):
+    """Não publica como previsão ao vivo uma RNA horária com base velha."""
+    if telemetria_em is None:
+        return horizontes
+    for out in horizontes.values():
+        hm = _parse_hora(out.get("hora_modelo") or "")
+        if hm is None or out.get("nivel_previsto_cm") is None:
+            continue
+        if out.get("input_grade") != "hourly_exact":
+            continue
+        atraso_h = (telemetria_em - hm).total_seconds() / 3600.0
+        out["atraso_base_telemetria_h"] = round(atraso_h, 3)
+        if atraso_h >= HOURLY_BASE_STALE_LAG_H:
+            out["previsao_stale_candidata_cm"] = out.get("nivel_previsto_cm")
+            if out.get("passos"):
+                out["passos_stale_candidatos"] = out.get("passos")
+            out["nivel_previsto_cm"] = None
+            out["passos"] = []
+            out["disponivel"] = False
+            out["status"] = (
+                f"indisponivel: base da RNA {atraso_h:.1f}h anterior a telemetria recente; "
+                "aguardando conjunto completo de entradas na mesma hora cheia"
+            )
+            audit = dict(out.get("auditoria_inputs") or {})
+            audit["status"] = "ATENCAO"
+            audit["motivo_publicacao"] = (
+                f"base horaria {atraso_h:.1f}h anterior a telemetria recente"
+            )
+            out["auditoria_inputs"] = audit
+            out["qualidade_ao_vivo"] = {
+                "status": "BASE_DESATUALIZADA",
+                "regra": "base horaria >=2 h atras da telemetria recente",
+            }
+        elif atraso_h >= HOURLY_BASE_WARN_LAG_H and str(out.get("status") or "").startswith("ok"):
+            out["status"] = (
+                f"{out['status']} - atencao: base da RNA {atraso_h:.1f}h anterior a telemetria recente; "
+                "aguardando conjunto completo de entradas na mesma hora cheia"
+            )
+    return horizontes
+
+
 def diagnosticar_proxima_base(cfg, series, hora_modelo, limite_alvo=None):
     """Explica por que a próxima hora cheia ainda não virou base do modelo."""
     if hora_modelo is None:
@@ -986,6 +1029,10 @@ def main():
     historico = conferir_historico(historico, series)
     salvar_historico(historico)
 
+    aplicar_guardrail_frescor_horizontes(
+        horizontes,
+        raw_mucum[0] if raw_mucum else None,
+    )
     escrever_pacote(horizontes, historico, series)
 
 
