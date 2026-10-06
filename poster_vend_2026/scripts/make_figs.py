@@ -151,3 +151,26 @@ ax.set_ylim(0, None)
 fig.savefig(OUT / "ao_vivo_2h.png", dpi=300)
 plt.close(fig)
 print("figuras ok")
+
+# ---------- Figura: dispersão empilhada (3 linhas) com PME, EAM e E95 no gráfico ----------
+fig, axs = plt.subplots(3, 1, figsize=(260 / 25.4, 300 / 25.4), constrained_layout=True)
+for i, (ax, hz) in enumerate(zip(axs, ("2h", "4h", "8h"))):
+    d = MODELOS[hz][1]
+    lim = max(d["obs"].max(), d["pred"].max()) * 1.04 / 100
+    ax.plot([0, lim], [0, lim], color=MUTED, lw=1.4, ls="--", zorder=1)
+    for code, nome, cor, sz in estilos:
+        s = d["X"] == code
+        ax.scatter(d["obs"][s] / 100, d["pred"][s] / 100, s=sz, color=cor, edgecolor="white", linewidth=0.4, label=nome, zorder=2 + code)
+    t = resumo[hz]["teste"]
+    ax.set_title(f"ALT {hz}  ·  NSE teste = {t['NSE']:.3f}".replace(".", ","), loc="left")
+    txt = (f"Teste\nPME = {t['PME']:.3f}\nEAM = {t['EAM']:.1f} cm\nE95 = {t['E95']:.0f} cm").replace(".", ",")
+    ax.text(0.03, 0.95, txt, transform=ax.transAxes, va="top", ha="left", fontsize=15, color=INK, linespacing=1.35,
+            bbox=dict(boxstyle="round,pad=0.5", fc="white", ec=GRAY, lw=1))
+    ax.set_xlim(0, lim); ax.set_ylim(0, lim)
+    ax.set_ylabel("Previsto (m)")
+    if i == 2:
+        ax.set_xlabel("Nível observado (m)")
+axs[0].legend(loc="lower right", markerscale=1.6, handletextpad=0.2)
+fig.savefig(OUT / "dispersao_vertical.png", dpi=300)
+plt.close(fig)
+print("dispersao vertical ok")
