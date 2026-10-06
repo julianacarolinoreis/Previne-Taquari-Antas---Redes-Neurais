@@ -12,7 +12,7 @@ Cada camada candidata é validada pela contagem de pontos (faixa plausível
 para o RS) antes de ser aceita. Um tipo ausente vira AVISO (buscamos fonte
 federal na iteração seguinte); com menos de 2 tipos encontrados o robô falha.
 """
-import os, re, json, time, unicodedata, urllib.request
+import os, re, json, time, shutil, unicodedata, urllib.request
 
 RAW = "_servicos_raw"
 os.makedirs(RAW, exist_ok=True)
@@ -189,6 +189,37 @@ for rodada in (1, 2, 3):        # o catálogo do IEDE oscila — insiste com pau
 faltam = [t for t in TIPOS if t not in achados]
 if faltam:
     print(f"[AVISO] tipos sem camada no IEDE: {faltam} — na próxima iteração buscamos fonte federal (CNES/INEP)")
+
+# O IEDE pode ficar indisponível por dezenas de minutos. Nessa situação não
+# apagamos nem invalidamos as camadas públicas que já foram validadas. O
+# fallback reaproveita o último recorte publicado apenas para os tipos que não
+# puderam ser baixados nesta rodada; a origem fica explicitamente marcada como
+# cache e uma rodada futura tenta o IEDE novamente.
 if len(achados) < 2:
-    raise RuntimeError(f"só encontrei {list(achados)} — catálogo mudou? revisar TIPOS/ROOTS")
+    cache_dir = "assets/data/servicos"
+    recuperados = []
+    for tipo in TIPOS:
+        if tipo in achados:
+            continue
+        src = os.path.join(cache_dir, f"{tipo}.geojson")
+        if not os.path.exists(src):
+            continue
+        try:
+            pacote = json.load(open(src, encoding="utf-8"))
+            feats = pacote.get("features", [])
+            if not feats:
+                continue
+            shutil.copyfile(src, os.path.join(RAW, f"{tipo}.geojson"))
+            open(os.path.join(RAW, f"{tipo}_fonte.txt"), "w", encoding="utf-8").write(
+                "CACHE do último recorte publicado; IEDE-RS indisponível nesta rodada"
+            )
+            achados[tipo] = len(feats)
+            recuperados.append(tipo)
+        except Exception as e:
+            print(f"[cache] {tipo}: não foi possível preservar o último publicado: {e}")
+    if recuperados:
+        print(f"[cache] IEDE indisponível; preservando último conjunto validado para: {recuperados}")
+
+if len(achados) < 2:
+    raise RuntimeError(f"só encontrei {list(achados)} e não há cache suficiente — revisar TIPOS/ROOTS")
 print("DOWNLOAD COMPLETO:", achados)
