@@ -154,10 +154,21 @@ jobs:
               git stash push --include-untracked -m "hec-core-unpublished-rest"
               STASHED=1
             fi
-            git pull --rebase origin main
-            git push origin HEAD:main
+            publicado=0
+            for attempt in 1 2 3 4 5; do
+              if git pull --rebase origin main && git push origin HEAD:main; then
+                publicado=1
+                break
+              fi
+              echo "Push do núcleo HEC ocupado; nova tentativa ${attempt}/5."
+              sleep $((attempt * 2))
+            done
             if [ "$STASHED" = "1" ]; then
               git stash pop || true
+            fi
+            if [ "$publicado" != "1" ]; then
+              echo "Não foi possível publicar o núcleo HEC/IFS após 5 tentativas."
+              exit 1
             fi
           fi
 
