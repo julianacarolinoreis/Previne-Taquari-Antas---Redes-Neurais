@@ -73,6 +73,7 @@ def live_rain_fingerprint(rain):
         rows=c.get("series") or []
         o24=window_sum(rows,"observed",24,now)
         o72=window_sum(rows,"observed",72,now)
+        o168=window_sum(rows,"observed",168,now)
         f24=window_sum(rows,"forecast",24,now)
         f48=window_sum(rows,"forecast",48,now)
         f72=window_sum(rows,"forecast",72,now)
@@ -80,8 +81,9 @@ def live_rain_fingerprint(rain):
         if f24["first_time_utc"]: first_future.append(parse_utc(f24["first_time_utc"]))
         comp[cid]={
           "area":area,
-          "obs24":o24["mm"],"obs24_count":o24["count"],
-          "obs72":o72["mm"],"obs72_count":o72["count"],
+          "obs24":o24["mm"] if o24["complete"] else None,"obs24_count":o24["count"],
+          "obs72":o72["mm"] if o72["complete"] else None,"obs72_count":o72["count"],
+          "obs168":o168["mm"] if o168["complete"] else None,"obs168_count":o168["count"],
           "fc24":f24["mm"] if f24["complete"] else None,"fc24_count":f24["count"],
           "fc48":f48["mm"] if f48["complete"] else None,"fc48_count":f48["count"],
           "fc72":f72["mm"] if f72["complete"] else None,"fc72_count":f72["count"],
@@ -115,6 +117,7 @@ def live_rain_fingerprint(rain):
       "as_of_utc":now.isoformat().replace("+00:00","Z"),
       "observed_24h_basin_mm":aw("obs24"),
       "observed_72h_basin_mm":aw("obs72"),
+      "observed_168h_basin_mm":aw("obs168"),
       "forecast_24h_basin_mm":aw("fc24"),
       "forecast_48h_basin_mm":forecast48,
       "forecast_72h_basin_mm":aw("fc72"),
@@ -192,8 +195,10 @@ def event_distance(target_cfg,live_rain,live_controls,hist,weights):
       hr.get("component_fraction") or {}
     )
 
-    wet_live=live_rain.get("observed_24h_basin_mm")
-    wet_hist=hr.get("first_24h_mm") or hr.get("max_24h_mm")
+    # Compare like with like: rainfall strictly BEFORE the historical event.
+    # Never use first/max event rainfall as an antecedent-state proxy.
+    wet_live=live_rain.get("observed_72h_basin_mm")
+    wet_hist=(hist.get("antecedent") or {}).get("rain_72h_mm")
     dwet=rel(wet_live,wet_hist,10.0)
 
     dh,dtrend=hydro_distance(target_cfg,live_controls,hist)
