@@ -195,4 +195,4 @@ if (-not $published) {
 Write-Host ""
 Write-Host "PUBLICADO COM SUCESSO." -ForegroundColor Green
 Write-Host "Santa Tereza: MDT LiDAR preservado; HAND e agua regenerados; pagina enviada para a main."
-Write-Host "URL: https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/santa_tereza_previsao_inundacao.html"
+Write-Host "URL: https://previne-taquari-antas.github.io/Previne-Taquari-Antas---Redes-Neurais/santa_tereza_previsao_inundacao.html"
