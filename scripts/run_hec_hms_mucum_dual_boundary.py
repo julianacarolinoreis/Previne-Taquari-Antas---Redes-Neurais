@@ -603,12 +603,49 @@ def main():
     vals=[float(x["q_m3s"]) for x in rr if x["element"]=="MUCUM"]
     vals=vals[-len(times):]
     if len(vals)!=len(times): raise RuntimeError(f"MUCUM output {len(vals)} != {len(times)}")
-    stages=[q_to_stage_cm(q,segs)["stage_cm"] for q in vals]
+    stage_meta=[q_to_stage_cm(q,segs) for q in vals]
+    stages=[m.get("stage_cm") for m in stage_meta]
 
     obs_n=float(live["telemetria_ultima_nivel_cm"])
-    obs_q=q_to_stage_cm(0,segs)  # placeholder to keep conversion family explicit
-    model_now=interp(times,stages,obs_t)
     q_now=interp(times,vals,obs_t)
+    relevant=[
+        (i,m) for i,(t,m) in enumerate(zip(times,stage_meta))
+        if t>=obs_t-timedelta(hours=12) and not bool(m.get("ok"))
+    ]
+    if relevant:
+        i0,m0=relevant[0]
+        out={
+          "schema_version":"hec_hms_mucum_dual_observed_boundary_v1",
+          "generated_at_utc":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
+          "status":"blocked_rating_curve_safety",
+          "model":"HEC-HMS 4.13",
+          "current":{
+            "observed_time_local":obs_t.isoformat(timespec="minutes"),
+            "observed_stage_cm":obs_n,
+            "model_q_m3s":round(q_now,3)
+          },
+          "rating_curve_safety":{
+            "first_unsafe_index":i0,
+            "first_unsafe_time_local":times[i0].isoformat(timespec="minutes"),
+            "reason":m0.get("reason"),
+            "diagnostic_stage_cm":m0.get("diagnostic_stage_cm"),
+            "safety_limit_cm":m0.get("safety_limit_cm"),
+            "unsafe_count_relevant_window":len(relevant)
+          },
+          "q_m3s":[round(x,3) for x in vals],
+          "stage_cm":[None for _ in vals],
+          "research_only":True,
+          "not_official_alert":True,
+          "publishable":False
+        }
+        RESULT.write_text(json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+        with SERIES.open("w",newline="",encoding="utf-8") as f:
+            w=csv.writer(f); w.writerow(["time_local","q_m3s","stage_cm"])
+            for t,q in zip(times,vals): w.writerow([t.isoformat(timespec="minutes"),q,None])
+        print("DUAL_BOUNDARY_RESULT="+json.dumps({"status":out["status"],"rating_curve_safety":out["rating_curve_safety"]},ensure_ascii=False))
+        return
+
+    model_now=interp(times,stages,obs_t)
 
     # Recent fit against the 15-min live Muçum series. Keep both 6 h and 12 h
     # metrics because the platform must optimize a rejected candidate instead of
