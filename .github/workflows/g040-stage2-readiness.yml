@@ -26,7 +26,13 @@ on:
       - "assets/data/estudo_bacia_taquari_antas/treino_rna_stz_mucum_v1_latest.json"
       - "assets/data/santa_tereza_eventwise_replay_rna_2h/eventwise_manifest.json"
       - "assets/data/santa_tereza_eventwise_replay_rna_2h/events_metrics.csv"
+      - ".github/workflows/g040-stage2-readiness.yml"
   workflow_dispatch:
+  workflow_run:
+    workflows:
+      - "G040 whole-basin observed-branch architecture"
+    types:
+      - completed
 
 permissions:
   contents: write
@@ -37,6 +43,7 @@ concurrency:
 
 jobs:
   readiness:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
