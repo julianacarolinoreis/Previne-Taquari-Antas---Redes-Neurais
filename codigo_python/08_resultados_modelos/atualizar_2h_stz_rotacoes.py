@@ -17,7 +17,7 @@ RAIZ = Path(__file__).resolve().parents[2]
 SRC = Path("/tmp/rna_2h_inbox/RNA_2H_ALT_ROTACAO_STZ/RNA_2H_ALT_ROTACAO_STZ")
 RODADA = "RNA_2H_ALT_ROTACAO_STZ"
 INPUTS_VFINAL_15 = [0, 1, 11, 10, 13, 12, 14, 38, 27, 3, 17, 4, 22, 18, 24]
-RAW_BASE = "https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main"
+RAW_BASE = "https://raw.githubusercontent.com/previne-taquari-antas/Previne-Taquari-Antas---Redes-Neurais/main"
 
 
 def r4(x):
