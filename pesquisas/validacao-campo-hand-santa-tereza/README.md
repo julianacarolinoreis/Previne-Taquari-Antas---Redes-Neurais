@@ -11,9 +11,10 @@ A análise sustenta o trabalho para o SBSR 2027 e o artigo em preparação.
 | `analise_erros_campo.py` | Lê a planilha de campo e recalcula todos os erros com fórmulas únicas. |
 | `erros_campo_santa_tereza.csv` | Uma linha por ponto × evento, sem coordenadas. |
 | `metricas_validacao_campo.json` | Viés, MAE, RMSE e demais métricas por conjunto. |
-| `figuras/` | Figuras 1–3 (300 dpi) e figuras do manuscrito (`fig_manuscrito_*`; a Figura 1 do SBSR 2027 é `fig_manuscrito_1_mapa_erros.png`, mapa e erros juntos). |
+| `figuras/` | Figuras 1–3 (300 dpi) e figuras do manuscrito (`fig_manuscrito_*`). No SBSR 2027, a Figura 1 é `fig_manuscrito_1_mapa_erros.png` (mapa; vertical nas marcas V; e_d × e_s com RTK; distância horizontal dos limites H, celular × RTK) e a Figura 2 é `fig_manuscrito_2_diagnostico_v.png` (V de set/2023 com RTK, n = 7), copiada da versão do manuscrito no Google Docs. |
 | `estatisticas_manuscrito.py` / `.json` | IC 95% (bootstrap e t), z0 por evento, sensibilidade à fonte do pico (telemetria × SGB), Δz celular × RTK, plano horizontal como modelo nulo. |
 | `figuras_manuscrito.py` | Gera as figuras do manuscrito (precisa da planilha e de um GeoJSON de UFs). |
+| `estatisticas_v_h.py` / `.json` | Números da versão que avalia a profundidade só nas marcas (V) e a borda só nos limites (H): Tabela 1, classes de perigo, diagnóstico da referência de drenagem (n = 7) e distâncias à borda, celular × RTK. Lê só o CSV. |
 | `analises_adicionais.py` / `.json` | Concordância (NSE, KGE), classes de perigo com kappa, teste da premissa de linha d'água paralela (cota observada × cota do trecho de drenagem), validação cruzada HAND × plano horizontal, erro horizontal da borda, MDTs nos vértices RTK, orçamento de erros e sensibilidade aos pontos excluídos. Gera `figuras/fig_adicional_cheia_vs_drenagem.png`. |
 
 A planilha original (`sumario_erros_hand.xlsx`) não é versionada porque traz as
