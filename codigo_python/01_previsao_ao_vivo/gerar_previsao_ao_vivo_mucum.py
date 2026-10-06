@@ -320,6 +320,27 @@ def filtrar_saltos_impossiveis(cod, serie):
     return limpa
 
 
+# Sensor travado: mesmo valor por >= 72 h (regra do QC do treino) vira dado
+# ausente. Ex.: 86306000 em -332 cm desde 21/09/2026; 86505500 em 115 cm desde 22/07/2026.
+TRAVADO_MIN = dt.timedelta(hours=72)
+
+
+def filtrar_sensor_travado(cod, serie):
+    horas = sorted(serie)
+    limpa = dict(serie)
+    i = 0
+    while i < len(horas):
+        j = i
+        while j + 1 < len(horas) and serie[horas[j + 1]] == serie[horas[i]]:
+            j += 1
+        if horas[j] - horas[i] >= TRAVADO_MIN:
+            for t in horas[i:j + 1]:
+                limpa.pop(t, None)
+            print(f"[ANA {cod}] sensor travado em {serie[horas[i]]} cm de {horas[i]} a {horas[j]}; leituras descartadas")
+        i = j + 1
+    return limpa
+
+
 def buscar_ana(cod, dias=6, tentativas_rede=ANA_RETRIES_NIVEL):
     """Telemetria da ANA com janela ampliada na estação-alvo.
 
@@ -334,7 +355,7 @@ def buscar_ana(cod, dias=6, tentativas_rede=ANA_RETRIES_NIVEL):
         return {}
     serie, _, ultima_raw = _serie_de_xml(xml)
     serie = {hora: valor for hora, valor in serie.items() if nivel_plausivel(valor, cod)}
-    serie = filtrar_saltos_impossiveis(cod, serie)
+    serie = filtrar_sensor_travado(cod, filtrar_saltos_impossiveis(cod, serie))
     if ultima_raw and not nivel_plausivel(ultima_raw[1], cod):
         ULTIMA_RAW_REJEITADA[cod] = ultima_raw
     if serie:

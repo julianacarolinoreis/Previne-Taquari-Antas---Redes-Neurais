@@ -588,6 +588,36 @@ def filtrar_saltos_impossiveis(cod, serie):
     return limpa
 
 
+# Sensor travado: o mesmo valor repetido por >= 72 h (mesma regra do controle de
+# qualidade do treino). A 86306000 (Nova Roma do Sul) está em -332 cm desde
+# 21/09/2026 20h e a 86505500 em 115 cm desde 22/07/2026; sem este filtro o 8h
+# C0217 recebia -332 cm e D-12h = 0 como se fossem leituras válidas.
+TRAVADO_MIN = dt.timedelta(hours=72)
+SENSORES_TRAVADOS = {}
+
+
+def filtrar_sensor_travado(cod, serie):
+    horas = sorted(serie)
+    limpa = dict(serie)
+    i = 0
+    while i < len(horas):
+        j = i
+        while j + 1 < len(horas) and serie[horas[j + 1]] == serie[horas[i]]:
+            j += 1
+        if horas[j] - horas[i] >= TRAVADO_MIN:
+            for t in horas[i:j + 1]:
+                limpa.pop(t, None)
+            SENSORES_TRAVADOS[str(cod)] = {
+                "valor_cm": serie[horas[i]],
+                "desde": horas[i].isoformat(timespec="minutes"),
+                "ate": horas[j].isoformat(timespec="minutes"),
+                "n_descartadas": j - i + 1,
+            }
+            print(f"[ANA {cod}] sensor travado em {serie[horas[i]]} cm de {horas[i]} a {horas[j]}; leituras descartadas")
+        i = j + 1
+    return limpa
+
+
 def buscar_ana(cod, dias=5, tentativas_rede=ANA_RETRIES_NIVEL):
     """Retorna dict {timestamp_da_leitura: nivel_cm}.
 
@@ -603,7 +633,7 @@ def buscar_ana(cod, dias=5, tentativas_rede=ANA_RETRIES_NIVEL):
     serie, _, ultima_raw = _serie_de_xml(xml)
     if ultima_raw:
         ULTIMA_RAW[cod] = ultima_raw
-    serie = filtrar_saltos_impossiveis(cod, serie)
+    serie = filtrar_sensor_travado(cod, filtrar_saltos_impossiveis(cod, serie))
     chuva, _, ultima_chuva = _serie_chuva_de_xml(xml)
     CHUVA_ANA_CACHE[cod] = chuva
     if ultima_chuva:
@@ -2017,7 +2047,13 @@ def resumo_estacoes(series):
             "idade_leitura_min": (
                 round((consultado_em - raw[0]).total_seconds() / 60) if raw else None
             ),
-            "qc_status": "ATENCAO_FORA_FAIXA" if fora_faixa else "NORMAL",
+            "qc_status": (
+                "SENSOR_TRAVADO" if cod in SENSORES_TRAVADOS
+                else "ATENCAO_SALTO_IMPOSSIVEL" if cod in SALTOS_REJEITADOS
+                else "ATENCAO_FORA_FAIXA" if fora_faixa else "NORMAL"
+            ),
+            "qc_sensor_travado": SENSORES_TRAVADOS.get(cod),
+            "qc_salto_impossivel": SALTOS_REJEITADOS.get(cod),
             "qc_fora_faixa_n": len(fora_faixa),
             "qc_ultima_fora_faixa": (
                 {

@@ -179,6 +179,13 @@ class MucumFeedContractTests(unittest.TestCase):
         limpa = LIVE.filtrar_saltos_impossiveis("86298000", serie)
         self.assertEqual(sorted(limpa.values()), [171.0, 172.0, 180.0, 254.0])
 
+    def test_stuck_sensor_is_dropped_after_72h(self) -> None:
+        t0 = dt.datetime(2026, 10, 1, 0, 0)
+        travada = {t0 + dt.timedelta(hours=i): 115.0 for i in range(80)}
+        travada[t0 + dt.timedelta(hours=80)] = 118.0
+        limpa = LIVE.filtrar_sensor_travado("86505500", travada)
+        self.assertEqual(list(limpa.values()), [118.0])
+
     def test_level_and_rain_reuse_one_ana_xml_response(self) -> None:
         xml = b"""<?xml version=\"1.0\"?>
         <root><row><DataHora>2026-09-20 08:00:00</DataHora>
