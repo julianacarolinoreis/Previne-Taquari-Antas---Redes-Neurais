@@ -28,6 +28,7 @@ try:
         parse_hour,
     )
     from scripts.g040_rain_grid import GRID_CELL_COUNT, build_grid_cells, grid_contract
+    from scripts.g040_nested_zone_rain import aggregate_grid_by_zone, audit_summary as nested_grid_audit
 except ModuleNotFoundError:
     from build_g040_ifs_interval_forcing import (
         BATCH_SIZE,
@@ -37,6 +38,7 @@ except ModuleNotFoundError:
         parse_hour,
     )
     from g040_rain_grid import GRID_CELL_COUNT, build_grid_cells, grid_contract
+    from g040_nested_zone_rain import aggregate_grid_by_zone, audit_summary as nested_grid_audit
 
 ROOT=Path(__file__).resolve().parents[1]
 BASE=ROOT/"assets/data/hec_hms_g040_full_basin"
@@ -184,6 +186,28 @@ def main() -> int:
             "series":series,
         })
 
+    nested_rows={}
+    for h,t in enumerate(times):
+        zone_values=aggregate_grid_by_zone({
+            cid:float(item["rows"][h][1])
+            for cid,item in by_cell.items()
+        })
+        for sid,mm in zone_values.items():
+            nested_rows.setdefault(sid,[]).append({
+                "time_utc":t.isoformat().replace("+00:00","Z"),
+                "mm":round(float(mm),4),
+            })
+    nested_zones=[
+        {
+            "subbasin_id":sid,
+            "expected_hours":len(times),
+            "available_hours":len(rows),
+            "coverage_ratio":1.0 if len(rows)==len(times) else len(rows)/max(len(times),1),
+            "series":rows,
+        }
+        for sid,rows in sorted(nested_rows.items())
+    ]
+
     payload={
         "schema_version":"g040_ecmwf_exact_single_run_v1",
         "generated_at_utc":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
@@ -211,6 +235,12 @@ def main() -> int:
             "hours":len(times),
         },
         "components":components,
+        "upper_antas_nested_forcing":{
+            "purpose":"exact ECMWF rain for predictive 86472000 boundary",
+            "spatial_support":"fixed 600-cell G040 grid integrated over Muçum twin hydrologic zones",
+            "grid_overlap":nested_grid_audit(),
+            "zones":nested_zones,
+        },
         "gates":{
             "full_600_cell_grid":len(fetched)==GRID_CELL_COUNT,
             "single_explicit_run":True,
@@ -228,6 +258,7 @@ def main() -> int:
         "grid_cells":len(fetched),
         "hours":len(times),
         "components":len(components),
+        "nested_zones":len(nested_zones),
         "output":str(args.output),
     },ensure_ascii=False))
     return 0
