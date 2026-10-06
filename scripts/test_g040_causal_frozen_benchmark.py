@@ -54,6 +54,8 @@ class TestCausalFrozenBenchmark(unittest.TestCase):
         self.assertIn("single-runs-api.open-meteo.com/v1/forecast",src)
         self.assertIn('"run":run_utc.strftime',src)
         self.assertIn("GRID_CELL_COUNT",src)
+        self.assertIn("if dt<=usable_after:",src)
+        self.assertIn("AVAILABILITY_LAG_H=6",src)
 
 if __name__=="__main__":
     unittest.main()
