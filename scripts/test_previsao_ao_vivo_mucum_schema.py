@@ -99,6 +99,35 @@ class MucumFeedContractTests(unittest.TestCase):
             dt.datetime(2026, 8, 28, 18, 0),
         )
 
+    def test_live_freshness_guard_hides_two_hour_old_base(self) -> None:
+        item = self._item("8h", 8, 26, "principal", 1)
+        item["hora_modelo"] = "2026-08-28T16:00:00"
+        item["passos"] = [["2026-08-28T16:00:00", 100, 101, 120]]
+        data = {"8h": item}
+        LIVE.aplicar_guardrail_frescor_horizontes(
+            data,
+            dt.datetime(2026, 8, 28, 18, 15),
+        )
+        out = data["8h"]
+        self.assertFalse(out["disponivel"])
+        self.assertIsNone(out["nivel_previsto_cm"])
+        self.assertEqual(out["previsao_stale_candidata_cm"], 100.0)
+        self.assertEqual(out["qualidade_ao_vivo"]["status"], "BASE_DESATUALIZADA")
+        self.assertEqual(out["auditoria_inputs"]["status"], "ATENCAO")
+
+    def test_live_freshness_guard_warns_between_one_and_two_hours(self) -> None:
+        item = self._item("4h", 4, 15, "principal", 1)
+        item["hora_modelo"] = "2026-08-28T17:00:00"
+        data = {"4h": item}
+        LIVE.aplicar_guardrail_frescor_horizontes(
+            data,
+            dt.datetime(2026, 8, 28, 18, 15),
+        )
+        out = data["4h"]
+        self.assertTrue(out["disponivel"])
+        self.assertIsNotNone(out["nivel_previsto_cm"])
+        self.assertIn("atencao: base da RNA 1.2h", out["status"])
+
     def test_implausible_observed_level_is_rejected(self) -> None:
         data = copy.deepcopy(self.data)
         data["serie_observada_ana"][-1]["nivel_cm"] = 99999
