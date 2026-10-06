@@ -2,7 +2,7 @@
 
 Dashboard estática e interativa para acompanhar frentes de pesquisa, documentos, MATLAB, código, publicação e pendências de fechamento.
 
-Página pública desta versão: <https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/inventario/>.
+Página pública desta versão: <https://previne-taquari-antas.github.io/Previne-Taquari-Antas---Redes-Neurais/inventario/>.
 
 Esta rodada reorganiza a primeira leitura para mostrar o próximo fechamento sugerido antes do inventário, torna o tablist navegável por teclado, anuncia o contador de filtros, oferece limpeza explícita, torna as barras proporcionais ao total de frentes e inclui um glossário técnico. A página continua sendo uma camada pública sanitizada e somente leitura; ela ainda não é o registro privado canônico nem um sincronizador automático.
 
