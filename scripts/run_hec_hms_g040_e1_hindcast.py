@@ -685,6 +685,10 @@ def main():
     ap.add_argument("--score-hydro-file",type=Path,default=None,
         help="Optional untouched observed hydro package used only for verification scores. "
              "Use this in causal forecast replays so future observed boundary flow never enters forcing.")
+    ap.add_argument("--score-start-utc",default=None,
+        help="Optional ISO UTC time; verification metrics use only timestamps at/after this time.")
+    ap.add_argument("--score-end-utc",default=None,
+        help="Optional ISO UTC time; verification metrics use only timestamps at/before this time.")
     ap.add_argument("--scenario-file",type=Path,default=SCENARIOS)
     ap.add_argument("--output-root",type=Path,default=OUTROOT)
     args=ap.parse_args()
@@ -707,6 +711,11 @@ def main():
     times=hourly_axis(start,end)
 
     source_values={code:source_hourly(hydro,code,times) for code in [SOURCE_PRIMARY,*active]}
+    score_start=utc(args.score_start_utc) if args.score_start_utc else None
+    score_end=utc(args.score_end_utc) if args.score_end_utc else None
+    score_times=[t for t in times if (score_start is None or t>=score_start) and (score_end is None or t<=score_end)]
+    if (score_start or score_end) and not score_times:
+        raise RuntimeError("score window does not overlap HEC simulation window")
     rain_values={}
     for cid in used:
         vals=[rain_at(rain[cid]["rows"],t) for t in times]
@@ -738,13 +747,16 @@ def main():
     (rt/"run.log").write_text(proc.stdout+"\n--- STDERR ---\n"+proc.stderr,encoding="utf-8")
     ok="G040_E1_HINDCAST_COMPUTE_OK" in proc.stdout and (proj/"hec_output_values.csv").exists()
     scores={}
-    if ok: scores=score_outputs(read_output_csv(proj/"hec_output_values.csv"),score_hydro,times)
+    if ok: scores=score_outputs(read_output_csv(proj/"hec_output_values.csv"),score_hydro,score_times)
     result={"schema_version":"g040_e1_hindcast_candidate_v1",
       "generated_at_utc":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
       "research_only":True,"candidate_id":args.candidate_id,"event_id":args.event_id,"hec_hms_version":"4.13",
       "compute_ok":ok,"returncode":proc.returncode,
       "window":{"start_utc":start.isoformat().replace("+00:00","Z"),
                 "end_utc":end.isoformat().replace("+00:00","Z"),"hours":len(times)},
+      "score_window":{"start_utc":score_times[0].isoformat().replace("+00:00","Z") if score_times else None,
+                      "end_utc":score_times[-1].isoformat().replace("+00:00","Z") if score_times else None,
+                      "hours":len(score_times)},
       "boundary_scenario":scenarios.get("current_scenario"),"active_boundary_codes":active,
       "input_artifacts":{"rain_file":str(Path(args.rain_file)),"hydro_file":str(Path(args.hydro_file)),
         "score_hydro_file":str(Path(args.score_hydro_file)) if args.score_hydro_file else str(Path(args.hydro_file)),
