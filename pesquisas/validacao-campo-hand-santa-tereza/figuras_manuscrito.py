@@ -7,6 +7,8 @@ set/2023 e posições RTK dos pontos de campo, por tipo e por evento.
 Figura 2: (a) profundidade observada × estimada; (b) erro por ponto com o terreno
 LiDAR na posição do celular (e_d) e com o terreno RTK (e_s), marcas e limites
 separados.
+Figura 1 da versão atual (fig_manuscrito_1_mapa_erros.png): as duas anteriores
+juntas, com o mapa em (a) e os painéis de erro em (b) e (c), cores por evento.
 
 Uso:
   python pesquisas/validacao-campo-hand-santa-tereza/figuras_manuscrito.py \
@@ -72,7 +74,8 @@ def desenha_poligonos(ax, geom, **kw):
     ax.add_patch(PathPatch(MplPath(verts, codes), **kw))
 
 
-def figura_mapa(xlsx: Path, estados: Path):
+def _desenha_mapa(ax, xlsx: Path, estados: Path):
+    """Desenha relevo, mancha, pontos, escala, norte e inserto em ax; devolve os itens da legenda."""
     rtk, linhas = ler_planilha(xlsx)
     d = pd.read_csv(FIG_DIR.parent / "erros_campo_santa_tereza.csv")
     d = d[d.rtk_valido == True]  # noqa: E712
@@ -108,8 +111,6 @@ def figura_mapa(xlsx: Path, estados: Path):
     cont = json.loads((DATA / "santa_tereza_inundacao" / "contornos_mancha.json").read_text())
     geo = {round(f["properties"]["nivel_m"], 1): f["geometry"] for f in cont["features"]}
 
-    fig = plt.figure(figsize=(16 * CM, 10.0 * CM))
-    ax = fig.add_axes([0.075, 0.07, 0.52, 0.90])
     ax.imshow(hs, extent=ext, cmap="gray", vmin=0.15, vmax=1.0, origin="upper", interpolation="bilinear")
     desenha_poligonos(ax, geo[22.0], facecolor="#6aa6d9", edgecolor="#2f6fa8", linewidth=0.4, alpha=0.55)
     desenha_poligonos(ax, geo[0.0], facecolor="#1f4e85", edgecolor="none", alpha=0.9)
@@ -168,7 +169,7 @@ def figura_mapa(xlsx: Path, estados: Path):
     ai.set_facecolor("white")
     ai.text(-56.5, -30.0, "RS", fontsize=5.5, ha="right")
 
-    leg = [
+    return [
         Line2D([], [], marker="^", ms=5, mfc="#555555", mec="#555555", ls="none", label="Marca de profundidade"),
         Line2D([], [], marker="o", ms=4.5, mfc="white", mec="#555555", mew=1.1, ls="none",
                label="Limite de inundação"),
@@ -178,6 +179,12 @@ def figura_mapa(xlsx: Path, estados: Path):
         Patch(fc="#6aa6d9", ec="#2f6fa8", alpha=0.55, label="Mancha HAND, set/2023"),
         Patch(fc="#1f4e85", label="Leito (HAND = 0)"),
     ]
+
+
+def figura_mapa(xlsx: Path, estados: Path):
+    fig = plt.figure(figsize=(16 * CM, 10.0 * CM))
+    ax = fig.add_axes([0.075, 0.07, 0.52, 0.90])
+    leg = _desenha_mapa(ax, xlsx, estados)
     fig.legend(handles=leg, loc="upper left", bbox_to_anchor=(0.635, 0.97), fontsize=7.5,
                handlelength=1.4, labelspacing=0.75)
     fig.text(0.637, 0.10, "Pontos nas posições RTK.\nRelevo sombreado: MDT LiDAR\nreamostrado a 10 m.\n"
@@ -249,8 +256,95 @@ def figura_erros():
     return out
 
 
+def figura_mapa_erros(xlsx: Path, estados: Path):
+    """Figura composta: (a) mapa, (b) profundidade observada × estimada, (c) erro por ponto.
+
+    As cores dos eventos são as mesmas nos três painéis, e a legenda do mapa vale para todos.
+    """
+    larg, alt = 17.0, 13.4
+    fig = plt.figure(figsize=(larg * CM, alt * CM))
+
+    def caixa(x0, y0, w, h):
+        return [x0 / larg, y0 / alt, w / larg, h / alt]
+
+    ax = fig.add_axes(caixa(0.95, 2.45, 7.6, 10.5))
+    ax.set_anchor("NW")
+    leg = _desenha_mapa(ax, xlsx, estados)
+    leg[2].set_label("Evento set/2023 (calibração)")
+    fig.canvas.draw()
+    pos = ax.get_position()
+    fig.legend(handles=leg, loc="upper left", bbox_to_anchor=(0.012, pos.y0 - 0.6 / alt),
+               ncol=2, fontsize=6.8, handlelength=1.3, labelspacing=0.45, columnspacing=1.0,
+               borderaxespad=0.0)
+    ax.text(0.0, 1.012, "(a)", transform=ax.transAxes, fontsize=9, fontweight="bold", va="bottom")
+
+    d = pd.read_csv(FIG_DIR.parent / "erros_campo_santa_tereza.csv")
+    x_dir = pos.x1 * larg + 1.45  # borda esquerda dos rótulos de (c)
+    larg_c = larg - x_dir - 1.0 - 0.15
+
+    # (b) profundidade observada × estimada nas marcas, centrado sobre (c)
+    a = fig.add_axes(caixa(x_dir + 1.0 + larg_c / 2 - 2.5, 7.95, 5.0, 5.0))
+    marcas = d[d.tipo == "marca"]
+    lim = 5.0
+    a.fill_between([0, lim], [-0.5, lim - 0.5], [0.5, lim + 0.5], color="#e6e6e6", lw=0)
+    a.plot([0, lim], [0, lim], color="black", lw=0.7)
+    for ev, cor in COR_EVENTO.items():
+        sub = marcas[marcas.evento == ev]
+        a.plot(sub.lamina_obs_m, sub.lamina_hand_m, ls="none", marker="^", ms=4.8, mfc=cor, mec=cor, mew=0.6)
+    for _, r in marcas.iterrows():
+        if abs(r.erro_lamina_m) > 1:
+            a.annotate(r.id, (r.lamina_obs_m, r.lamina_hand_m), textcoords="offset points",
+                       xytext=(-25, -3), fontsize=6.8)
+    a.set_xlim(0, lim)
+    a.set_ylim(0, lim)
+    a.set_aspect("equal")
+    a.set_xlabel("Profundidade observada (m)")
+    a.set_ylabel("Profundidade estimada (m)")
+    a.tick_params(labelsize=7)
+    a.text(-0.26, 1.012, "(b)", transform=a.transAxes, fontsize=9, fontweight="bold", va="bottom")
+
+    # (c) erro por ponto: terreno do celular (e_d) e terreno RTK (e_s)
+    b = fig.add_axes(caixa(x_dir + 1.0, 0.95, larg_c, 5.75))
+    v = d[d.rtk_valido == True].copy()  # noqa: E712
+    v["ord_tipo"] = (v.tipo == "limite").astype(int)
+    v = v.sort_values(["ord_tipo", "erro_lamina_m"], ascending=[False, True]).reset_index(drop=True)
+    b.axvspan(-0.5, 0.5, color="#e6e6e6", lw=0, zorder=0)
+    b.axvline(0, color="black", lw=0.6)
+    for i, r in v.iterrows():
+        mk = "^" if r.tipo == "marca" else "o"
+        cor = COR_EVENTO[r.evento]
+        ms = 4.4 if r.tipo == "marca" else 3.9
+        b.plot([r.erro_lamina_m, r.erro_cota_rtk_m], [i, i], color="#a6a6a6", lw=0.8, zorder=1)
+        b.plot(r.erro_lamina_m, i, marker=mk, ms=ms, mfc="white", mec=cor, mew=0.9, zorder=2)
+        b.plot(r.erro_cota_rtk_m, i, marker=mk, ms=ms, mfc=cor, mec=cor, mew=0.6, zorder=3)
+    corte = int((v.tipo == "limite").sum()) - 0.5
+    b.axhline(corte, color="black", lw=0.4, ls=(0, (3, 2)))
+    b.text(3.3, corte - 0.45, "limites", ha="right", va="top", fontsize=6.8, style="italic")
+    b.text(3.3, corte + 0.35, "marcas", ha="right", va="bottom", fontsize=6.8, style="italic")
+    b.set_yticks(np.arange(len(v)))
+    b.set_yticklabels(v.id, fontsize=6.3)
+    b.tick_params(axis="x", labelsize=7)
+    b.tick_params(axis="y", length=1.5, pad=1.5)
+    b.set_xlabel("Erro vertical (m); positivo = superestimativa")
+    b.set_xlim(-3.8, 3.4)
+    b.set_ylim(-0.7, len(v) - 0.3)
+    leg_c = [Line2D([], [], marker="o", ms=3.9, mfc="white", mec="black", mew=0.9, ls="none",
+                    label="celular + LiDAR ($e_d$)"),
+             Line2D([], [], marker="o", ms=3.9, mfc="black", mec="black", ls="none",
+                    label="RTK ($e_s$)")]
+    b.legend(handles=leg_c, loc="lower left", fontsize=6.6, handletextpad=0.2, borderaxespad=0.3,
+             labelspacing=0.3)
+    b.text(-0.215, 1.012, "(c)", transform=b.transAxes, fontsize=9, fontweight="bold", va="bottom")
+
+    out = FIG_DIR / "fig_manuscrito_1_mapa_erros.png"
+    fig.savefig(out)
+    plt.close(fig)
+    return out
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         sys.exit(__doc__)
     print(figura_mapa(Path(sys.argv[1]), Path(sys.argv[2])))
     print(figura_erros())
+    print(figura_mapa_erros(Path(sys.argv[1]), Path(sys.argv[2])))
