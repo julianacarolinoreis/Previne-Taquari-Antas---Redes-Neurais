@@ -57,11 +57,24 @@ def place(name, x=None, y=None, w=None, h=None):
 
 
 # 1) Tabela de configuração: o 2h usa só Santa Tereza e Linha José Júlio
-cell = S["Tabela configuracao"].table.cell(1, 3)
-r0 = cell.text_frame.paragraphs[0].runs[0]
-r0.text = "Santa Tereza e Linha José Júlio"
-for r in cell.text_frame.paragraphs[0].runs[1:]:
-    r._r.getparent().remove(r._r)
+tbl = S["Tabela configuracao"].table
+estacoes = {
+    0: "Estações (código)",
+    1: "86472600, 86472000",
+    2: "86472600, 86472000, 86125500, 86298000",
+    3: "86472600, 86472000, 86125500, 86298000, 86306000, 86430900, 86448000 + chuva",
+}
+for i, txt in estacoes.items():
+    cell = tbl.cell(i, 3)
+    r0 = cell.text_frame.paragraphs[0].runs[0]
+    r0.text = txt
+    for r in cell.text_frame.paragraphs[0].runs[1:]:
+        r._r.getparent().remove(r._r)
+    if i:
+        r0.font.size = Pt(16)
+        cell.text_frame.word_wrap = True
+for j, w in enumerate([0.75, 0.95, 1.05, 4.05]):
+    tbl.columns[j].width = mm(260 * w / 6.8)
 
 # 2) Introdução: gramática + alinhado à esquerda
 intro = place("Texto introducao", x=L, w=CW)
