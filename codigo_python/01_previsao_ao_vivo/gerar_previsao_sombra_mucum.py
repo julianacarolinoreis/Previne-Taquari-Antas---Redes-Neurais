@@ -110,6 +110,20 @@ def qc_niveis(cod, serie, limites, alvo_serie=None):
         if mx <= 5000 and 16000 <= v <= 21384:
             continue
         limpa[t] = v
+    # salto impossível (mesma regra do treino): |v - última leitura aceita| > salto_max_1h
+    # é descartado até o nível voltar; só uma interrupção real da série bruta (> 3 h sem
+    # leitura) refaz a âncora
+    salto = lim.get("salto_max_1h")
+    if salto:
+        ancora, anterior = None, None
+        for t in sorted(limpa):
+            v = limpa[t]
+            continua = anterior is not None and t - anterior <= dt.timedelta(hours=3)
+            anterior = t
+            if ancora is not None and continua and abs(v - ancora) > float(salto):
+                limpa.pop(t)
+                continue
+            ancora = v
     if cod == ALVO or not limpa:
         return limpa
     horas = sorted(limpa)
@@ -247,7 +261,7 @@ def prever_horizonte(nivel_cfg, niveis, chuva, horas_alvo, agora):
             item["status"] = "previsão fora da faixa plausível"
         else:
             item["status"], item["disponivel"] = "ok", True
-            if escolhido is None:
+            if escolhido is None and m["nivel_hierarquia"] >= 1:   # nível 0 = controle, só registro
                 escolhido = item
         resultados.append(item)
     return escolhido, resultados
