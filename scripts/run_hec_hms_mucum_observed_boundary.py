@@ -371,11 +371,46 @@ def main():
     vals=vals[-len(times):]
     if len(vals)!=len(times): raise RuntimeError(f"MUCUM output {len(vals)} != {len(times)}")
     seg=mucum_curve_segments()
-    stages=[q_to_stage_cm(q,seg)["stage_cm"] for q in vals]
+    stage_meta=[q_to_stage_cm(q,seg) for q in vals]
+    stages=[m.get("stage_cm") for m in stage_meta]
     # exact current Muçum state from live package; compare with hourly interpolation.
     live=loadj(ROOT/"previsao_ao_vivo_mucum.json")
     obs_t=datetime.fromisoformat(live["telemetria_ultima_em"])
     obs_n=float(live["nivel_atual_cm"])
+
+    relevant=[
+        (i,m) for i,(t,m) in enumerate(zip(times,stage_meta))
+        if t>=obs_t-timedelta(hours=12) and not bool(m.get("ok"))
+    ]
+    if relevant:
+        i0,m0=relevant[0]
+        out={
+          "schema_version":"hec_hms_mucum_observed_boundary_v1",
+          "generated_at_utc":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
+          "status":"blocked_rating_curve_safety",
+          "model":"HEC-HMS 4.13",
+          "boundary_audit":audit,
+          "current":{"observed_time_local":obs_t.isoformat(timespec="minutes"),"observed_stage_cm":obs_n},
+          "rating_curve_safety":{
+            "first_unsafe_index":i0,
+            "first_unsafe_time_local":times[i0].isoformat(timespec="minutes"),
+            "reason":m0.get("reason"),
+            "diagnostic_stage_cm":m0.get("diagnostic_stage_cm"),
+            "safety_limit_cm":m0.get("safety_limit_cm"),
+            "unsafe_count_relevant_window":len(relevant)
+          },
+          "q_m3s":[round(x,3) for x in vals],
+          "stage_cm":[None for _ in vals],
+          "research_only":True,
+          "not_official_alert":True,
+          "publishable":False
+        }
+        RESULT.write_text(json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+        with SERIES.open("w",newline="",encoding="utf-8") as f:
+            w=csv.writer(f); w.writerow(["time_local","q_m3s","stage_cm","source_q_m3s"])
+            for t,q,sq in zip(times,vals,bq): w.writerow([t.isoformat(timespec="minutes"),q,None,sq])
+        print("OBS_BOUNDARY_RESULT="+json.dumps({"status":out["status"],"rating_curve_safety":out["rating_curve_safety"]},ensure_ascii=False))
+        return
     def interp_at(t,ys):
         if t<=times[0]: return ys[0]
         for i in range(len(times)-1):
