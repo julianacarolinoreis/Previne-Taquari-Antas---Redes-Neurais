@@ -42,8 +42,8 @@ pic.name = "Dispersao empilhada"
 pic_h = pic.height / 36000
 leg = place("Legenda dispersao", x=L, y=y0 + 18 + pic_h + 1, w=CW, h=13)
 p = leg.text_frame.paragraphs[0]
-p.runs[0].text = ("Figura 2 – Nível previsto × observado (laranja = teste). Teste: 2h – 3 eventos out/2024–2025; "
-                  "4h – cheia de jun/2025; 8h – cheia de jul/2023.")
+p.runs[0].text = ("Figura 2 – Nível previsto × observado (laranja = teste). *Métricas referentes ao conjunto de teste: "
+                  "2h – 3 eventos out/2024–2025; 4h – cheia de jun/2025; 8h – cheia de jul/2023.")
 for r in p.runs[1:]:
     r._r.getparent().remove(r._r)
 

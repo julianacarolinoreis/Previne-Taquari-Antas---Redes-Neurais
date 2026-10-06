@@ -162,8 +162,8 @@ for i, (ax, hz) in enumerate(zip(axs, ("2h", "4h", "8h"))):
         s = d["X"] == code
         ax.scatter(d["obs"][s] / 100, d["pred"][s] / 100, s=sz, color=cor, edgecolor="white", linewidth=0.4, label=nome, zorder=2 + code)
     t = resumo[hz]["teste"]
-    ax.set_title(f"ALT {hz}  ·  NSE teste = {t['NSE']:.3f}".replace(".", ","), loc="left")
-    txt = (f"Teste\nPME = {t['PME']:.3f}\nEAM = {t['EAM']:.1f} cm\nE95 = {t['E95']:.0f} cm").replace(".", ",")
+    ax.set_title(f"ALT {hz}", loc="left")
+    txt = (f"NSE* = {t['NSE']:.3f}\nPME* = {t['PME']:.3f}\nEAM* = {t['EAM']:.1f} cm\nE95* = {t['E95']:.0f} cm").replace(".", ",")
     ax.text(0.03, 0.95, txt, transform=ax.transAxes, va="top", ha="left", fontsize=15, color=INK, linespacing=1.35,
             bbox=dict(boxstyle="round,pad=0.5", fc="white", ec=GRAY, lw=1))
     ax.set_xlim(0, lim); ax.set_ylim(0, lim)
