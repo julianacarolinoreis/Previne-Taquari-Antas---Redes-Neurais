@@ -27,7 +27,7 @@ TIPOS = {   # tipo: (regex no nome do serviço/camada, faixa plausível no RS in
     "ubs":       (r"\bubs\b|unidade.*basica|atencao.*basica|posto.*saude", (800, 20000)),
 }
 
-def get(url, timeout=120):
+def get(url, timeout=45):
     req = urllib.request.Request(url, headers=UA)
     return urllib.request.urlopen(req, timeout=timeout).read()
 
@@ -141,7 +141,7 @@ for tipo, urls in FIXAS.items():
                 break
             except Exception as e:
                 print(f"[{tipo}] fixa (tentativa {tent}): {e}")
-                if tent < 3: time.sleep(30)
+                if tent < 3: time.sleep(10)
 
 # ---- UBS ESTADUAL: varre as pastas de saúde do IEDE atrás de uma camada de
 # unidades básicas que cubra o estado (a ubs_poa é só Porto Alegre). ----
@@ -182,7 +182,7 @@ if "ubs" not in achados:
 for rodada in (1, 2, 3):        # o catálogo do IEDE oscila — insiste com pausa
     if len(achados) == len(TIPOS): break
     if rodada > 1:
-        print(f"[retry] catálogo indisponível — tentativa {rodada}/3 em 90 s"); time.sleep(90)
+        print(f"[retry] catálogo indisponível — tentativa {rodada}/3 em 30 s"); time.sleep(30)
     for root in ROOTS:
         if len(achados) == len(TIPOS): break
         try:
