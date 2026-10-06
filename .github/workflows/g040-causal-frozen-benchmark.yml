@@ -9,11 +9,13 @@ on:
       - "scripts/build_g040_antecedent_wetness.py"
       - "scripts/build_g040_ecmwf_single_run_forcing.py"
       - "scripts/build_g040_causal_case.py"
+      - "scripts/build_g040_causal_upper_antas.py"
       - "scripts/evaluate_g040_causal_benchmark.py"
       - "scripts/run_hec_hms_g040_e1_hindcast.py"
       - "scripts/build_g040_target_event_parameter_library.py"
       - "scripts/select_g040_adaptive_scenario.py"
       - "scripts/test_g040_causal_frozen_benchmark.py"
+      - "scripts/test_g040_causal_upper_antas.py"
       - ".github/workflows/g040-causal-frozen-benchmark.yml"
   pull_request:
     paths:
@@ -33,7 +35,7 @@ permissions:
 
 concurrency:
   group: g040-causal-frozen-benchmark-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   benchmark:
@@ -54,6 +56,7 @@ jobs:
       - name: No-leakage contract tests
         run: |
           python -B scripts/test_g040_causal_frozen_benchmark.py
+          python -B scripts/test_g040_causal_upper_antas.py
           python -B scripts/test_g040_adaptive_eventwise.py
           python -B scripts/test_g040_multievent_calibration_contract.py
 
@@ -87,6 +90,10 @@ jobs:
           python -B scripts/build_g040_antecedent_wetness.py \
             --events E22_SEP2023,E24_NOV2023,E27_MAY2024,E28_JUN2024,E2026_JUL \
             --max-workers 12
+
+      - name: Calibrate frozen upper-Antas boundary model
+        if: github.event_name != 'pull_request'
+        run: python -B scripts/build_g040_causal_upper_antas.py --calibrate
 
       - name: Run exact-ECMWF causal HEC replays
         if: github.event_name != 'pull_request'
@@ -122,9 +129,15 @@ jobs:
                   sys.executable,"-B","scripts/build_g040_ecmwf_single_run_forcing.py",
                   "--run",run,"--output",str(forecast),
               ])
+              upper=cdir/"upper_antas_boundary.json"
+              subprocess.check_call([
+                  sys.executable,"-B","scripts/build_g040_causal_upper_antas.py",
+                  "--case-id",cid,"--forecast-file",str(forecast),"--output",str(upper),
+              ])
               subprocess.check_call([
                   sys.executable,"-B","scripts/build_g040_causal_case.py",
                   "--case-id",cid,"--forecast-file",str(forecast),
+                  "--primary-forecast-file",str(upper),
               ])
               t0=datetime.fromisoformat(case["decision_time_utc"].replace("Z","+00:00"))
               end=t0+timedelta(hours=int(cfg["forecast_horizon_hours"]))
@@ -168,6 +181,18 @@ jobs:
           assert j["no_leakage_confirmed"] is True
           assert len(j["cases"])==3
           print(json.dumps(j["grand_summary"],indent=2))
+          upper=json.load(open(base/"g040_upper_antas_model_frozen_latest.json",encoding="utf-8"))
+          assert upper["status"]=="UPPER_ANTAS_FROZEN_CALIBRATION_READY"
+          assert upper["no_validation_leakage"] is True
+          assert upper["calibration_events"]==["E22_SEP2023","E24_NOV2023"]
+          for cid in ("E27_MAY2024_R00","E28_JUN2024_R00","E2026_JUL_R00"):
+              m=json.load(open(base/"causal_frozen_benchmark"/cid/"manifest.json",encoding="utf-8"))
+              assert m["predictive_primary_boundary_used"] is True
+              assert m["causality_gates"]["primary_boundary_future_observations_used"] is False
+              b=json.load(open(base/"causal_frozen_benchmark"/cid/"upper_antas_boundary.json",encoding="utf-8"))
+              assert b["future_observed_flow_used"] is False
+              assert b["validation_event_used_for_selection"] is False
+
           ant=json.load(open(base/"historical_antecedent_wetness/manifest_latest.json",encoding="utf-8"))
           assert ant["future_event_rain_used"] is False
           lib=json.load(open(base/"g040_target_event_parameter_library_latest.json",encoding="utf-8"))
@@ -188,6 +213,7 @@ jobs:
 
           cp -r "$BASE/historical_antecedent_wetness" "$TMP/"
           cp "$BASE/g040_target_event_parameter_library_latest.json" "$TMP/"
+          cp "$BASE/g040_upper_antas_model_frozen_latest.json" "$TMP/"
           cp "$BASE/g040_adaptive_scenario_latest.json" "$TMP/"
           mkdir -p "$TMP/historical_calibration_forcing"
           cp "$BASE/historical_calibration_forcing/manifest_latest.json" "$TMP/historical_calibration_forcing/"
@@ -206,6 +232,7 @@ jobs:
             DST="$TMP/causal_frozen_benchmark/$C"
             mkdir -p "$DST/hec_runs/FROZEN_BEST_CAL/project"
             cp "$SRC/ecmwf_exact_run.json" "$DST/"
+            cp "$SRC/upper_antas_boundary.json" "$DST/"
             cp "$SRC/rain.json" "$DST/"
             cp "$SRC/hydro_forcing.json" "$DST/"
             cp "$SRC/hydro_scoring.json" "$DST/"
@@ -233,6 +260,7 @@ jobs:
             cp -r "$TMP/historical_antecedent_wetness" "$BASE/"
             cp -r "$TMP/causal_frozen_benchmark" "$BASE/"
             cp "$TMP/g040_target_event_parameter_library_latest.json" "$BASE/"
+            cp "$TMP/g040_upper_antas_model_frozen_latest.json" "$BASE/"
             cp "$TMP/g040_adaptive_scenario_latest.json" "$BASE/"
             mkdir -p "$BASE/historical_calibration_forcing"
             cp "$TMP/historical_calibration_forcing/manifest_latest.json" "$BASE/historical_calibration_forcing/"
@@ -244,6 +272,7 @@ jobs:
               "$BASE/historical_antecedent_wetness" \
               "$BASE/causal_frozen_benchmark" \
               "$BASE/g040_target_event_parameter_library_latest.json" \
+              "$BASE/g040_upper_antas_model_frozen_latest.json" \
               "$BASE/g040_adaptive_scenario_latest.json" \
               "$BASE/historical_calibration_forcing/manifest_latest.json" \
               "$BASE/historical_calibration_forcing/E27_MAY2024" \
