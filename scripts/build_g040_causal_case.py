@@ -89,7 +89,7 @@ def last_flow(control: dict[str,Any],t0: datetime) -> tuple[datetime,float]|None
             rows.append((t,q))
     return max(rows,key=lambda x:x[0]) if rows else None
 
-def select_sources(hydro: dict[str,Any],t0: datetime) -> tuple[str,list[str],dict[str,Any]]:
+def select_sources(hydro: dict[str,Any],t0: datetime,primary_forecast_ready: bool=False) -> tuple[str,list[str],dict[str,Any]]:
     by={str(c.get("code")):c for c in hydro.get("controls") or []}
     primary=None
     primary_audit={}
@@ -97,13 +97,14 @@ def select_sources(hydro: dict[str,Any],t0: datetime) -> tuple[str,list[str],dic
         c=by.get(code) or {}
         n=flow_hour_count(c,t0)
         lf=last_flow(c,t0)
-        minimum=1 if code==PRIMARY else MIN_FLOW_HOURS
-        ok=lf is not None and n>=minimum
+        minimum=0 if (code==PRIMARY and primary_forecast_ready) else (1 if code==PRIMARY else MIN_FLOW_HOURS)
+        ok=(code==PRIMARY and primary_forecast_ready) or (lf is not None and n>=minimum)
         primary_audit[code]={
             "observed_flow_hours_last_24h":n,
             "minimum_required":minimum,
             "last_observation_utc":iso_utc(lf[0]) if lf else None,
             "eligible":ok,
+            "forecast_boundary_available":bool(code==PRIMARY and primary_forecast_ready),
         }
         if primary is None and ok:
             primary=code
@@ -133,8 +134,29 @@ def select_sources(hydro: dict[str,Any],t0: datetime) -> tuple[str,list[str],dic
             active.append(code)
     return primary,active,{"primary_candidates":primary_audit,"optional_sources":optional_audit}
 
-def build_causal_hydro(hydro: dict[str,Any],t0: datetime,end: datetime,primary: str,active: list[str]) -> dict[str,Any]:
+def primary_forecast_rows(pkg: dict[str,Any]|None) -> dict[datetime,float]:
+    if not pkg:
+        return {}
+    if pkg.get("status")!="UPPER_ANTAS_CAUSAL_BOUNDARY_READY":
+        raise RuntimeError("primary forecast package is not ready")
+    if str(pkg.get("station_code"))!=PRIMARY:
+        raise RuntimeError("primary forecast package has wrong station code")
+    if pkg.get("future_observed_flow_used") is not False:
+        raise RuntimeError("primary forecast package violates causal-flow contract")
+    out={}
+    for r in pkg.get("series") or []:
+        if not r.get("time_utc") or r.get("flow_m3s") is None:
+            continue
+        t=utc(r["time_utc"]); q=float(r["flow_m3s"])
+        if math.isfinite(q) and q>=0:
+            out[t]=q
+    if not out:
+        raise RuntimeError("primary forecast package has no usable flow series")
+    return out
+
+def build_causal_hydro(hydro: dict[str,Any],t0: datetime,end: datetime,primary: str,active: list[str],primary_forecast: dict[str,Any]|None=None) -> dict[str,Any]:
     sources={primary,*active}
+    forecast_rows=primary_forecast_rows(primary_forecast) if primary==PRIMARY and primary_forecast else {}
     controls=[]
     for c in hydro.get("controls") or []:
         code=str(c.get("code") or "")
@@ -146,17 +168,36 @@ def build_causal_hydro(hydro: dict[str,Any],t0: datetime,end: datetime,primary: 
             if t<=t0:
                 kept.append(dict(r))
         if code in sources:
-            lf=last_flow(c,t0)
-            if lf is None:
-                raise RuntimeError(f"{code}: no flow to persist at t0")
-            last_t,last_q=lf
-            # Explicit t0 anchor avoids any interpolation through future truth.
-            if not any(r.get("time_utc") and utc(r["time_utc"])==t0 and r.get("flow_m3s") is not None for r in kept):
-                kept.append({"time_utc":iso_utc(t0),"flow_m3s":last_q,"level_source_unit":None})
-            t=floor_hour(t0)+timedelta(hours=1)
-            while t<=end:
-                kept.append({"time_utc":iso_utc(t),"flow_m3s":last_q,"level_source_unit":None})
-                t+=timedelta(hours=1)
+            if code==PRIMARY and forecast_rows:
+                # Prefer observations through t0. Fill missing historical boundary
+                # hours and every future hour from the frozen causal upper-Antas model.
+                existing={
+                    utc(r["time_utc"]):r for r in kept
+                    if r.get("time_utc") and r.get("flow_m3s") is not None
+                }
+                for t,q in sorted(forecast_rows.items()):
+                    if t>end:
+                        continue
+                    if t<=t0 and t in existing:
+                        continue
+                    kept.append({
+                        "time_utc":iso_utc(t),
+                        "flow_m3s":q,
+                        "level_source_unit":None,
+                        "boundary_source":"upper_antas_causal_model",
+                    })
+            else:
+                lf=last_flow(c,t0)
+                if lf is None:
+                    raise RuntimeError(f"{code}: no flow to persist at t0")
+                last_t,last_q=lf
+                # Explicit t0 anchor avoids any interpolation through future truth.
+                if not any(r.get("time_utc") and utc(r["time_utc"])==t0 and r.get("flow_m3s") is not None for r in kept):
+                    kept.append({"time_utc":iso_utc(t0),"flow_m3s":last_q,"level_source_unit":None})
+                t=floor_hour(t0)+timedelta(hours=1)
+                while t<=end:
+                    kept.append({"time_utc":iso_utc(t),"flow_m3s":last_q,"level_source_unit":None})
+                    t+=timedelta(hours=1)
         kept.sort(key=lambda r:utc(r["time_utc"]))
         controls.append({**{k:v for k,v in c.items() if k!="recent_rows"},"recent_rows":kept})
     return {
@@ -165,7 +206,11 @@ def build_causal_hydro(hydro: dict[str,Any],t0: datetime,end: datetime,primary: 
         "research_only":True,
         "source":hydro.get("source"),
         "decision_time_utc":iso_utc(t0),
-        "future_boundary_policy":"last observation persisted after t0",
+        "future_boundary_policy":(
+            "primary 86472000 from frozen causal upper-Antas model; optional branches persist last observation"
+            if forecast_rows else "last observation persisted after t0"
+        ),
+        "predictive_primary_boundary_used":bool(forecast_rows),
         "future_observed_discharge_used":False,
         "controls":controls,
     }
@@ -274,6 +319,7 @@ def main() -> int:
     ap=argparse.ArgumentParser()
     ap.add_argument("--case-id",required=True)
     ap.add_argument("--forecast-file",type=Path,required=True)
+    ap.add_argument("--primary-forecast-file",type=Path,default=None)
     args=ap.parse_args()
     cfg,case=case_config(args.case_id)
     event=str(case["event_id"])
@@ -294,9 +340,18 @@ def main() -> int:
     if utc((forecast.get("source") or {}).get("run_initialization_utc"))!=run:
         raise RuntimeError("forecast run does not match frozen case")
 
-    primary,active,audit=select_sources(score_hydro,t0)
+    primary_forecast=load(args.primary_forecast_file) if args.primary_forecast_file else None
+    if primary_forecast:
+        if str(primary_forecast.get("event_id"))!=event:
+            raise RuntimeError("primary forecast event does not match causal case")
+        if utc(primary_forecast.get("decision_time_utc"))!=t0:
+            raise RuntimeError("primary forecast decision time does not match causal case")
+        if primary_forecast.get("validation_event_used_for_selection") is not False:
+            raise RuntimeError("primary forecast used validation event for selection")
+
+    primary,active,audit=select_sources(score_hydro,t0,bool(primary_forecast))
     scenario_name=f"causal_{args.case_id}"
-    causal_hydro=build_causal_hydro(score_hydro,t0,end,primary,active)
+    causal_hydro=build_causal_hydro(score_hydro,t0,end,primary,active,primary_forecast)
     causal_rain=build_causal_rain(observed,forecast,t0,end,primary,active,scenario_name)
     scenario={
         "schema_version":"g040_causal_boundary_scenario_v1",
@@ -324,6 +379,8 @@ def main() -> int:
         "case":case,
         "score_end_utc":iso_utc(end),
         "primary_source_code":primary,
+        "primary_forecast_file":str(args.primary_forecast_file) if args.primary_forecast_file else None,
+        "predictive_primary_boundary_used":bool(primary_forecast and primary==PRIMARY),
         "active_optional_boundaries":active,
         "boundary_eligibility_audit":audit,
         "causality_gates":{
@@ -332,6 +389,8 @@ def main() -> int:
             "target_future_observations_separate_score_file":True,
             "parameters_frozen_before_validation":True,
             "ecmwf_run_explicit":True,
+            "predictive_primary_boundary_is_frozen":bool(primary_forecast and primary==PRIMARY),
+            "primary_boundary_future_observations_used":False,
         },
         "files":{
             "rain":"rain.json",
@@ -348,6 +407,7 @@ def main() -> int:
         "decision_time_utc":iso_utc(t0),
         "score_end_utc":iso_utc(end),
         "primary_source_code":primary,
+        "predictive_primary_boundary_used":bool(primary_forecast and primary==PRIMARY),
         "active_optional_boundaries":active,
         "rain_hours":causal_rain["window"]["hours"],
     },ensure_ascii=False))
