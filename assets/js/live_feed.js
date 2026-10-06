@@ -5,7 +5,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  const REPO = 'julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais';
+  const REPO = 'previne-taquari-antas/Previne-Taquari-Antas---Redes-Neurais';
 
   function withCacheBust(url) {
     return url + (String(url).includes('?') ? '&' : '?') + 'cb=' + Date.now();
