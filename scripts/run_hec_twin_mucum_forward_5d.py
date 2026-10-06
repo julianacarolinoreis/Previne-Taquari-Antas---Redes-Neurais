@@ -32,6 +32,7 @@ HEC = OUT / "hec_twin_stz_mucum_v1_latest.json"
 ESTRUTURA = OUT / "estrutura_stz_mucum_latest.json"
 CURVA_HUNT = OUT / "curva_chave_86472600" / "curva_chave_hunt_86472600_latest.json"
 LIVE_MUCUM = ROOT / "previsao_ao_vivo_mucum.json"
+RATING_SAFETY = ROOT / "config" / "mucum_rating_curve_safety_v1.json"
 
 SUBBASINS = [
     "SB_PRATA_7868",
@@ -191,9 +192,27 @@ def mucum_curve_segments() -> list[dict[str, Any]]:
     return segs
 
 
+def rating_curve_safety() -> dict[str, Any]:
+    if not RATING_SAFETY.exists():
+        raise RuntimeError("Muçum rating-curve safety contract missing")
+    cfg = json.loads(RATING_SAFETY.read_text(encoding="utf-8"))
+    if str(cfg.get("station_code")) != MUCUM_CODE:
+        raise RuntimeError("Muçum rating-curve safety contract station mismatch")
+    if str(cfg.get("policy")) != "fail_closed":
+        raise RuntimeError("Muçum rating-curve safety contract must be fail_closed")
+    return cfg
+
+
 def q_to_stage_cm(q_m3s: float, segments: list[dict[str, Any]]) -> dict[str, Any]:
+    """Convert Q->stage only inside the official segment AND conservative safety limit.
+
+    No nearest-segment extrapolation is allowed. Above the frozen review limit the
+    diagnostic candidate stage may be reported, but stage_cm stays None and ok=False.
+    """
     if q_m3s is None or q_m3s != q_m3s or q_m3s < 0:
         return {"stage_cm": None, "ok": False, "reason": "invalid_q"}
+    cfg = rating_curve_safety()
+    limit = float(cfg["publishable_q_to_stage_max_cm"])
     candidates: list[dict[str, Any]] = []
     for seg in segments:
         a = float(seg["a"])
@@ -216,32 +235,75 @@ def q_to_stage_cm(q_m3s: float, segments: list[dict[str, Any]]) -> dict[str, Any
             }
         )
     if not candidates:
-        return {"stage_cm": None, "ok": False, "reason": "no_segment"}
+        return {"stage_cm": None, "ok": False, "reason": "no_segment", "safety_limit_cm": limit}
     inside = [c for c in candidates if c["inside"]]
-    pick = inside[0] if inside else min(
-        candidates,
-        key=lambda c: abs(c["stage_cm"] - (c["stage_min_cm"] + c["stage_max_cm"]) / 2),
-    )
+    if not inside:
+        diagnostic = min(
+            candidates,
+            key=lambda c: abs(c["stage_cm"] - (c["stage_min_cm"] + c["stage_max_cm"]) / 2),
+        )
+        return {
+            "stage_cm": None,
+            "diagnostic_stage_cm": round(float(diagnostic["stage_cm"]), 2),
+            "ok": False,
+            "reason": "q_outside_official_curve_segments",
+            "inside_segment": False,
+            "extrapolated": True,
+            "safety_limit_cm": limit,
+        }
+    pick = inside[0]
+    computed = float(pick["stage_cm"])
+    if computed > limit + 1e-6:
+        return {
+            "stage_cm": None,
+            "diagnostic_stage_cm": round(computed, 2),
+            "ok": False,
+            "reason": "above_frozen_rating_curve_safety_limit",
+            "segment_number": pick["segment_number"],
+            "inside_segment": True,
+            "extrapolated": False,
+            "safety_limit_cm": limit,
+        }
     return {
-        "stage_cm": round(float(pick["stage_cm"]), 2),
+        "stage_cm": round(computed, 2),
         "ok": True,
         "segment_number": pick["segment_number"],
-        "inside_segment": bool(pick["inside"]),
-        "extrapolated": not bool(pick["inside"]),
+        "inside_segment": True,
+        "extrapolated": False,
+        "safety_limit_cm": limit,
     }
 
 
 def stage_to_q_m3s(stage_cm: float, segments: list[dict[str, Any]]) -> dict[str, Any]:
     if stage_cm is None or stage_cm != stage_cm:
         return {"q_m3s": None, "ok": False, "reason": "invalid_stage"}
+    cfg = rating_curve_safety()
+    limit = float(cfg["publishable_q_to_stage_max_cm"])
+    if float(stage_cm) > limit + 1e-6:
+        return {
+            "q_m3s": None,
+            "ok": False,
+            "reason": "above_frozen_rating_curve_safety_limit",
+            "safety_limit_cm": limit,
+        }
     for seg in segments:
         lo = float(seg["stage_min_cm"])
         hi = float(seg["stage_max_cm"])
         if lo - 1e-6 <= stage_cm <= hi + 1e-6:
             h_m = stage_cm / 100.0
             q = float(seg["a"]) * max(h_m - float(seg["h0_m"]), 0.0) ** float(seg["n"])
-            return {"q_m3s": round(q, 3), "ok": True, "segment_number": seg.get("segment_number")}
-    return {"q_m3s": None, "ok": False, "reason": "stage_outside_curve"}
+            return {
+                "q_m3s": round(q, 3),
+                "ok": True,
+                "segment_number": seg.get("segment_number"),
+                "safety_limit_cm": limit,
+            }
+    return {
+        "q_m3s": None,
+        "ok": False,
+        "reason": "stage_outside_official_curve_segments",
+        "safety_limit_cm": limit,
+    }
 
 
 def _parse_ana_levels(xml_bytes: bytes) -> list[tuple[datetime, float]]:
@@ -321,6 +383,29 @@ def member_rise(
     now_index: int = 0,
 ) -> dict[str, Any]:
     n_series = member["series"]["n_mucum_cm"]
+    meta_series = list(member["series"].get("n_mucum_meta") or [])
+    unsafe_future = [
+        {"index": i, **m}
+        for i, m in enumerate(meta_series)
+        if i >= int(now_index) and not bool(m.get("ok"))
+    ]
+    if unsafe_future:
+        first = unsafe_future[0]
+        return {
+            "n_model_t0_cm": n_series[now_index] if n_series and now_index < len(n_series) else None,
+            "n_model_peak_cm": None,
+            "rise_model_cm": None,
+            "level_now_cm": level_now_cm,
+            "peak_anchored_cm": None,
+            "n_anchored_cm": None,
+            "peak_time_utc": None,
+            "now_index": now_index,
+            "status": "blocked_rating_curve_safety",
+            "reason": first.get("reason"),
+            "first_unsafe_index": first.get("index"),
+            "diagnostic_stage_cm": first.get("diagnostic_stage_cm"),
+            "safety_limit_cm": first.get("safety_limit_cm"),
+        }
     if not n_series:
         return {
             "n_model_t0_cm": None,
@@ -759,6 +844,7 @@ def build_package(
             "RNA permanece no curto prazo e não é alterada aqui."
         ),
         "quanto_sobe": quanto_sobe,
+        "rating_curve_safety": rating_curve_safety(),
         "decision_alignment": {
             "primary_for_multiday": "HEC_twin_plus_IFS_QPF",
             "short_horizon_complement": "RNA_nivel_2h_4h_8h",
