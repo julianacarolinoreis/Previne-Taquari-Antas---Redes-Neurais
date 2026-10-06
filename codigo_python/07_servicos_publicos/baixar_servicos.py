@@ -72,6 +72,41 @@ def catalogo(root):
             pass
     return servs
 
+def _iede_disponivel():
+    """Teste curto antes das consultas pesadas; evita esperar dezenas de minutos
+    quando os dois endpoints do IEDE estão totalmente fora do ar."""
+    for root in ROOTS:
+        try:
+            get(root + "?f=json", timeout=12)
+            return True
+        except Exception as e:
+            print(f"[preflight] IEDE indisponível em {root}: {e}")
+    return False
+
+if not _iede_disponivel():
+    recuperados = []
+    cache_dir = "assets/data/servicos"
+    for tipo in TIPOS:
+        src = os.path.join(cache_dir, f"{tipo}.geojson")
+        if not os.path.exists(src):
+            continue
+        try:
+            pacote = json.load(open(src, encoding="utf-8"))
+            feats = pacote.get("features", [])
+            if not feats:
+                continue
+            shutil.copyfile(src, os.path.join(RAW, f"{tipo}.geojson"))
+            open(os.path.join(RAW, f"{tipo}_fonte.txt"), "w", encoding="utf-8").write(
+                "CACHE do último recorte publicado; IEDE-RS indisponível nesta rodada"
+            )
+            recuperados.append(tipo)
+        except Exception as e:
+            print(f"[preflight-cache] {tipo}: {e}")
+    if len(recuperados) >= 2:
+        print(f"[preflight-cache] preservando último conjunto validado: {recuperados}")
+        raise SystemExit(0)
+    print("[preflight] cache insuficiente; seguindo para as tentativas detalhadas")
+
 achados = {}
 
 # Camadas FIXAS (validadas em rodadas anteriores + indicação da equipe):
