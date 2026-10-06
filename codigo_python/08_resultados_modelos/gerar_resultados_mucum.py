@@ -59,7 +59,7 @@ MAT_DIR = REPO / "assets" / "mat"
 WORKBOOK_DIR = REPO / "assets" / "audit_workbooks"
 SERIES_JSON = REPO / "assets" / "data" / "mucum_auditaveis_series.json"
 
-RAW_BASE = "https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais"
+RAW_BASE = "https://raw.githubusercontent.com/previne-taquari-antas/Previne-Taquari-Antas---Redes-Neurais"
 EQUILIBRIO_MIN = 0.75
 # 12h nunca passa de 0.75 (teto real ~0.73) — decisao explicita da Juliana apos ver
 # a contagem: corte mais baixo so pra esse horizonte, pra abrir a aba de 12h com os
