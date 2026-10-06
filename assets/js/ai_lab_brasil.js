@@ -3,13 +3,13 @@
 
   var FEED = 'assets/data/research_basin_screening_latest.json';
   var AUTO_TRAIN_LOCAL = 'assets/data/ai_lab/auto_training_v2_latest.json';
-  var AUTO_TRAIN_RAW = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/auto_training_v2_latest.json';
+  var AUTO_TRAIN_RAW = 'https://raw.githubusercontent.com/previne-taquari-antas/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/auto_training_v2_latest.json';
   var AUTO_TRAIN_FALLBACK_LOCAL = 'assets/data/ai_lab/auto_training_latest.json';
-  var AUTO_TRAIN_FALLBACK_RAW = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/auto_training_latest.json';
+  var AUTO_TRAIN_FALLBACK_RAW = 'https://raw.githubusercontent.com/previne-taquari-antas/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/auto_training_latest.json';
   var SHADOW_MANIFEST_LOCAL = 'assets/data/ai_lab/shadow_bundle_manifest.json';
-  var SHADOW_MANIFEST_RAW = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/shadow_bundle_manifest.json';
+  var SHADOW_MANIFEST_RAW = 'https://raw.githubusercontent.com/previne-taquari-antas/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/shadow_bundle_manifest.json';
   var SHADOW_LIVE_LOCAL = 'assets/data/ai_lab/shadow_live_latest.json';
-  var SHADOW_LIVE_RAW = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/shadow_live_latest.json';
+  var SHADOW_LIVE_RAW = 'https://raw.githubusercontent.com/previne-taquari-antas/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/shadow_live_latest.json';
   var BRAZIL_BOUNDS = [[-34.8,-74.2],[5.7,-34.0]];
   var state = { feed:null, autoTraining:null, map:null, markers:[], stationIndex:[], selected:null };
 
