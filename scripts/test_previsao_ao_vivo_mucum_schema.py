@@ -124,6 +124,32 @@ class MucumFeedContractTests(unittest.TestCase):
         self.assertNotIn('ant["consultado_em"] =', block)
         self.assertIn('ant["ultima_tentativa_em"] = tentativa', block)
 
+    def test_stale_base_is_not_publishable(self) -> None:
+        # 29/09/2026: ANA devolveu Muçum só até 28/09 23h; consulta às 05:38.
+        agora = dt.datetime(2026, 9, 29, 5, 38)
+        base = dt.datetime(2026, 9, 28, 22, 0)
+        horas, ok = LIVE.antecedencia_efetiva({"horizonte_h": 4}, base, agora)
+        self.assertLess(horas, 0)
+        self.assertFalse(ok)
+        horas, ok = LIVE.antecedencia_efetiva({"horizonte_h": 4}, dt.datetime(2026, 9, 29, 4, 0), agora)
+        self.assertTrue(ok)  # alvo 08:00, 2,4 h à frente
+        horas, ok = LIVE.antecedencia_efetiva({"horizonte_h": 8}, dt.datetime(2026, 9, 29, 0, 0), agora)
+        self.assertFalse(ok)  # alvo 08:00 dá só 2,4 h para o 8 h (mínimo 5 h)
+        horas, ok = LIVE.antecedencia_efetiva({"horizonte_h": 2}, dt.datetime(2026, 9, 29, 4, 0), agora)
+        self.assertTrue(ok)  # 2 h só exige alvo no futuro
+
+    def test_preserved_predictions_expire_after_target_time(self) -> None:
+        data = copy.deepcopy(self.data)
+        for item in data["horizontes"].values():
+            item["hora_alvo"] = "2026-08-28T22:00:00"
+        data["horizontes"]["8h"]["hora_alvo"] = "2026-08-29T02:00:00"
+        LIVE.expirar_previsoes_vencidas(data, agora=dt.datetime(2026, 8, 28, 23, 0))
+        self.assertIsNone(data["horizontes"]["4h"]["nivel_previsto_cm"])
+        self.assertFalse(data["horizontes"]["4h"]["disponivel"])
+        self.assertNotEqual(data["horizontes"]["4h"]["status"], "ok")
+        self.assertEqual(data["horizontes"]["8h"]["nivel_previsto_cm"], 100.0)
+        validate_data(data)
+
     def test_level_and_rain_reuse_one_ana_xml_response(self) -> None:
         xml = b"""<?xml version=\"1.0\"?>
         <root><row><DataHora>2026-09-20 08:00:00</DataHora>
