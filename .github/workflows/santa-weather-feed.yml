@@ -15,11 +15,9 @@ on:
       - '.github/workflows/santa-weather-feed.yml'
   schedule:
     - cron: '7,37 * * * *'
-  workflow_run:
-    workflows:
-      - "Chuvas horarias (ANA + INMET + CEMADEN)"
+  repository_dispatch:
     types:
-      - completed
+      - previne-rain-updated
 
 permissions:
   contents: write
@@ -30,7 +28,6 @@ concurrency:
 
 jobs:
   refresh:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
