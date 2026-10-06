@@ -22,16 +22,23 @@ on:
       - "assets/data/hec_hms_g040_full_basin/full_basin_station_matrix.csv"
       - "assets/data/hec_hms_g040_full_basin/original_145_report_inventory_latest.json"
   workflow_dispatch:
+  schedule:
+    - cron: "11 * * * *"
+  workflow_run:
+    workflows:
+      - "Chuvas horarias (ANA + INMET + CEMADEN)"
+    types: [completed]
 
 permissions:
   contents: write
 
 concurrency:
   group: g040-whole-basin-observed-branch
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
