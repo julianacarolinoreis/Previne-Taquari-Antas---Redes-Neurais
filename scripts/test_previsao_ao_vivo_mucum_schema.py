@@ -99,6 +99,25 @@ class MucumFeedContractTests(unittest.TestCase):
             dt.datetime(2026, 8, 28, 18, 0),
         )
 
+    def test_live_quality_guard_marks_recent_high_error(self) -> None:
+        item = self._item("4h", 4, 15, "principal", 1)
+        data = {"4h": item}
+        audit = {
+            "n_total": 10,
+            "n_conferidas": 10,
+            "n_aguardando": 0,
+            "mae_ultimas_6_cm": 40.0,
+            "mae_24h_cm": 45.2,
+            "maior_erro_abs_24h_cm": 79.0,
+            "ultima_conferida": None,
+            "ultimas_conferidas": [],
+        }
+        with mock.patch.object(LIVE, "resumo_auditoria", return_value=audit):
+            LIVE.aplicar_guardrail_qualidade_horizontes(data, [])
+        out = data["4h"]
+        self.assertEqual(out["qualidade_ao_vivo"]["status"], "ATENCAO")
+        self.assertIn("erro recente do modelo ativo acima do guardrail", out["status"])
+
     def test_live_freshness_guard_hides_two_hour_old_base(self) -> None:
         item = self._item("8h", 8, 26, "principal", 1)
         item["hora_modelo"] = "2026-08-28T16:00:00"
