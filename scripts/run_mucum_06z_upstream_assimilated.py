@@ -116,10 +116,35 @@ def main():
     stage_now=float(cur["level"])
     q_now=float(cur["flow_m3s"]) if cur.get("flow_m3s") is not None else None
 
-    # Forcing must begin exactly at current full hour.
+    # A assimilacao so e cientificamente valida quando forcing e observacao
+    # partem do mesmo instante. Desalinhamento de fonte nao deve derrubar os
+    # demais produtos HEC da rodada: publica-se um diagnostico explicitamente
+    # bloqueado, sem reutilizar silenciosamente a assimilacao anterior.
     forcing_start=datetime.fromisoformat(times[0].replace("Z","+00:00")).replace(tzinfo=None)-timedelta(hours=3)
     if forcing_start!=target_local:
-        raise RuntimeError(f"forcing starts {forcing_start}, current observed is {target_local}")
+        gap_h=(forcing_start-target_local).total_seconds()/3600.0
+        blocked={
+          "schema_version":"mucum_06z_upstream_assimilated_v1",
+          "status":"blocked_time_mismatch",
+          "publishable":False,
+          "model":"nested HEC-method twin E28 with observed branch-state assimilation",
+          "current":{
+            "time_local":cur["time_local"],"stage_cm":stage_now,"q_m3s":q_now
+          },
+          "forcing_start_local":forcing_start.isoformat(timespec="minutes"),
+          "time_mismatch_hours":round(gap_h,3),
+          "reason":"forcing e observacao atual nao compartilham o mesmo t0; assimilacao nao executada",
+          "audit":{
+            "upstream_observed_assimilation":False,
+            "visual_only_shift":False,
+            "blocked_by_temporal_alignment_gate":True
+          }
+        }
+        OUT_JSON.write_text(json.dumps(blocked,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+        with OUT_CSV.open("w",encoding="utf-8") as f:
+            f.write("time_utc,n_mucum_anchored_cm,q_mucum_m3s,q_antas_m3s,q_carreiro_confluence_m3s\n")
+        print(json.dumps(blocked,ensure_ascii=False))
+        return
 
     q_antas,meta_antas=latest_q_at_or_extrapolated(station(obs,ANTAS),target_local)
     q_carr,meta_carr=latest_q_at_or_extrapolated(station(obs,CARREIRO),target_local)
