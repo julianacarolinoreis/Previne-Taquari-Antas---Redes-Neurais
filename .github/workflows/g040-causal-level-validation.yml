@@ -1,0 +1,72 @@
+name: G040 frozen causal level validation
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - "G040 causal frozen ECMWF benchmark"
+    types: [completed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: g040-frozen-causal-level-validation
+  cancel-in-progress: true
+
+jobs:
+  validate-level:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Contract tests
+        run: python -B scripts/test_g040_causal_level_benchmark.py
+
+      - name: Curve-independent level validation
+        run: python -B scripts/evaluate_g040_causal_level_benchmark.py
+
+      - name: Verify gates
+        run: |
+          python - <<'PY'
+          import json
+          p="assets/data/hec_hms_g040_full_basin/causal_frozen_benchmark/causal_level_validation_latest.json"
+          j=json.load(open(p,encoding="utf-8"))
+          assert j["status"]=="CURVE_INDEPENDENT_LEVEL_VALIDATION_COMPLETE"
+          assert j["rating_curve_used"] is False
+          assert j["promotion_allowed"] is False
+          assert len(j["cases"])==3
+          print(json.dumps(j["summary"],indent=2))
+          PY
+
+      - name: Publish level-validation evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="assets/data/hec_hms_g040_full_basin/causal_frozen_benchmark"
+          cp "$BASE/causal_level_validation_latest.json" /tmp/
+          cp "$BASE/causal_level_validation.csv" /tmp/
+          git config user.name "previne-g040-level-validation-bot"
+          git config user.email "previne-g040-level-validation-bot@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p "$BASE"
+            cp /tmp/causal_level_validation_latest.json "$BASE/"
+            cp /tmp/causal_level_validation.csv "$BASE/"
+            git add -- "$BASE/causal_level_validation_latest.json" "$BASE/causal_level_validation.csv"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "bot: publish G040 curve-independent level validation [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt*2))
+          done
+          exit 1
