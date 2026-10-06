@@ -27,6 +27,7 @@ OBSROOT=BASE/"historical_calibration_forcing"
 OUTROOT=BASE/"causal_frozen_benchmark"
 BRT=timezone(timedelta(hours=-3))
 PRIMARY="86472000"
+PRIMARY_FALLBACKS=("86510000",)
 OPTIONAL=("86500000","86595000","86746000")
 MIN_FLOW_HOURS=18
 
@@ -88,29 +89,52 @@ def last_flow(control: dict[str,Any],t0: datetime) -> tuple[datetime,float]|None
             rows.append((t,q))
     return max(rows,key=lambda x:x[0]) if rows else None
 
-def active_sources(hydro: dict[str,Any],t0: datetime) -> tuple[list[str],dict[str,Any]]:
+def select_sources(hydro: dict[str,Any],t0: datetime) -> tuple[str,list[str],dict[str,Any]]:
     by={str(c.get("code")):c for c in hydro.get("controls") or []}
-    if PRIMARY not in by or last_flow(by[PRIMARY],t0) is None:
-        raise RuntimeError(f"primary source {PRIMARY} has no observed flow at/before t0")
+    primary=None
+    primary_audit={}
+    for code in (PRIMARY,*PRIMARY_FALLBACKS):
+        c=by.get(code) or {}
+        n=flow_hour_count(c,t0)
+        lf=last_flow(c,t0)
+        minimum=1 if code==PRIMARY else MIN_FLOW_HOURS
+        ok=lf is not None and n>=minimum
+        primary_audit[code]={
+            "observed_flow_hours_last_24h":n,
+            "minimum_required":minimum,
+            "last_observation_utc":iso_utc(lf[0]) if lf else None,
+            "eligible":ok,
+        }
+        if primary is None and ok:
+            primary=code
+    if primary is None:
+        raise RuntimeError(
+            f"no causal primary source available at/before t0; tried {(PRIMARY,*PRIMARY_FALLBACKS)}"
+        )
+
+    # When Muçum is the primary fallback, Carreiro is already embedded in the
+    # observed Muçum discharge and must not be added again as an upstream Source.
+    upstream_optional={"86510000":{"86500000"}}.get(primary,set())
     active=[]
-    audit={}
+    optional_audit={}
     for code in OPTIONAL:
         c=by.get(code) or {}
         n=flow_hour_count(c,t0)
         lf=last_flow(c,t0)
-        ok=n>=MIN_FLOW_HOURS and lf is not None
-        audit[code]={
+        ok=n>=MIN_FLOW_HOURS and lf is not None and code not in upstream_optional
+        optional_audit[code]={
             "observed_flow_hours_last_24h":n,
             "minimum_required":MIN_FLOW_HOURS,
             "last_observation_utc":iso_utc(lf[0]) if lf else None,
             "eligible":ok,
+            "suppressed_as_upstream_of_primary":code in upstream_optional,
         }
         if ok:
             active.append(code)
-    return active,audit
+    return primary,active,{"primary_candidates":primary_audit,"optional_sources":optional_audit}
 
-def build_causal_hydro(hydro: dict[str,Any],t0: datetime,end: datetime,active: list[str]) -> dict[str,Any]:
-    sources={PRIMARY,*active}
+def build_causal_hydro(hydro: dict[str,Any],t0: datetime,end: datetime,primary: str,active: list[str]) -> dict[str,Any]:
+    sources={primary,*active}
     controls=[]
     for c in hydro.get("controls") or []:
         code=str(c.get("code") or "")
@@ -166,6 +190,7 @@ def build_causal_rain(
     forecast: dict[str,Any],
     t0: datetime,
     end: datetime,
+    primary: str,
     active: list[str],
     scenario_name: str,
 ) -> dict[str,Any]:
@@ -185,11 +210,14 @@ def build_causal_rain(
     start=max(starts)
     axis=hourly_axis(start,end)
     active_set=set(active)
+    suppressed_by_primary={
+        "86510000":{"BRANCH_86500000","CORE_INC_86472000_86510000"},
+    }.get(primary,set())
     components=[]
     for cid in ids:
         meta=obs_components[cid]
         branch=cid.replace("BRANCH_","",1) if cid.startswith("BRANCH_") else None
-        used=not branch or branch not in active_set
+        used=(not branch or branch not in active_set) and cid not in suppressed_by_primary
         rows=[]
         missing=[]
         for t in axis:
@@ -213,6 +241,7 @@ def build_causal_rain(
             "component_type":meta.get("component_type"),
             "tributary_boundary_code":branch,
             "used_as_rainfall_runoff_in_current_scenario":used,
+            "suppressed_by_primary_source":cid in suppressed_by_primary,
             "support_area_km2":float(meta.get("support_area_km2") or fc_components[cid].get("support_area_km2") or 0),
             "expected_hours":len(axis),
             "available_hours":sum(r["mm"] is not None for r in rows),
@@ -265,16 +294,17 @@ def main() -> int:
     if utc((forecast.get("source") or {}).get("run_initialization_utc"))!=run:
         raise RuntimeError("forecast run does not match frozen case")
 
-    active,audit=active_sources(score_hydro,t0)
+    primary,active,audit=select_sources(score_hydro,t0)
     scenario_name=f"causal_{args.case_id}"
-    causal_hydro=build_causal_hydro(score_hydro,t0,end,active)
-    causal_rain=build_causal_rain(observed,forecast,t0,end,active,scenario_name)
+    causal_hydro=build_causal_hydro(score_hydro,t0,end,primary,active)
+    causal_rain=build_causal_rain(observed,forecast,t0,end,primary,active,scenario_name)
     scenario={
         "schema_version":"g040_causal_boundary_scenario_v1",
         "research_only":True,
         "current_scenario":scenario_name,
         "current":{
             "name":scenario_name,
+            "primary_source_code":primary,
             "active_boundary_codes":sorted(active),
             "selection_time_utc":iso_utc(t0),
             "selection_uses_future_observations":False,
@@ -293,6 +323,7 @@ def main() -> int:
         "research_only":True,
         "case":case,
         "score_end_utc":iso_utc(end),
+        "primary_source_code":primary,
         "active_optional_boundaries":active,
         "boundary_eligibility_audit":audit,
         "causality_gates":{
@@ -316,6 +347,7 @@ def main() -> int:
         "event_id":event,
         "decision_time_utc":iso_utc(t0),
         "score_end_utc":iso_utc(end),
+        "primary_source_code":primary,
         "active_optional_boundaries":active,
         "rain_hours":causal_rain["window"]["hours"],
     },ensure_ascii=False))
