@@ -138,6 +138,20 @@ class LiveFeedContractTests(unittest.TestCase):
         }
         self.assertTrue(live._precisa_fallback(expired))
 
+    def test_impossible_jump_is_rejected_until_level_returns(self) -> None:
+        # 86298000 em 06/10/2026: 171 cm -> 1475 -> 1892 cm em 2 h, sem cheia real.
+        import datetime as dt
+        from previne.robo import gerar_previsao_ao_vivo as live
+
+        t0 = dt.datetime(2026, 10, 6, 6, 0)
+        valores = [172, 171, 254, 1475, 1870, 1802, 1860, 1892, 180, 182]
+        serie = {t0 + dt.timedelta(hours=i): float(v) for i, v in enumerate(valores)}
+        limpa = live.filtrar_saltos_impossiveis("86298000", serie)
+        self.assertEqual(sorted(limpa.values()), [171.0, 172.0, 180.0, 182.0, 254.0])
+        # uma interrupção real (> 3 h sem leitura) refaz a âncora
+        serie2 = {t0: 200.0, t0 + dt.timedelta(hours=5): 1200.0, t0 + dt.timedelta(hours=6): 1210.0}
+        self.assertEqual(len(live.filtrar_saltos_impossiveis("86298000", serie2)), 3)
+
     def test_ana_reuses_one_xml_for_level_and_rain(self) -> None:
         from previne.robo import gerar_previsao_ao_vivo as live
 

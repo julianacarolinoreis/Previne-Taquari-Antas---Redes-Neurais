@@ -540,6 +540,54 @@ def _obter_xml_ana(cod, dias, timeout_s, tentativas_rede, parser, prefixo):
     return None
 
 
+# Salto impossível entre leituras consecutivas (cm), por estação: 8 x o
+# percentil 99,9 da variação horária no histórico limpo 2017-2026 (mínimo 150).
+# Em 06/10/2026 a 86298000 saltou de 171 para 1475 e 1892 cm em 2 h, sem chuva
+# nem subida em nenhuma outra estação, e o 4h PRO publicou +273 cm em Santa
+# Tereza. A leitura que salta além do limite fica suspeita, e as seguintes
+# também, até o nível voltar a menos do limite do último valor aceito. A
+# âncora só é refeita depois de uma interrupção real da telemetria (> 3 h sem
+# leitura), nunca durante um erro contínuo.
+SALTO_MAX_CM_POR_ESTACAO = {
+    "86472600": 808, "86472000": 938, "86125130": 150, "86306000": 2010,
+    "86448000": 440, "86507000": 1442, "86125500": 368, "86298000": 581,
+    "86430900": 597, "86447000": 1093, "86505500": 3114,
+}
+SALTO_MAX_PADRAO_CM = 600.0
+SALTO_REANCORA_APOS = dt.timedelta(hours=3)
+SALTOS_REJEITADOS = {}
+
+
+def filtrar_saltos_impossiveis(cod, serie):
+    limite = float(SALTO_MAX_CM_POR_ESTACAO.get(str(cod), SALTO_MAX_PADRAO_CM))
+    limpa, rejeitados = {}, []
+    ancora = None
+    anterior = None
+    for t in sorted(serie):
+        try:
+            valor = float(serie[t])
+        except (TypeError, ValueError):
+            continue
+        interrompida = anterior is not None and (t - anterior) > SALTO_REANCORA_APOS
+        anterior = t
+        if ancora is not None and not interrompida and abs(valor - ancora) > limite:
+            rejeitados.append((t, valor))
+            continue
+        limpa[t] = serie[t]
+        ancora = valor
+    if rejeitados:
+        SALTOS_REJEITADOS[str(cod)] = {
+            "limite_cm": limite,
+            "n_rejeitadas": len(rejeitados),
+            "primeira": rejeitados[0][0].isoformat(timespec="minutes"),
+            "ultima": rejeitados[-1][0].isoformat(timespec="minutes"),
+            "ultimo_valor_cm": rejeitados[-1][1],
+        }
+        print(f"[ANA {cod}] {len(rejeitados)} leituras com salto impossível (> {limite:.0f} cm) descartadas; "
+              f"de {rejeitados[0][0]} a {rejeitados[-1][0]}")
+    return limpa
+
+
 def buscar_ana(cod, dias=5, tentativas_rede=ANA_RETRIES_NIVEL):
     """Retorna dict {timestamp_da_leitura: nivel_cm}.
 
@@ -555,6 +603,7 @@ def buscar_ana(cod, dias=5, tentativas_rede=ANA_RETRIES_NIVEL):
     serie, _, ultima_raw = _serie_de_xml(xml)
     if ultima_raw:
         ULTIMA_RAW[cod] = ultima_raw
+    serie = filtrar_saltos_impossiveis(cod, serie)
     chuva, _, ultima_chuva = _serie_chuva_de_xml(xml)
     CHUVA_ANA_CACHE[cod] = chuva
     if ultima_chuva:
