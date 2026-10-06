@@ -43,6 +43,10 @@ on:
       - "scripts/test_hec_twin_mucum_forward_5d.py"
   schedule:
     - cron: "2,12,22,32,42,52 * * * *"
+  workflow_run:
+    workflows:
+      - "Atualiza feed meteorológico de Muçum"
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -50,10 +54,11 @@ permissions:
 
 concurrency:
   group: hec-twin-mucum-forward
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   forecast:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
