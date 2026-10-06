@@ -6,7 +6,7 @@ window.INVENTORY = {
     version: "snapshot-2026-09-20-v3",
     publicSafe: true,
     note: "A página é uma fotografia sanitizada. Ela não sincroniza automaticamente o computador, o Drive ou o histórico do Codex.",
-    githubRepo: "julianacarolinoreis/Previne-taquari"
+    githubRepo: "previne-taquari-antas/Previne-taquari"
   },
   kpis: [
     { id: "fronts", value: "20", label: "frentes catalogadas", note: "unidades de trabalho agrupadas por tema e evidência" },
