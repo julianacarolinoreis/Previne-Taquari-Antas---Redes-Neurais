@@ -1,0 +1,23 @@
+{
+  "schema_version": "mucum_rating_curve_safety_v1",
+  "station_code": "86510000",
+  "station_name": "Muçum",
+  "research_only": true,
+  "policy": "fail_closed",
+  "publishable_q_to_stage_max_cm": 1500,
+  "direct_discharge_measurement_archive_max_stage_cm": 1830,
+  "latest_official_curve_segment_max_cm": 2661,
+  "evidence": {
+    "official_curve_artifact": "assets/data/estudo_bacia_taquari_antas/curva_chave_86472600/curva_chave_hunt_86472600_latest.json",
+    "discharge_measurement_artifact": "assets/data/estudo_bacia_taquari_antas/curva_chave_86472600/vizinha_86510000_discharge_measurements.csv",
+    "internal_review_date": "2026-10-06",
+    "note": "O limite de 15 m e deliberadamente conservador: e menor que a maior medicao de descarga arquivada (18,30 m) e muito menor que o limite matematico do segmento oficial vigente (26,61 m). Acima de 15 m, Q<->N nao deve ser usado para amplitude/correcao operacional nesta pesquisa; validar diretamente por nivel/tempo de onda ou modelo hidraulico."
+  },
+  "rules": {
+    "q_to_stage": "permit only when the computed stage is inside an official segment and <= 1500 cm",
+    "stage_to_q": "permit only when observed stage is inside an official segment and <= 1500 cm",
+    "above_limit": "return ok=false; never silently extrapolate",
+    "disaster_stage_validation": "use observed level timing/shape and hydraulic validation; do not extrapolate rating curve"
+  },
+  "promotion_allowed": false
+}
