@@ -77,6 +77,8 @@ ANA_RETRIES_CHUVA = 2
 HORIZONTES_AO_VIVO = {"2h", "4h", "4h_versao_b", "8h", "8h_versao_b"}
 HOURLY_BASE_WARN_LAG_H = 1.0
 HOURLY_BASE_STALE_LAG_H = 2.0
+LIVE_WARN_MAE_24H_CM = 30.0
+LIVE_WARN_MAX_24H_CM = 100.0
 
 
 # ---------- configuração dos modelos (a partir do JSON) ----------
@@ -590,6 +592,38 @@ def serie_observada_ana_publica(series, dias=7):
     ]
 
 
+def aplicar_guardrail_qualidade_horizontes(horizontes, historico):
+    """Expõe no feed o desempenho recente de cada RNA ativa."""
+    for hz, out in horizontes.items():
+        audit = resumo_auditoria(historico, hz)
+        out["auditoria"] = audit
+        mae24 = audit.get("mae_24h_cm")
+        max24 = audit.get("maior_erro_abs_24h_cm")
+        if str(out.get("status") or "").startswith("ok") and (
+            (mae24 is not None and mae24 > LIVE_WARN_MAE_24H_CM)
+            or (max24 is not None and max24 > LIVE_WARN_MAX_24H_CM)
+        ):
+            out["qualidade_ao_vivo"] = {
+                "status": "ATENCAO",
+                "regra": "MAE_24H_CM > 30 ou MAIOR_ERRO_ABS_24H_CM > 100",
+                "mae_24h_cm": mae24,
+                "maior_erro_abs_24h_cm": max24,
+                "modelo": out.get("modelo"),
+            }
+            out["status"] = (
+                f"{out['status']} - atencao: erro recente do modelo ativo acima do guardrail"
+            )
+        else:
+            out["qualidade_ao_vivo"] = {
+                "status": "NORMAL" if audit.get("n_conferidas") else "SEM_VALIDACAO_HISTORICA",
+                "regra": "MAE_24H_CM > 30 ou MAIOR_ERRO_ABS_24H_CM > 100",
+                "mae_24h_cm": mae24,
+                "maior_erro_abs_24h_cm": max24,
+                "modelo": out.get("modelo"),
+            }
+    return horizontes
+
+
 def aplicar_guardrail_frescor_horizontes(horizontes, telemetria_em):
     """Não publica como previsão ao vivo uma RNA horária com base velha."""
     if telemetria_em is None:
@@ -1029,6 +1063,7 @@ def main():
     historico = conferir_historico(historico, series)
     salvar_historico(historico)
 
+    aplicar_guardrail_qualidade_horizontes(horizontes, historico)
     aplicar_guardrail_frescor_horizontes(
         horizontes,
         raw_mucum[0] if raw_mucum else None,
