@@ -315,7 +315,6 @@ def forecast_case(case_id:str,forecast_file:Path,output:Path)->dict[str,Any]:
             "rain_source":sources[i],
         }
         for i,(t,q,qr) in enumerate(zip(axis,corrected,raw))
-        if t>=t0-timedelta(hours=24)
     ]
     payload={
         "schema_version":"g040_upper_antas_causal_boundary_v1",
