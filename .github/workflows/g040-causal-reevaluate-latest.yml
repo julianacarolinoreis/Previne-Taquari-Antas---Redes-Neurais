@@ -1,0 +1,75 @@
+name: G040 causal benchmark re-evaluate latest
+
+on:
+  workflow_run:
+    workflows:
+      - "G040 causal frozen ECMWF benchmark"
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: g040-causal-reevaluate-latest
+  cancel-in-progress: true
+
+jobs:
+  reevaluate:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile evaluator
+        run: python -m py_compile scripts/evaluate_g040_causal_benchmark.py scripts/run_hec_hms_g040_e1_hindcast.py
+
+      - name: Re-evaluate published causal HEC outputs
+        run: python -B scripts/evaluate_g040_causal_benchmark.py
+
+      - name: Verify corrected evaluation contract
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("assets/data/hec_hms_g040_full_basin/causal_frozen_benchmark/causal_frozen_benchmark_summary_latest.json")
+          j=json.loads(p.read_text(encoding="utf-8"))
+          assert j["status"]=="FROZEN_CAUSAL_REPLAY_COMPLETE"
+          assert j["no_leakage_confirmed"] is True
+          assert "upper-Antas" in j["future_source_boundary_flow"]
+          assert "level" in j["metric"]
+          assert len(j["cases"])==3
+          for c in j["cases"]:
+              assert c.get("predictive_primary_boundary_used") is True
+          print(json.dumps(j["grand_summary"],indent=2))
+          PY
+
+      - name: Publish corrected evaluation
+        shell: bash
+        run: |
+          set -euo pipefail
+          D="assets/data/hec_hms_g040_full_basin/causal_frozen_benchmark"
+          cp "$D/causal_frozen_benchmark_summary_latest.json" /tmp/
+          cp "$D/causal_frozen_benchmark_cases.csv" /tmp/
+          git config user.name "previne-g040-reevaluate-bot"
+          git config user.email "previne-g040-reevaluate-bot@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp /tmp/causal_frozen_benchmark_summary_latest.json "$D/"
+            cp /tmp/causal_frozen_benchmark_cases.csv "$D/"
+            git add -- "$D/causal_frozen_benchmark_summary_latest.json" "$D/causal_frozen_benchmark_cases.csv"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "bot: re-evaluate frozen causal HEC benchmark [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt*2))
+          done
+          exit 1
