@@ -108,6 +108,25 @@ class LiveFeedContractTests(unittest.TestCase):
         self.assertIn('atual["ultima_tentativa_em"] = agora', block)
         self.assertIn('audit = auditoria_inputs_8h(cfg, cand, x)', source)
 
+    def test_8h_is_hard_suspended_without_model_or_fallback_publication(self) -> None:
+        from previne.robo import gerar_previsao_ao_vivo as live
+
+        self.assertTrue(live.SUSPENSAO_STZ_8H_ATIVA)
+        configs = {cfg["horizonte"]: cfg for cfg in live.MODELOS}
+        for key in ("8h", "8h_v002"):
+            self.assertFalse(configs[key]["ativo_ao_vivo"])
+            self.assertFalse(live.FALLBACKS_HORIZONTE[key]["ativo_ao_vivo"])
+            out = live.saida_suspensa_stz_8h(configs[key], "teste", [])
+            self.assertIsNone(out["nivel_previsto_cm"])
+            self.assertFalse(out["disponivel"])
+            self.assertFalse(out["ativo_ao_vivo"])
+            self.assertEqual(
+                out["qualidade_ao_vivo"]["status"],
+                "SUSPENSO_TELEMETRIA_INVALIDA",
+            )
+            self.assertTrue(out["suspensao_operacional"]["ativa"])
+            self.assertEqual(out["auditoria_inputs"]["status"], "INVALIDO")
+
     def test_operational_fallbacks_are_explicit_and_drop_86298000_dependency(self) -> None:
         from previne.robo import gerar_previsao_ao_vivo as live
 
