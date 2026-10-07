@@ -1,0 +1,2783 @@
+{
+ "versao": "santa_tereza_sombra_v2_20261006",
+ "gerado_por": "redes_neurais/mucum/RNA_MUCUM_4H_8H_MONTANTE_20261005/15_CONTRATO_SOMBRA/gerar_contrato_sombra.py",
+ "aviso": "SOMBRA — não publicado no site. Promoção só após comparação com o observado ao vivo.",
+ "alvo": "86472600",
+ "saida_json": "previsao_sombra_santa_tereza.json",
+ "historico_jsonl": "historico_previsao_sombra_santa_tereza.jsonl",
+ "regras": {
+  "grade": "hora cheia exata (somente leituras HH:00 da ANA)",
+  "nivel": "Nivel = N(t); vel_nivel k = N(t) - N(t-k); acel_nivel k = [N(t) - N(t-1)] - [N(t-k) - N(t-k-1)]",
+  "saida": "RNA = N(t+H) - N(t); previsão = N(t) + RNA",
+  "chuva": "hora H = leituras em (H-1h, H]; acumulado por posto só com as k horas; média dos postos com valor; dif = média por posto de acum(t) - acum(t-k)",
+  "hierarquia": "usa o menor nivel_hierarquia >= 1 com todas as entradas e antecedência suficiente; nível 0 = controle (só registro)",
+  "dados": "só estações vivas: sem 86306000 (travada em -332 cm desde 21/09/2026), sem 86505500 e sem 86298000"
+ },
+ "limites_estacao_cm": {
+  "86125130": {
+   "nome": "Ituim",
+   "min": 1,
+   "max": 645,
+   "salto_max_1h": 144,
+   "historico_min_cm": 3,
+   "historico_max_cm": 445,
+   "cota_absoluta": false
+  },
+  "86305000": {
+   "nome": "86305000 (cota de usina)",
+   "min": 1,
+   "max": 27164,
+   "salto_max_1h": 280,
+   "historico_min_cm": 239,
+   "historico_max_cm": 24716,
+   "cota_absoluta": true
+  },
+  "86448000": {
+   "nome": "Veranópolis (cota)",
+   "min": 14142,
+   "max": 15756,
+   "salto_max_1h": 440,
+   "historico_min_cm": 14276,
+   "historico_max_cm": 15621,
+   "cota_absoluta": true
+  },
+  "86470800": {
+   "nome": "86470800 (cota de usina)",
+   "min": 1,
+   "max": 12044,
+   "salto_max_1h": 344,
+   "historico_min_cm": 103,
+   "historico_max_cm": 10958,
+   "cota_absoluta": true
+  },
+  "86472000": {
+   "nome": "Linha José Júlio",
+   "min": 61,
+   "max": 3493,
+   "salto_max_1h": 848,
+   "historico_min_cm": 111,
+   "historico_max_cm": 2761,
+   "cota_absoluta": false
+  },
+  "86472600": {
+   "nome": "Santa Tereza",
+   "min": 55,
+   "max": 2823,
+   "salto_max_1h": 742,
+   "historico_min_cm": 105,
+   "historico_max_cm": 2232,
+   "cota_absoluta": false
+  }
+ },
+ "horizontes": {
+  "4h": {
+   "horizonte_h": 4,
+   "modelos": [
+    {
+     "modelo_id": "RNAPREV__SANTA_TEREZA__04h__ALT__STZ_4H_N1__32inputs_64hiddens_20261006",
+     "id_rodada": "STZ_4H_N1",
+     "nivel_hierarquia": 1,
+     "papel": "principal",
+     "descricao": "Santa Tereza + Linha José Júlio + Ituim + usinas do médio Antas (86305000, 86448000, 86470800) + chuva local/alta",
+     "mat": "assets/mat/sombra_santa_tereza_v2/RNAPREV__SANTA_TEREZA__04h__ALT__STZ_4H_N1__32inputs_64hiddens_20261006.mat",
+     "modelo_sha256": "2EDD0CAB8A7571B9AACC840A1AA84F869E098F9DA908F1617CE4DF1FC45BD148",
+     "n_inputs": 32,
+     "n_hidden": 64,
+     "inputs": [
+      {
+       "ordem": 1,
+       "nome": "Nivel_86472600",
+       "tipo": "nivel",
+       "estacao": "86472600",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 2,
+       "nome": "DifN-1h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 3,
+       "nome": "DifN-2h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 4,
+       "nome": "DifN-4h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 5,
+       "nome": "Acel-1h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 6,
+       "nome": "Acel-2h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 7,
+       "nome": "Acel-4h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 8,
+       "nome": "Acel-8h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 9,
+       "nome": "Acel-12h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 10,
+       "nome": "Nivel_86472000",
+       "tipo": "nivel",
+       "estacao": "86472000",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 11,
+       "nome": "DifN-1h_86472000",
+       "tipo": "vel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 12,
+       "nome": "DifN-2h_86472000",
+       "tipo": "vel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 13,
+       "nome": "DifN-4h_86472000",
+       "tipo": "vel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 14,
+       "nome": "Acel-12h_86472000",
+       "tipo": "acel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 15,
+       "nome": "Acel-20h_86472000",
+       "tipo": "acel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 20
+      },
+      {
+       "ordem": 16,
+       "nome": "Nivel_86125130",
+       "tipo": "nivel",
+       "estacao": "86125130",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 17,
+       "nome": "DifN-4h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 18,
+       "nome": "DifN-8h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 19,
+       "nome": "DifN-12h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 20,
+       "nome": "DifN-2h_86305000",
+       "tipo": "vel_nivel",
+       "estacao": "86305000",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 21,
+       "nome": "DifN-6h_86305000",
+       "tipo": "vel_nivel",
+       "estacao": "86305000",
+       "defasagem_h": 6
+      },
+      {
+       "ordem": 22,
+       "nome": "DifN-12h_86305000",
+       "tipo": "vel_nivel",
+       "estacao": "86305000",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 23,
+       "nome": "DifN-2h_86448000",
+       "tipo": "vel_nivel",
+       "estacao": "86448000",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 24,
+       "nome": "DifN-6h_86448000",
+       "tipo": "vel_nivel",
+       "estacao": "86448000",
+       "defasagem_h": 6
+      },
+      {
+       "ordem": 25,
+       "nome": "DifN-12h_86448000",
+       "tipo": "vel_nivel",
+       "estacao": "86448000",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 26,
+       "nome": "DifN-2h_86470800",
+       "tipo": "vel_nivel",
+       "estacao": "86470800",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 27,
+       "nome": "DifN-6h_86470800",
+       "tipo": "vel_nivel",
+       "estacao": "86470800",
+       "defasagem_h": 6
+      },
+      {
+       "ordem": 28,
+       "nome": "DifN-12h_86470800",
+       "tipo": "vel_nivel",
+       "estacao": "86470800",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 29,
+       "nome": "chuvaG_LOCAL_acum_6h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 6,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 30,
+       "nome": "chuvaG_LOCAL_acum_18h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 18,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 31,
+       "nome": "chuvaG_ALTA_acum_24h",
+       "tipo": "chuva_acum",
+       "grupo": "ALTA",
+       "janela_h": 24,
+       "estacoes": [
+        "86100600",
+        "86117000",
+        "86099000"
+       ]
+      },
+      {
+       "ordem": 32,
+       "nome": "chuvaG_ALTA_dif24",
+       "tipo": "chuva_diferenca",
+       "grupo": "ALTA",
+       "janela_h": 24,
+       "janela_anterior_h": 24,
+       "estacoes": [
+        "86100600",
+        "86117000",
+        "86099000"
+       ]
+      }
+     ],
+     "estacoes_nivel": [
+      "86125130",
+      "86305000",
+      "86448000",
+      "86470800",
+      "86472000",
+      "86472600"
+     ],
+     "estacoes_chuva": [
+      "86099000",
+      "86100600",
+      "86117000",
+      "86472000",
+      "86472600"
+     ],
+     "faixa_e95_cm": {
+      "geral": 50.7,
+      "subida": 66.5,
+      "acima_1500": 234.2
+     },
+     "faixa_e95_origem": {
+      "validacao_matlab": {
+       "geral": 43.725532005463066,
+       "subida": 56.662441484052245,
+       "acima_1500": null,
+       "n": {
+        "geral": 439,
+        "subida": 168,
+        "acima_1500": 0
+       }
+      },
+      "oof_validacao_cruzada": {
+       "geral": 50.680968697540344,
+       "subida": 66.49519088204558,
+       "acima_1500": 234.2143903131277,
+       "n": {
+        "geral": 2373,
+        "subida": 847,
+        "acima_1500": 59
+       }
+      }
+     },
+     "maximo_treino_nivel_cm": 2365.0,
+     "pers_validacao": 0.901,
+     "linhas_treino_validacao_teste": [
+      1934,
+      439,
+      406
+     ]
+    },
+    {
+     "modelo_id": "RNAPREV__SANTA_TEREZA__04h__ALT__STZ_4H_N2__23inputs_46hiddens_20261006",
+     "id_rodada": "STZ_4H_N2",
+     "nivel_hierarquia": 2,
+     "papel": "reserva",
+     "descricao": "Santa Tereza + Linha José Júlio + Ituim + chuva (quando falta usina)",
+     "mat": "assets/mat/sombra_santa_tereza_v2/RNAPREV__SANTA_TEREZA__04h__ALT__STZ_4H_N2__23inputs_46hiddens_20261006.mat",
+     "modelo_sha256": "AFB361DE706C884212C5E67C2107E72B5C84F555E4F49B3BADF4B5AADC115A65",
+     "n_inputs": 23,
+     "n_hidden": 46,
+     "inputs": [
+      {
+       "ordem": 1,
+       "nome": "Nivel_86472600",
+       "tipo": "nivel",
+       "estacao": "86472600",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 2,
+       "nome": "DifN-1h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 3,
+       "nome": "DifN-2h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 4,
+       "nome": "DifN-4h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 5,
+       "nome": "Acel-1h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 6,
+       "nome": "Acel-2h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 7,
+       "nome": "Acel-4h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 8,
+       "nome": "Acel-8h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 9,
+       "nome": "Acel-12h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 10,
+       "nome": "Nivel_86472000",
+       "tipo": "nivel",
+       "estacao": "86472000",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 11,
+       "nome": "DifN-1h_86472000",
+       "tipo": "vel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 12,
+       "nome": "DifN-2h_86472000",
+       "tipo": "vel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 13,
+       "nome": "DifN-4h_86472000",
+       "tipo": "vel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 14,
+       "nome": "Acel-12h_86472000",
+       "tipo": "acel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 15,
+       "nome": "Acel-20h_86472000",
+       "tipo": "acel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 20
+      },
+      {
+       "ordem": 16,
+       "nome": "Nivel_86125130",
+       "tipo": "nivel",
+       "estacao": "86125130",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 17,
+       "nome": "DifN-4h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 18,
+       "nome": "DifN-8h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 19,
+       "nome": "DifN-12h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 20,
+       "nome": "chuvaG_LOCAL_acum_6h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 6,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 21,
+       "nome": "chuvaG_LOCAL_acum_18h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 18,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 22,
+       "nome": "chuvaG_ALTA_acum_24h",
+       "tipo": "chuva_acum",
+       "grupo": "ALTA",
+       "janela_h": 24,
+       "estacoes": [
+        "86100600",
+        "86117000",
+        "86099000"
+       ]
+      },
+      {
+       "ordem": 23,
+       "nome": "chuvaG_ALTA_dif24",
+       "tipo": "chuva_diferenca",
+       "grupo": "ALTA",
+       "janela_h": 24,
+       "janela_anterior_h": 24,
+       "estacoes": [
+        "86100600",
+        "86117000",
+        "86099000"
+       ]
+      }
+     ],
+     "estacoes_nivel": [
+      "86125130",
+      "86472000",
+      "86472600"
+     ],
+     "estacoes_chuva": [
+      "86099000",
+      "86100600",
+      "86117000",
+      "86472000",
+      "86472600"
+     ],
+     "faixa_e95_cm": {
+      "geral": 55.8,
+      "subida": 75.6,
+      "acima_1500": 192.8
+     },
+     "faixa_e95_origem": {
+      "validacao_matlab": {
+       "geral": 49.98917004354018,
+       "subida": 68.80983896140754,
+       "acima_1500": null,
+       "n": {
+        "geral": 450,
+        "subida": 169,
+        "acima_1500": 5
+       }
+      },
+      "oof_validacao_cruzada": {
+       "geral": 55.82827891857099,
+       "subida": 75.5978739430949,
+       "acima_1500": 192.7684848323977,
+       "n": {
+        "geral": 2551,
+        "subida": 901,
+        "acima_1500": 82
+       }
+      }
+     },
+     "maximo_treino_nivel_cm": 2365.0,
+     "pers_validacao": 0.88,
+     "linhas_treino_validacao_teste": [
+      2101,
+      450,
+      414
+     ]
+    },
+    {
+     "modelo_id": "RNAPREV__SANTA_TEREZA__04h__ALT__STZ_4H_N3__26inputs_52hiddens_20261006",
+     "id_rodada": "STZ_4H_N3",
+     "nivel_hierarquia": 3,
+     "papel": "reserva",
+     "descricao": "Santa Tereza + Ituim + usinas + chuva (quando falta a Linha José Júlio)",
+     "mat": "assets/mat/sombra_santa_tereza_v2/RNAPREV__SANTA_TEREZA__04h__ALT__STZ_4H_N3__26inputs_52hiddens_20261006.mat",
+     "modelo_sha256": "9FDCD35908D06C27052CE95D5C8DF406E4F3A40A59DDCFC2DDE72D9FD7C17F95",
+     "n_inputs": 26,
+     "n_hidden": 52,
+     "inputs": [
+      {
+       "ordem": 1,
+       "nome": "Nivel_86472600",
+       "tipo": "nivel",
+       "estacao": "86472600",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 2,
+       "nome": "DifN-1h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 3,
+       "nome": "DifN-2h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 4,
+       "nome": "DifN-4h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 5,
+       "nome": "Acel-1h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 6,
+       "nome": "Acel-2h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 7,
+       "nome": "Acel-4h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 8,
+       "nome": "Acel-8h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 9,
+       "nome": "Acel-12h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 10,
+       "nome": "Nivel_86125130",
+       "tipo": "nivel",
+       "estacao": "86125130",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 11,
+       "nome": "DifN-4h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 12,
+       "nome": "DifN-8h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 13,
+       "nome": "DifN-12h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 14,
+       "nome": "DifN-2h_86305000",
+       "tipo": "vel_nivel",
+       "estacao": "86305000",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 15,
+       "nome": "DifN-6h_86305000",
+       "tipo": "vel_nivel",
+       "estacao": "86305000",
+       "defasagem_h": 6
+      },
+      {
+       "ordem": 16,
+       "nome": "DifN-12h_86305000",
+       "tipo": "vel_nivel",
+       "estacao": "86305000",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 17,
+       "nome": "DifN-2h_86448000",
+       "tipo": "vel_nivel",
+       "estacao": "86448000",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 18,
+       "nome": "DifN-6h_86448000",
+       "tipo": "vel_nivel",
+       "estacao": "86448000",
+       "defasagem_h": 6
+      },
+      {
+       "ordem": 19,
+       "nome": "DifN-12h_86448000",
+       "tipo": "vel_nivel",
+       "estacao": "86448000",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 20,
+       "nome": "DifN-2h_86470800",
+       "tipo": "vel_nivel",
+       "estacao": "86470800",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 21,
+       "nome": "DifN-6h_86470800",
+       "tipo": "vel_nivel",
+       "estacao": "86470800",
+       "defasagem_h": 6
+      },
+      {
+       "ordem": 22,
+       "nome": "DifN-12h_86470800",
+       "tipo": "vel_nivel",
+       "estacao": "86470800",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 23,
+       "nome": "chuvaG_LOCAL_acum_6h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 6,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 24,
+       "nome": "chuvaG_LOCAL_acum_18h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 18,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 25,
+       "nome": "chuvaG_ALTA_acum_24h",
+       "tipo": "chuva_acum",
+       "grupo": "ALTA",
+       "janela_h": 24,
+       "estacoes": [
+        "86100600",
+        "86117000",
+        "86099000"
+       ]
+      },
+      {
+       "ordem": 26,
+       "nome": "chuvaG_ALTA_dif24",
+       "tipo": "chuva_diferenca",
+       "grupo": "ALTA",
+       "janela_h": 24,
+       "janela_anterior_h": 24,
+       "estacoes": [
+        "86100600",
+        "86117000",
+        "86099000"
+       ]
+      }
+     ],
+     "estacoes_nivel": [
+      "86125130",
+      "86305000",
+      "86448000",
+      "86470800",
+      "86472600"
+     ],
+     "estacoes_chuva": [
+      "86099000",
+      "86100600",
+      "86117000",
+      "86472000",
+      "86472600"
+     ],
+     "faixa_e95_cm": {
+      "geral": 76.3,
+      "subida": 115.7,
+      "acima_1500": 241.5
+     },
+     "faixa_e95_origem": {
+      "validacao_matlab": {
+       "geral": 73.83377090133973,
+       "subida": 115.74654594772996,
+       "acima_1500": null,
+       "n": {
+        "geral": 759,
+        "subida": 333,
+        "acima_1500": 10
+       }
+      },
+      "oof_validacao_cruzada": {
+       "geral": 76.32175691847027,
+       "subida": 105.53198296000068,
+       "acima_1500": 241.5001081823678,
+       "n": {
+        "geral": 2876,
+        "subida": 1088,
+        "acima_1500": 70
+       }
+      }
+     },
+     "maximo_treino_nivel_cm": 2365.0,
+     "pers_validacao": 0.683,
+     "linhas_treino_validacao_teste": [
+      2117,
+      759,
+      406
+     ]
+    },
+    {
+     "modelo_id": "RNAPREV__SANTA_TEREZA__04h__ALT__STZ_4H_N4__17inputs_34hiddens_20261006",
+     "id_rodada": "STZ_4H_N4",
+     "nivel_hierarquia": 4,
+     "papel": "reserva",
+     "descricao": "Santa Tereza + Ituim + chuva",
+     "mat": "assets/mat/sombra_santa_tereza_v2/RNAPREV__SANTA_TEREZA__04h__ALT__STZ_4H_N4__17inputs_34hiddens_20261006.mat",
+     "modelo_sha256": "0B8ABFA2BD7A0AB9BF5B4FFD19FD2975C2CB62B7915611D7B6A0032FFB5AC527",
+     "n_inputs": 17,
+     "n_hidden": 34,
+     "inputs": [
+      {
+       "ordem": 1,
+       "nome": "Nivel_86472600",
+       "tipo": "nivel",
+       "estacao": "86472600",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 2,
+       "nome": "DifN-1h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 3,
+       "nome": "DifN-2h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 4,
+       "nome": "DifN-4h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 5,
+       "nome": "Acel-1h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 6,
+       "nome": "Acel-2h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 7,
+       "nome": "Acel-4h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 8,
+       "nome": "Acel-8h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 9,
+       "nome": "Acel-12h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 10,
+       "nome": "Nivel_86125130",
+       "tipo": "nivel",
+       "estacao": "86125130",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 11,
+       "nome": "DifN-4h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 12,
+       "nome": "DifN-8h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 13,
+       "nome": "DifN-12h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 14,
+       "nome": "chuvaG_LOCAL_acum_6h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 6,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 15,
+       "nome": "chuvaG_LOCAL_acum_18h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 18,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 16,
+       "nome": "chuvaG_ALTA_acum_24h",
+       "tipo": "chuva_acum",
+       "grupo": "ALTA",
+       "janela_h": 24,
+       "estacoes": [
+        "86100600",
+        "86117000",
+        "86099000"
+       ]
+      },
+      {
+       "ordem": 17,
+       "nome": "chuvaG_ALTA_dif24",
+       "tipo": "chuva_diferenca",
+       "grupo": "ALTA",
+       "janela_h": 24,
+       "janela_anterior_h": 24,
+       "estacoes": [
+        "86100600",
+        "86117000",
+        "86099000"
+       ]
+      }
+     ],
+     "estacoes_nivel": [
+      "86125130",
+      "86472600"
+     ],
+     "estacoes_chuva": [
+      "86099000",
+      "86100600",
+      "86117000",
+      "86472000",
+      "86472600"
+     ],
+     "faixa_e95_cm": {
+      "geral": 84.2,
+      "subida": 119.5,
+      "acima_1500": 191.9
+     },
+     "faixa_e95_origem": {
+      "validacao_matlab": {
+       "geral": 84.21683448248118,
+       "subida": 119.50405370309613,
+       "acima_1500": 191.93230062772835,
+       "n": {
+        "geral": 1074,
+        "subida": 411,
+        "acima_1500": 69
+       }
+      },
+      "oof_validacao_cruzada": {
+       "geral": 79.72115968558491,
+       "subida": 109.73169548307472,
+       "acima_1500": 169.26785248205078,
+       "n": {
+        "geral": 3435,
+        "subida": 1260,
+        "acima_1500": 141
+       }
+      }
+     },
+     "maximo_treino_nivel_cm": 2365.0,
+     "pers_validacao": 0.718,
+     "linhas_treino_validacao_teste": [
+      2361,
+      1074,
+      679
+     ]
+    },
+    {
+     "modelo_id": "RNAPREV__SANTA_TEREZA__04h__ALT__STZ_4H_N5__11inputs_22hiddens_20261006",
+     "id_rodada": "STZ_4H_N5",
+     "nivel_hierarquia": 5,
+     "papel": "reserva",
+     "descricao": "só Santa Tereza + chuva local (último nível)",
+     "mat": "assets/mat/sombra_santa_tereza_v2/RNAPREV__SANTA_TEREZA__04h__ALT__STZ_4H_N5__11inputs_22hiddens_20261006.mat",
+     "modelo_sha256": "90D3D32C3BD25BD22C57191E0D5A4CB0F3972B26ED4DA9746A5FC6F7A2ADA49B",
+     "n_inputs": 11,
+     "n_hidden": 22,
+     "inputs": [
+      {
+       "ordem": 1,
+       "nome": "Nivel_86472600",
+       "tipo": "nivel",
+       "estacao": "86472600",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 2,
+       "nome": "DifN-1h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 3,
+       "nome": "DifN-2h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 4,
+       "nome": "DifN-4h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 5,
+       "nome": "Acel-1h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 6,
+       "nome": "Acel-2h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 7,
+       "nome": "Acel-4h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 8,
+       "nome": "Acel-8h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 9,
+       "nome": "Acel-12h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 10,
+       "nome": "chuvaG_LOCAL_acum_6h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 6,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 11,
+       "nome": "chuvaG_LOCAL_acum_18h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 18,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      }
+     ],
+     "estacoes_nivel": [
+      "86472600"
+     ],
+     "estacoes_chuva": [
+      "86472000",
+      "86472600"
+     ],
+     "faixa_e95_cm": {
+      "geral": 94.3,
+      "subida": 146.6,
+      "acima_1500": 168.8
+     },
+     "faixa_e95_origem": {
+      "validacao_matlab": {
+       "geral": 94.30565111488227,
+       "subida": 146.56876496254472,
+       "acima_1500": 168.79914799390698,
+       "n": {
+        "geral": 1261,
+        "subida": 461,
+        "acima_1500": 62
+       }
+      },
+      "oof_validacao_cruzada": {
+       "geral": 80.95251400220553,
+       "subida": 119.85039995917303,
+       "acima_1500": 155.7138186160813,
+       "n": {
+        "geral": 4319,
+        "subida": 1523,
+        "acima_1500": 147
+       }
+      }
+     },
+     "maximo_treino_nivel_cm": 2365.0,
+     "pers_validacao": 0.679,
+     "linhas_treino_validacao_teste": [
+      3058,
+      1261,
+      687
+     ]
+    },
+    {
+     "modelo_id": "RNAPREV__SANTA_TEREZA__04h__ALT__STZ_4H_CTRL__5inputs_10hiddens_20261006",
+     "id_rodada": "STZ_4H_CTRL",
+     "nivel_hierarquia": 0,
+     "papel": "controle",
+     "descricao": "CONTROLE: entradas do 4h de reserva hoje no ar (4H_ALT_PRIO_12478)",
+     "mat": "assets/mat/sombra_santa_tereza_v2/RNAPREV__SANTA_TEREZA__04h__ALT__STZ_4H_CTRL__5inputs_10hiddens_20261006.mat",
+     "modelo_sha256": "E5E5CF230D87CF587819C6086DA0470D1C8FBD23E1BE019514443053D8BD9DA3",
+     "n_inputs": 5,
+     "n_hidden": 10,
+     "inputs": [
+      {
+       "ordem": 1,
+       "nome": "Nivel_86472600",
+       "tipo": "nivel",
+       "estacao": "86472600",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 2,
+       "nome": "DifN-1h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 3,
+       "nome": "Acel-12h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 4,
+       "nome": "DifN-12h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 5,
+       "nome": "DifN-4h_86472000",
+       "tipo": "vel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 4
+      }
+     ],
+     "estacoes_nivel": [
+      "86125130",
+      "86472000",
+      "86472600"
+     ],
+     "estacoes_chuva": [],
+     "faixa_e95_cm": {
+      "geral": 92.8,
+      "subida": 160.0,
+      "acima_1500": 293.1
+     },
+     "faixa_e95_origem": {
+      "validacao_matlab": {
+       "geral": 92.80610281621982,
+       "subida": 159.97517598863064,
+       "acima_1500": null,
+       "n": {
+        "geral": 500,
+        "subida": 189,
+        "acima_1500": 16
+       }
+      },
+      "oof_validacao_cruzada": {
+       "geral": 72.1403189542882,
+       "subida": 118.5749514875764,
+       "acima_1500": 293.12508152211956,
+       "n": {
+        "geral": 2821,
+        "subida": 998,
+        "acima_1500": 96
+       }
+      }
+     },
+     "maximo_treino_nivel_cm": 2365.0,
+     "pers_validacao": 0.642,
+     "linhas_treino_validacao_teste": [
+      2321,
+      500,
+      414
+     ]
+    }
+   ]
+  },
+  "8h": {
+   "horizonte_h": 8,
+   "modelos": [
+    {
+     "modelo_id": "RNAPREV__SANTA_TEREZA__08h__ALT__STZ_8H_N1__34inputs_69hiddens_20261006",
+     "id_rodada": "STZ_8H_N1",
+     "nivel_hierarquia": 1,
+     "papel": "principal",
+     "descricao": "Santa Tereza + Linha José Júlio + Ituim + usinas do médio Antas (86305000, 86448000, 86470800) + chuva local/alta",
+     "mat": "assets/mat/sombra_santa_tereza_v2/RNAPREV__SANTA_TEREZA__08h__ALT__STZ_8H_N1__34inputs_69hiddens_20261006.mat",
+     "modelo_sha256": "59DD19F321500AC9D6767F4DA6FAF90A058A5A0DFA00ACA5A6C6E55D1ECD7161",
+     "n_inputs": 34,
+     "n_hidden": 69,
+     "inputs": [
+      {
+       "ordem": 1,
+       "nome": "Nivel_86472600",
+       "tipo": "nivel",
+       "estacao": "86472600",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 2,
+       "nome": "DifN-1h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 3,
+       "nome": "DifN-2h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 4,
+       "nome": "DifN-4h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 5,
+       "nome": "Acel-1h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 6,
+       "nome": "Acel-2h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 7,
+       "nome": "Acel-4h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 8,
+       "nome": "Acel-8h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 9,
+       "nome": "Acel-12h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 10,
+       "nome": "Nivel_86472000",
+       "tipo": "nivel",
+       "estacao": "86472000",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 11,
+       "nome": "DifN-1h_86472000",
+       "tipo": "vel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 12,
+       "nome": "DifN-2h_86472000",
+       "tipo": "vel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 13,
+       "nome": "DifN-4h_86472000",
+       "tipo": "vel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 14,
+       "nome": "Acel-12h_86472000",
+       "tipo": "acel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 15,
+       "nome": "Acel-20h_86472000",
+       "tipo": "acel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 20
+      },
+      {
+       "ordem": 16,
+       "nome": "DifN-8h_86472000",
+       "tipo": "vel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 17,
+       "nome": "Acel-4h_86472000",
+       "tipo": "acel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 18,
+       "nome": "Nivel_86125130",
+       "tipo": "nivel",
+       "estacao": "86125130",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 19,
+       "nome": "DifN-4h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 20,
+       "nome": "DifN-8h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 21,
+       "nome": "DifN-12h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 22,
+       "nome": "DifN-2h_86305000",
+       "tipo": "vel_nivel",
+       "estacao": "86305000",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 23,
+       "nome": "DifN-6h_86305000",
+       "tipo": "vel_nivel",
+       "estacao": "86305000",
+       "defasagem_h": 6
+      },
+      {
+       "ordem": 24,
+       "nome": "DifN-12h_86305000",
+       "tipo": "vel_nivel",
+       "estacao": "86305000",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 25,
+       "nome": "DifN-2h_86448000",
+       "tipo": "vel_nivel",
+       "estacao": "86448000",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 26,
+       "nome": "DifN-6h_86448000",
+       "tipo": "vel_nivel",
+       "estacao": "86448000",
+       "defasagem_h": 6
+      },
+      {
+       "ordem": 27,
+       "nome": "DifN-12h_86448000",
+       "tipo": "vel_nivel",
+       "estacao": "86448000",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 28,
+       "nome": "DifN-2h_86470800",
+       "tipo": "vel_nivel",
+       "estacao": "86470800",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 29,
+       "nome": "DifN-6h_86470800",
+       "tipo": "vel_nivel",
+       "estacao": "86470800",
+       "defasagem_h": 6
+      },
+      {
+       "ordem": 30,
+       "nome": "DifN-12h_86470800",
+       "tipo": "vel_nivel",
+       "estacao": "86470800",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 31,
+       "nome": "chuvaG_LOCAL_acum_6h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 6,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 32,
+       "nome": "chuvaG_LOCAL_acum_18h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 18,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 33,
+       "nome": "chuvaG_ALTA_acum_24h",
+       "tipo": "chuva_acum",
+       "grupo": "ALTA",
+       "janela_h": 24,
+       "estacoes": [
+        "86100600",
+        "86117000",
+        "86099000"
+       ]
+      },
+      {
+       "ordem": 34,
+       "nome": "chuvaG_ALTA_dif24",
+       "tipo": "chuva_diferenca",
+       "grupo": "ALTA",
+       "janela_h": 24,
+       "janela_anterior_h": 24,
+       "estacoes": [
+        "86100600",
+        "86117000",
+        "86099000"
+       ]
+      }
+     ],
+     "estacoes_nivel": [
+      "86125130",
+      "86305000",
+      "86448000",
+      "86470800",
+      "86472000",
+      "86472600"
+     ],
+     "estacoes_chuva": [
+      "86099000",
+      "86100600",
+      "86117000",
+      "86472000",
+      "86472600"
+     ],
+     "faixa_e95_cm": {
+      "geral": 100.8,
+      "subida": 159.9,
+      "acima_1500": 377.4
+     },
+     "faixa_e95_origem": {
+      "validacao_matlab": {
+       "geral": 80.96010013969638,
+       "subida": 107.39882879916048,
+       "acima_1500": null,
+       "n": {
+        "geral": 439,
+        "subida": 168,
+        "acima_1500": 0
+       }
+      },
+      "oof_validacao_cruzada": {
+       "geral": 100.78171756284208,
+       "subida": 159.85513361406493,
+       "acima_1500": 377.4433896775031,
+       "n": {
+        "geral": 2358,
+        "subida": 836,
+        "acima_1500": 58
+       }
+      }
+     },
+     "maximo_treino_nivel_cm": 2365.0,
+     "pers_validacao": 0.884,
+     "linhas_treino_validacao_teste": [
+      1919,
+      439,
+      402
+     ]
+    },
+    {
+     "modelo_id": "RNAPREV__SANTA_TEREZA__08h__ALT__STZ_8H_N2__25inputs_51hiddens_20261006",
+     "id_rodada": "STZ_8H_N2",
+     "nivel_hierarquia": 2,
+     "papel": "reserva",
+     "descricao": "Santa Tereza + Linha José Júlio + Ituim + chuva (quando falta usina)",
+     "mat": "assets/mat/sombra_santa_tereza_v2/RNAPREV__SANTA_TEREZA__08h__ALT__STZ_8H_N2__25inputs_51hiddens_20261006.mat",
+     "modelo_sha256": "59C4646AFB79D3DCEFA9DE374C40AB9AD4D7FEEF3631E4F071BEAD0118A19A32",
+     "n_inputs": 25,
+     "n_hidden": 51,
+     "inputs": [
+      {
+       "ordem": 1,
+       "nome": "Nivel_86472600",
+       "tipo": "nivel",
+       "estacao": "86472600",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 2,
+       "nome": "DifN-1h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 3,
+       "nome": "DifN-2h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 4,
+       "nome": "DifN-4h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 5,
+       "nome": "Acel-1h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 6,
+       "nome": "Acel-2h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 7,
+       "nome": "Acel-4h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 8,
+       "nome": "Acel-8h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 9,
+       "nome": "Acel-12h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 10,
+       "nome": "Nivel_86472000",
+       "tipo": "nivel",
+       "estacao": "86472000",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 11,
+       "nome": "DifN-1h_86472000",
+       "tipo": "vel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 12,
+       "nome": "DifN-2h_86472000",
+       "tipo": "vel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 13,
+       "nome": "DifN-4h_86472000",
+       "tipo": "vel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 14,
+       "nome": "Acel-12h_86472000",
+       "tipo": "acel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 15,
+       "nome": "Acel-20h_86472000",
+       "tipo": "acel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 20
+      },
+      {
+       "ordem": 16,
+       "nome": "DifN-8h_86472000",
+       "tipo": "vel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 17,
+       "nome": "Acel-4h_86472000",
+       "tipo": "acel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 18,
+       "nome": "Nivel_86125130",
+       "tipo": "nivel",
+       "estacao": "86125130",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 19,
+       "nome": "DifN-4h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 20,
+       "nome": "DifN-8h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 21,
+       "nome": "DifN-12h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 22,
+       "nome": "chuvaG_LOCAL_acum_6h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 6,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 23,
+       "nome": "chuvaG_LOCAL_acum_18h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 18,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 24,
+       "nome": "chuvaG_ALTA_acum_24h",
+       "tipo": "chuva_acum",
+       "grupo": "ALTA",
+       "janela_h": 24,
+       "estacoes": [
+        "86100600",
+        "86117000",
+        "86099000"
+       ]
+      },
+      {
+       "ordem": 25,
+       "nome": "chuvaG_ALTA_dif24",
+       "tipo": "chuva_diferenca",
+       "grupo": "ALTA",
+       "janela_h": 24,
+       "janela_anterior_h": 24,
+       "estacoes": [
+        "86100600",
+        "86117000",
+        "86099000"
+       ]
+      }
+     ],
+     "estacoes_nivel": [
+      "86125130",
+      "86472000",
+      "86472600"
+     ],
+     "estacoes_chuva": [
+      "86099000",
+      "86100600",
+      "86117000",
+      "86472000",
+      "86472600"
+     ],
+     "faixa_e95_cm": {
+      "geral": 122.2,
+      "subida": 181.9,
+      "acima_1500": 326.3
+     },
+     "faixa_e95_origem": {
+      "validacao_matlab": {
+       "geral": 88.37459073205805,
+       "subida": 127.9207834586821,
+       "acima_1500": null,
+       "n": {
+        "geral": 450,
+        "subida": 169,
+        "acima_1500": 5
+       }
+      },
+      "oof_validacao_cruzada": {
+       "geral": 122.24153770519806,
+       "subida": 181.8975218087249,
+       "acima_1500": 326.34625356581546,
+       "n": {
+        "geral": 2532,
+        "subida": 890,
+        "acima_1500": 81
+       }
+      }
+     },
+     "maximo_treino_nivel_cm": 2365.0,
+     "pers_validacao": 0.832,
+     "linhas_treino_validacao_teste": [
+      2082,
+      450,
+      410
+     ]
+    },
+    {
+     "modelo_id": "RNAPREV__SANTA_TEREZA__08h__ALT__STZ_8H_N3__26inputs_53hiddens_20261006",
+     "id_rodada": "STZ_8H_N3",
+     "nivel_hierarquia": 3,
+     "papel": "reserva",
+     "descricao": "Santa Tereza + Ituim + usinas + chuva (quando falta a Linha José Júlio)",
+     "mat": "assets/mat/sombra_santa_tereza_v2/RNAPREV__SANTA_TEREZA__08h__ALT__STZ_8H_N3__26inputs_53hiddens_20261006.mat",
+     "modelo_sha256": "1FBB90F58483E8661FDC524F6D24517E44636BBBFAF7CC8A43C1123A79731AD9",
+     "n_inputs": 26,
+     "n_hidden": 53,
+     "inputs": [
+      {
+       "ordem": 1,
+       "nome": "Nivel_86472600",
+       "tipo": "nivel",
+       "estacao": "86472600",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 2,
+       "nome": "DifN-1h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 3,
+       "nome": "DifN-2h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 4,
+       "nome": "DifN-4h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 5,
+       "nome": "Acel-1h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 6,
+       "nome": "Acel-2h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 7,
+       "nome": "Acel-4h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 8,
+       "nome": "Acel-8h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 9,
+       "nome": "Acel-12h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 10,
+       "nome": "Nivel_86125130",
+       "tipo": "nivel",
+       "estacao": "86125130",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 11,
+       "nome": "DifN-4h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 12,
+       "nome": "DifN-8h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 13,
+       "nome": "DifN-12h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 14,
+       "nome": "DifN-2h_86305000",
+       "tipo": "vel_nivel",
+       "estacao": "86305000",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 15,
+       "nome": "DifN-6h_86305000",
+       "tipo": "vel_nivel",
+       "estacao": "86305000",
+       "defasagem_h": 6
+      },
+      {
+       "ordem": 16,
+       "nome": "DifN-12h_86305000",
+       "tipo": "vel_nivel",
+       "estacao": "86305000",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 17,
+       "nome": "DifN-2h_86448000",
+       "tipo": "vel_nivel",
+       "estacao": "86448000",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 18,
+       "nome": "DifN-6h_86448000",
+       "tipo": "vel_nivel",
+       "estacao": "86448000",
+       "defasagem_h": 6
+      },
+      {
+       "ordem": 19,
+       "nome": "DifN-12h_86448000",
+       "tipo": "vel_nivel",
+       "estacao": "86448000",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 20,
+       "nome": "DifN-2h_86470800",
+       "tipo": "vel_nivel",
+       "estacao": "86470800",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 21,
+       "nome": "DifN-6h_86470800",
+       "tipo": "vel_nivel",
+       "estacao": "86470800",
+       "defasagem_h": 6
+      },
+      {
+       "ordem": 22,
+       "nome": "DifN-12h_86470800",
+       "tipo": "vel_nivel",
+       "estacao": "86470800",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 23,
+       "nome": "chuvaG_LOCAL_acum_6h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 6,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 24,
+       "nome": "chuvaG_LOCAL_acum_18h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 18,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 25,
+       "nome": "chuvaG_ALTA_acum_24h",
+       "tipo": "chuva_acum",
+       "grupo": "ALTA",
+       "janela_h": 24,
+       "estacoes": [
+        "86100600",
+        "86117000",
+        "86099000"
+       ]
+      },
+      {
+       "ordem": 26,
+       "nome": "chuvaG_ALTA_dif24",
+       "tipo": "chuva_diferenca",
+       "grupo": "ALTA",
+       "janela_h": 24,
+       "janela_anterior_h": 24,
+       "estacoes": [
+        "86100600",
+        "86117000",
+        "86099000"
+       ]
+      }
+     ],
+     "estacoes_nivel": [
+      "86125130",
+      "86305000",
+      "86448000",
+      "86470800",
+      "86472600"
+     ],
+     "estacoes_chuva": [
+      "86099000",
+      "86100600",
+      "86117000",
+      "86472000",
+      "86472600"
+     ],
+     "faixa_e95_cm": {
+      "geral": 140.6,
+      "subida": 218.9,
+      "acima_1500": 368.6
+     },
+     "faixa_e95_origem": {
+      "validacao_matlab": {
+       "geral": 140.63367207727245,
+       "subida": 218.9058445454086,
+       "acima_1500": null,
+       "n": {
+        "geral": 758,
+        "subida": 333,
+        "acima_1500": 13
+       }
+      },
+      "oof_validacao_cruzada": {
+       "geral": 124.05677226714305,
+       "subida": 175.44701447066495,
+       "acima_1500": 368.55031340629165,
+       "n": {
+        "geral": 2870,
+        "subida": 1087,
+        "acima_1500": 70
+       }
+      }
+     },
+     "maximo_treino_nivel_cm": 2365.0,
+     "pers_validacao": 0.622,
+     "linhas_treino_validacao_teste": [
+      2112,
+      758,
+      402
+     ]
+    },
+    {
+     "modelo_id": "RNAPREV__SANTA_TEREZA__08h__ALT__STZ_8H_N4__17inputs_35hiddens_20261006",
+     "id_rodada": "STZ_8H_N4",
+     "nivel_hierarquia": 4,
+     "papel": "reserva",
+     "descricao": "Santa Tereza + Ituim + chuva",
+     "mat": "assets/mat/sombra_santa_tereza_v2/RNAPREV__SANTA_TEREZA__08h__ALT__STZ_8H_N4__17inputs_35hiddens_20261006.mat",
+     "modelo_sha256": "96D0347E3EF7F9E21EE2DDE612596D211DFD75010DBF54E1FEAFB605E14BD1B5",
+     "n_inputs": 17,
+     "n_hidden": 35,
+     "inputs": [
+      {
+       "ordem": 1,
+       "nome": "Nivel_86472600",
+       "tipo": "nivel",
+       "estacao": "86472600",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 2,
+       "nome": "DifN-1h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 3,
+       "nome": "DifN-2h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 4,
+       "nome": "DifN-4h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 5,
+       "nome": "Acel-1h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 6,
+       "nome": "Acel-2h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 7,
+       "nome": "Acel-4h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 8,
+       "nome": "Acel-8h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 9,
+       "nome": "Acel-12h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 10,
+       "nome": "Nivel_86125130",
+       "tipo": "nivel",
+       "estacao": "86125130",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 11,
+       "nome": "DifN-4h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 12,
+       "nome": "DifN-8h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 13,
+       "nome": "DifN-12h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 14,
+       "nome": "chuvaG_LOCAL_acum_6h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 6,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 15,
+       "nome": "chuvaG_LOCAL_acum_18h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 18,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 16,
+       "nome": "chuvaG_ALTA_acum_24h",
+       "tipo": "chuva_acum",
+       "grupo": "ALTA",
+       "janela_h": 24,
+       "estacoes": [
+        "86100600",
+        "86117000",
+        "86099000"
+       ]
+      },
+      {
+       "ordem": 17,
+       "nome": "chuvaG_ALTA_dif24",
+       "tipo": "chuva_diferenca",
+       "grupo": "ALTA",
+       "janela_h": 24,
+       "janela_anterior_h": 24,
+       "estacoes": [
+        "86100600",
+        "86117000",
+        "86099000"
+       ]
+      }
+     ],
+     "estacoes_nivel": [
+      "86125130",
+      "86472600"
+     ],
+     "estacoes_chuva": [
+      "86099000",
+      "86100600",
+      "86117000",
+      "86472000",
+      "86472600"
+     ],
+     "faixa_e95_cm": {
+      "geral": 182.9,
+      "subida": 264.8,
+      "acima_1500": 397.8
+     },
+     "faixa_e95_origem": {
+      "validacao_matlab": {
+       "geral": 182.93740511266734,
+       "subida": 264.842222533798,
+       "acima_1500": 397.7701655209155,
+       "n": {
+        "geral": 1068,
+        "subida": 411,
+        "acima_1500": 64
+       }
+      },
+      "oof_validacao_cruzada": {
+       "geral": 145.9264044731269,
+       "subida": 209.45051830283225,
+       "acima_1500": 319.8304109902265,
+       "n": {
+        "geral": 3418,
+        "subida": 1258,
+        "acima_1500": 131
+       }
+      }
+     },
+     "maximo_treino_nivel_cm": 2365.0,
+     "pers_validacao": 0.643,
+     "linhas_treino_validacao_teste": [
+      2350,
+      1068,
+      671
+     ]
+    },
+    {
+     "modelo_id": "RNAPREV__SANTA_TEREZA__08h__ALT__STZ_8H_N5__11inputs_23hiddens_20261006",
+     "id_rodada": "STZ_8H_N5",
+     "nivel_hierarquia": 5,
+     "papel": "reserva",
+     "descricao": "só Santa Tereza + chuva local (último nível)",
+     "mat": "assets/mat/sombra_santa_tereza_v2/RNAPREV__SANTA_TEREZA__08h__ALT__STZ_8H_N5__11inputs_23hiddens_20261006.mat",
+     "modelo_sha256": "949CFBC3B7D0405D90A2A6CCE897D2A1F04D6B854E8220EC3796C183205A121C",
+     "n_inputs": 11,
+     "n_hidden": 23,
+     "inputs": [
+      {
+       "ordem": 1,
+       "nome": "Nivel_86472600",
+       "tipo": "nivel",
+       "estacao": "86472600",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 2,
+       "nome": "DifN-1h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 3,
+       "nome": "DifN-2h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 4,
+       "nome": "DifN-4h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 5,
+       "nome": "Acel-1h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 6,
+       "nome": "Acel-2h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 7,
+       "nome": "Acel-4h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 8,
+       "nome": "Acel-8h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 9,
+       "nome": "Acel-12h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 10,
+       "nome": "chuvaG_LOCAL_acum_6h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 6,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 11,
+       "nome": "chuvaG_LOCAL_acum_18h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 18,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      }
+     ],
+     "estacoes_nivel": [
+      "86472600"
+     ],
+     "estacoes_chuva": [
+      "86472000",
+      "86472600"
+     ],
+     "faixa_e95_cm": {
+      "geral": 184.3,
+      "subida": 313.9,
+      "acima_1500": 476.2
+     },
+     "faixa_e95_origem": {
+      "validacao_matlab": {
+       "geral": 184.33255165906763,
+       "subida": 313.8606415313107,
+       "acima_1500": 476.23615974969476,
+       "n": {
+        "geral": 1251,
+        "subida": 460,
+        "acima_1500": 68
+       }
+      },
+      "oof_validacao_cruzada": {
+       "geral": 163.1631424341523,
+       "subida": 241.99319047023437,
+       "acima_1500": 468.4569574501153,
+       "n": {
+        "geral": 4298,
+        "subida": 1521,
+        "acima_1500": 143
+       }
+      }
+     },
+     "maximo_treino_nivel_cm": 2365.0,
+     "pers_validacao": 0.619,
+     "linhas_treino_validacao_teste": [
+      3047,
+      1251,
+      679
+     ]
+    }
+   ]
+  },
+  "5h": {
+   "horizonte_h": 5,
+   "modelos": [
+    {
+     "modelo_id": "RNAPREV__SANTA_TEREZA__05h__ALT__STZ_5H_N1__32inputs_64hiddens_20261006",
+     "id_rodada": "STZ_5H_N1",
+     "nivel_hierarquia": 1,
+     "papel": "sombra_horizonte",
+     "descricao": "igual ao 4h N1 com alvo +5 h (cobre ~1 h a mais de atraso da ANA)",
+     "mat": "assets/mat/sombra_santa_tereza_v2/RNAPREV__SANTA_TEREZA__05h__ALT__STZ_5H_N1__32inputs_64hiddens_20261006.mat",
+     "modelo_sha256": "BB2457E3D96830AA0EDAC7ADD9C0FF33814AF5275D78E5BDC62DDE9B8241590E",
+     "n_inputs": 32,
+     "n_hidden": 64,
+     "inputs": [
+      {
+       "ordem": 1,
+       "nome": "Nivel_86472600",
+       "tipo": "nivel",
+       "estacao": "86472600",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 2,
+       "nome": "DifN-1h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 3,
+       "nome": "DifN-2h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 4,
+       "nome": "DifN-4h_86472600",
+       "tipo": "vel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 5,
+       "nome": "Acel-1h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 6,
+       "nome": "Acel-2h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 7,
+       "nome": "Acel-4h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 8,
+       "nome": "Acel-8h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 9,
+       "nome": "Acel-12h_86472600",
+       "tipo": "acel_nivel",
+       "estacao": "86472600",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 10,
+       "nome": "Nivel_86472000",
+       "tipo": "nivel",
+       "estacao": "86472000",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 11,
+       "nome": "DifN-1h_86472000",
+       "tipo": "vel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 1
+      },
+      {
+       "ordem": 12,
+       "nome": "DifN-2h_86472000",
+       "tipo": "vel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 13,
+       "nome": "DifN-4h_86472000",
+       "tipo": "vel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 14,
+       "nome": "Acel-12h_86472000",
+       "tipo": "acel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 15,
+       "nome": "Acel-20h_86472000",
+       "tipo": "acel_nivel",
+       "estacao": "86472000",
+       "defasagem_h": 20
+      },
+      {
+       "ordem": 16,
+       "nome": "Nivel_86125130",
+       "tipo": "nivel",
+       "estacao": "86125130",
+       "defasagem_h": 0
+      },
+      {
+       "ordem": 17,
+       "nome": "DifN-4h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 4
+      },
+      {
+       "ordem": 18,
+       "nome": "DifN-8h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 8
+      },
+      {
+       "ordem": 19,
+       "nome": "DifN-12h_86125130",
+       "tipo": "vel_nivel",
+       "estacao": "86125130",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 20,
+       "nome": "DifN-2h_86305000",
+       "tipo": "vel_nivel",
+       "estacao": "86305000",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 21,
+       "nome": "DifN-6h_86305000",
+       "tipo": "vel_nivel",
+       "estacao": "86305000",
+       "defasagem_h": 6
+      },
+      {
+       "ordem": 22,
+       "nome": "DifN-12h_86305000",
+       "tipo": "vel_nivel",
+       "estacao": "86305000",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 23,
+       "nome": "DifN-2h_86448000",
+       "tipo": "vel_nivel",
+       "estacao": "86448000",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 24,
+       "nome": "DifN-6h_86448000",
+       "tipo": "vel_nivel",
+       "estacao": "86448000",
+       "defasagem_h": 6
+      },
+      {
+       "ordem": 25,
+       "nome": "DifN-12h_86448000",
+       "tipo": "vel_nivel",
+       "estacao": "86448000",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 26,
+       "nome": "DifN-2h_86470800",
+       "tipo": "vel_nivel",
+       "estacao": "86470800",
+       "defasagem_h": 2
+      },
+      {
+       "ordem": 27,
+       "nome": "DifN-6h_86470800",
+       "tipo": "vel_nivel",
+       "estacao": "86470800",
+       "defasagem_h": 6
+      },
+      {
+       "ordem": 28,
+       "nome": "DifN-12h_86470800",
+       "tipo": "vel_nivel",
+       "estacao": "86470800",
+       "defasagem_h": 12
+      },
+      {
+       "ordem": 29,
+       "nome": "chuvaG_LOCAL_acum_6h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 6,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 30,
+       "nome": "chuvaG_LOCAL_acum_18h",
+       "tipo": "chuva_acum",
+       "grupo": "LOCAL",
+       "janela_h": 18,
+       "estacoes": [
+        "86472600",
+        "86472000"
+       ]
+      },
+      {
+       "ordem": 31,
+       "nome": "chuvaG_ALTA_acum_24h",
+       "tipo": "chuva_acum",
+       "grupo": "ALTA",
+       "janela_h": 24,
+       "estacoes": [
+        "86100600",
+        "86117000",
+        "86099000"
+       ]
+      },
+      {
+       "ordem": 32,
+       "nome": "chuvaG_ALTA_dif24",
+       "tipo": "chuva_diferenca",
+       "grupo": "ALTA",
+       "janela_h": 24,
+       "janela_anterior_h": 24,
+       "estacoes": [
+        "86100600",
+        "86117000",
+        "86099000"
+       ]
+      }
+     ],
+     "estacoes_nivel": [
+      "86125130",
+      "86305000",
+      "86448000",
+      "86470800",
+      "86472000",
+      "86472600"
+     ],
+     "estacoes_chuva": [
+      "86099000",
+      "86100600",
+      "86117000",
+      "86472000",
+      "86472600"
+     ],
+     "faixa_e95_cm": {
+      "geral": 59.5,
+      "subida": 74.6,
+      "acima_1500": null
+     },
+     "faixa_e95_origem": {
+      "validacao_matlab": {
+       "geral": 59.510707837235,
+       "subida": 74.60038759869859,
+       "acima_1500": null,
+       "n": {
+        "geral": 439,
+        "subida": 168,
+        "acima_1500": 0
+       }
+      },
+      "oof_validacao_cruzada": null
+     },
+     "maximo_treino_nivel_cm": 2365.0,
+     "pers_validacao": 0.894,
+     "linhas_treino_validacao_teste": [
+      1930,
+      439,
+      405
+     ]
+    }
+   ]
+  }
+ }
+}
