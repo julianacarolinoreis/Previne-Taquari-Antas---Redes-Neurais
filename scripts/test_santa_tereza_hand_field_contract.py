@@ -39,6 +39,7 @@ CONTRACT = Path("scripts/santa_tereza_hand_field_contract.py")
 RECALC = Path("scripts/recalcular_painel_evacuacao_hand_campo.py")
 QUEUE = Path("codigo_python/09_rota_fuga/gerar_fila_cidade.py")
 PUBLISHER = Path("scripts/publicar_santa_tereza_mdt.ps1")
+READY_PUBLISHER = Path("scripts/publicar_santa_tereza_resultado_pronto.ps1")
 STZ_CONTOURS = Path("assets/data/santa_tereza_inundacao/contornos_mancha.json")
 STZ_OVERFLOW = STZ_CONTOURS.with_name("contornos_extravasamento.json")
 STZ_LEGACY = STZ_CONTOURS.with_name("contornos_mancha_mosaico_anadem_legacy.json")
@@ -572,10 +573,11 @@ class SpatialWriterIntegrationTests(unittest.TestCase):
 
 
 class PublisherIndexGuardTests(unittest.TestCase):
-    def run_index_guard(self, staged: list[str], exit_code: int = 0) -> dict:
+    def run_index_guard(self, staged: list[str], exit_code: int = 0,
+                        publisher: Path = PUBLISHER) -> dict:
         powershell = shutil.which("pwsh") or shutil.which("powershell")
         self.assertIsNotNone(powershell, "PowerShell é necessário para executar a guarda real do publisher")
-        path = str(ROOT / PUBLISHER).replace("'", "''")
+        path = str(ROOT / publisher).replace("'", "''")
         fixture = json.dumps(staged).replace("'", "''")
         # Parse the real file, then execute ONLY its guard function. A local
         # function shadows git; no publisher body, native Git or index runs.
@@ -650,6 +652,51 @@ catch {{ $blocked = $true; $message = $_.Exception.Message }}
             self.assertIn('"' + path.as_posix() + '"', text)
         self.assertIn('"assets/data/santa_tereza_inundacao/contornos_extravasamento.json"', text)
         self.assertIn("contornos_extravasamento\\.json", text)
+
+    def test_ready_publisher_guard_preserves_index_and_fails_closed(self) -> None:
+        cases = (
+            ([], 0, False),
+            (["santa_tereza_inundacao.html"], 0, False),
+            (["scripts/unrelated.py"], 0, True),
+            (["santa_tereza_inundacao.html", "scripts/unrelated.py"], 0, True),
+            (["foreign/original.html", "santa_tereza_inundacao.html"], 0, True),
+            ([], 128, True),
+        )
+        for staged, code, blocked in cases:
+            with self.subTest(staged=staged, exit_code=code):
+                report = self.run_index_guard(staged, code, READY_PUBLISHER)
+                self.assertIs(report["blocked"], blocked)
+
+    def test_ready_publisher_validates_and_recalculates_all_consumers_before_commit(self) -> None:
+        text = (ROOT / READY_PUBLISHER).read_text(encoding="utf-8")
+        self.assertNotIn("<<<<<<<", text)
+        initial_guard = text.index(
+            'Assert-ProductOnlyStaged -Allowed $allowed -Phase "sincronizacao/recalculo"')
+        sync = text.index(
+            '& python "codigo_python/01_previsao_ao_vivo/atualizar_hand_previsao_santa_tereza.py"')
+        recalc = text.index('& python "scripts/recalcular_painel_evacuacao_hand_campo.py"')
+        first_fetch = text.index("Invoke-Git fetch origin")
+        self.assertLess(initial_guard, sync)
+        self.assertLess(sync, recalc)
+        self.assertLess(recalc, first_fetch)
+        self.assertLess(text.index('Assert-ProductOnlyStaged -Allowed $allowed -Phase "fetch"'),
+                        first_fetch)
+        self.assertLess(text.index('Assert-ProductOnlyStaged -Allowed $allowed -Phase "git add"'),
+                        text.index("& git add -- $p"))
+        self.assertLess(text.index('Assert-ProductOnlyStaged -Allowed $allowed -Phase "commit"'),
+                        text.index("Invoke-Git commit -m"))
+        retry = text.index("for ($attempt = 1;")
+        self.assertLess(text.index('Assert-ProductOnlyStaged -Allowed $allowed -Phase "fetch de publicacao"', retry),
+                        text.index("Invoke-Git fetch origin", retry))
+        self.assertIn("if ($LASTEXITCODE -ne 1)", text)
+        for path in STZ_PAGES:
+            self.assertIn('"' + path.as_posix() + '"', text)
+        self.assertIn('"assets/data/santa_tereza_inundacao/painel_evacuacao_hand_campo_diagnostic.json"', text)
+        self.assertIn('"if\\(value===255\\) return null"', text)
+        self.assertIn('"saturated:value===Number\\(HAND.saturated_value\\)"', text)
+        self.assertNotIn('"value===255\\?null:value"', text)
+        self.assertNotIn("git restore", text)
+        self.assertNotIn("Remove-Item", text)
 
 
 class HandFieldContractTests(unittest.TestCase):

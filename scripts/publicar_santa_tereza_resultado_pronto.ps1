@@ -8,6 +8,19 @@ function Invoke-Git {
     }
 }
 
+function Assert-ProductOnlyStaged {
+    param([string[]]$Allowed, [string]$Phase)
+    # Inspect both sides of a rename; do not remove or hide foreign entries.
+    $staged = @(& git -c core.quotepath=false diff --cached --name-only --no-renames)
+    if ($LASTEXITCODE -ne 0) {
+        throw "Nao foi possivel verificar o indice antes de $Phase. Publicacao bloqueada."
+    }
+    $foreign = @($staged | Where-Object { $_ -and $Allowed -notcontains $_.Replace("\", "/") })
+    if ($foreign.Count -gt 0) {
+        throw "Indice contem staged alheio antes de ${Phase}: $($foreign -join ', '). Nenhuma entrada foi removida; publicacao bloqueada."
+    }
+}
+
 $repoRoot = (& git rev-parse --show-toplevel 2>$null).Trim()
 if (-not $repoRoot) { throw "Execute este script dentro do repositorio PREVINE." }
 Set-Location $repoRoot
@@ -15,9 +28,17 @@ Set-Location $repoRoot
 $trackedOutputs = @(
     "santa_tereza_previsao_inundacao.html",
     "santa_tereza_inundacao.html",
+    "santa_tereza_painel_evacuacao.html",
+    "pesquisas/santa-tereza-painel-evacuacao.html",
+    "pesquisas/santa-tereza-mapa-impacto.html",
+    "pesquisas/santa-tereza-mapa-margem.html",
+    "pesquisas/santa-tereza-rota-fuga-ruas.html",
+    "santa_tereza_rota_fuga_ruas_cenario.html",
+    "pesquisas/santa-tereza-rota-fuga-ruas-cenario.html",
     "assets/data/santa_tereza_inundacao/contornos_mancha.json",
     "assets/data/santa_tereza_inundacao/contornos_extravasamento.json",
-    "assets/data/santa_tereza_inundacao/hand_lidar_5m_diagnostic.json"
+    "assets/data/santa_tereza_inundacao/hand_lidar_5m_diagnostic.json",
+    "assets/data/santa_tereza_inundacao/painel_evacuacao_hand_campo_diagnostic.json"
 )
 $newOutputs = @(
     "assets/data/santa_tereza_inundacao/mdt/altitude_terreno_lidar_10m.json",
@@ -25,6 +46,7 @@ $newOutputs = @(
     "assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_lidar_10m_visual.png"
 )
 $allowed = @($trackedOutputs + $newOutputs) | ForEach-Object { $_.Replace("\","/") }
+Assert-ProductOnlyStaged -Allowed $allowed -Phase "sincronizacao/recalculo"
 
 # Alteracoes locais de outros projetos sao preservadas e NAO entram no commit.
 # O commit abaixo usa git add apenas nos arquivos de Santa Tereza.
@@ -44,6 +66,10 @@ Write-Host "1/5 Sincronizando e validando o resultado ja gerado..." -ForegroundC
 & python "codigo_python/01_previsao_ao_vivo/atualizar_hand_previsao_santa_tereza.py"
 if ($LASTEXITCODE -ne 0) {
     throw "Falha ao sincronizar o HAND LiDAR da pagina ao vivo com a pagina historica."
+}
+& python "scripts/recalcular_painel_evacuacao_hand_campo.py"
+if ($LASTEXITCODE -ne 0) {
+    throw "Contrato/recálculo dos consumidores de campo falhou. Nada sera publicado."
 }
 $diagPath = "assets/data/santa_tereza_inundacao/hand_lidar_5m_diagnostic.json"
 if (-not (Test-Path $diagPath)) { throw "Diagnostico ausente: $diagPath" }
@@ -81,7 +107,7 @@ if ($page -notmatch "altitude_terreno_lidar_10m\.json") {
 if ($page -match "altitude_terreno_10m_refinado\.json|mdt_santa_tereza_10m_refinado_visual\.png") {
     throw "Referencia ao MDT legado detectada."
 }
-if ($page -notmatch "value===255\?null:value") {
+if ($page -notmatch "if\(value===255\) return null" -or $page -notmatch "saturated:value===Number\(HAND.saturated_value\)") {
     throw "Contrato NoData 255 ausente."
 }
 if ($page -notmatch "CONTORNOS_URL='assets/data/santa_tereza_inundacao/contornos_extravasamento\.json'") {
@@ -93,6 +119,7 @@ if ($page -notmatch "stageToSpatialHand\(cm,zeroCm=HAND_ZERO_DEFAULT_CM\)") {
 Write-Host ("   D8={0}; receptores={1:P2}; drena_ao_rio={2:P2}; contornos={3}" -f $d.d8_scheme,[double]$d.receiver_fraction_assigned,[double]$d.drained_fraction,[int]$d.contornos_features) -ForegroundColor Green
 
 Write-Host "2/5 Incorporando atualizacoes independentes da main..." -ForegroundColor Cyan
+Assert-ProductOnlyStaged -Allowed $allowed -Phase "fetch"
 Invoke-Git fetch origin
 $localHead = (& git rev-parse HEAD).Trim()
 $remoteHead = (& git rev-parse origin/main).Trim()
@@ -112,6 +139,7 @@ foreach ($p in $newOutputs) {
 }
 
 Write-Host "3/5 Criando commit do produto validado..." -ForegroundColor Cyan
+Assert-ProductOnlyStaged -Allowed $allowed -Phase "git add"
 foreach ($p in $trackedOutputs) {
     & git add -- $p
     if ($LASTEXITCODE -ne 0) { throw "git add falhou para: $p" }
@@ -122,11 +150,14 @@ foreach ($p in $newOutputs) {
 }
 & git diff --cached --quiet
 if ($LASTEXITCODE -eq 0) { throw "Nenhuma alteracao para publicar." }
+if ($LASTEXITCODE -ne 1) { throw "Falha ao verificar diferencas staged. Publicacao bloqueada." }
+Assert-ProductOnlyStaged -Allowed $allowed -Phase "commit"
 Invoke-Git commit -m "publish(st): MDT LiDAR, HAND e agua conectada"
 
 Write-Host "4/5 Sincronizando com robos que possam ter atualizado a main..." -ForegroundColor Cyan
 $published = $false
 for ($attempt = 1; $attempt -le 5; $attempt++) {
+    Assert-ProductOnlyStaged -Allowed $allowed -Phase "fetch de publicacao"
     Invoke-Git fetch origin
     $remote = (& git rev-parse origin/main).Trim()
     $head = (& git rev-parse HEAD).Trim()
