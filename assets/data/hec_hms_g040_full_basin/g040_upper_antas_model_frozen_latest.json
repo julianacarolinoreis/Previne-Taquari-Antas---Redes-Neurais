@@ -1,6 +1,6 @@
 {
   "schema_version": "g040_upper_antas_model_frozen_v1",
-  "generated_at_utc": "2026-10-07T00:19:32.923830Z",
+  "generated_at_utc": "2026-10-07T12:49:05.173074Z",
   "research_only": true,
   "status": "UPPER_ANTAS_FROZEN_CALIBRATION_READY",
   "station_code": "86472000",
@@ -13,39 +13,55 @@
     "E28_JUN2024",
     "E2026_JUL"
   ],
-  "candidate_count": 286,
+  "candidate_count": 623,
+  "search": {
+    "strategy": "two_stage_grid_plus_local_refinement",
+    "coarse_candidate_count": 286,
+    "refinement_seed_count": 12,
+    "refined_candidate_count": 349,
+    "robust_event_weighting": {
+      "mean": 0.6,
+      "worst_event": 0.4
+    },
+    "validation_or_holdout_used": false
+  },
   "parameters": {
     "initial_loss": 5.5,
     "constant_loss": 0.5,
-    "tc": 10.0,
+    "tc": 12.0,
     "storage": 25.0,
     "recession": 0.85,
     "initial_flow_ratio": 0.0025
   },
-  "objective": 0.552688,
+  "objective": 0.471072,
+  "event_objective_scores": {
+    "E22_SEP2023": 0.440911,
+    "E24_NOV2023": 0.541448
+  },
   "event_metrics": {
     "E22_SEP2023": {
       "pairs": 288.0,
-      "nse": 0.7450370336310002,
-      "peak_relative_error": 0.06116072154523787,
-      "peak_lag_hours": -2.0,
-      "volume_error": 0.3769482416328611,
+      "nse": 0.7751563719519815,
+      "peak_relative_error": 0.04439669005557294,
+      "peak_lag_hours": 0.0,
+      "volume_error": 0.37664750111659046,
       "observed_peak_m3s": 15447.875,
-      "simulated_peak_m3s": 16392.67818134064
+      "simulated_peak_m3s": 16133.709518392234
     },
     "E24_NOV2023": {
       "pairs": 240.0,
-      "nse": 0.884779536603433,
-      "peak_relative_error": 0.12530262803349845,
-      "peak_lag_hours": -3.0,
-      "volume_error": -0.10145499593660412,
+      "nse": 0.8971330511129482,
+      "peak_relative_error": 0.1471412240591748,
+      "peak_lag_hours": -2.0,
+      "volume_error": -0.09923443633120971,
       "observed_peak_m3s": 13034.0475,
-      "simulated_peak_m3s": 11400.84709433655
+      "simulated_peak_m3s": 11116.201796404574
     }
   },
   "state_correction_tau_h": 24.0,
   "no_validation_leakage": true,
   "model_structure": "Prata + Antas residual area-weighted rain; Initial+Constant loss; Clark transform; recession baseflow",
+  "selection_objective": "robust multi-event: hydrograph NSE + explicit peak magnitude/timing/volume penalties",
   "areas_km2": {
     "SB_PRATA_7868": 3775.99,
     "SB_ANTAS_RESIDUAL": 9142.666
