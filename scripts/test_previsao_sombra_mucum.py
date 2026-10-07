@@ -78,6 +78,27 @@ class SombraMucumTests(unittest.TestCase):
         serie2 = {t0: 200.0, t0 + dt.timedelta(hours=5): 1200.0, t0 + dt.timedelta(hours=6): 1210.0}
         self.assertEqual(len(S.qc_niveis(S.ALVO, serie2, {S.ALVO: {"salto_max_1h": 696}})), 3)
 
+    def test_shadow_contracts_are_consistent(self) -> None:
+        import json
+        for nome in ("mucum_modelos_sombra.json", "santa_tereza_modelos_sombra.json"):
+            caminho = ROOT / "assets" / "data" / nome
+            if not caminho.exists():
+                continue
+            contrato = json.loads(caminho.read_text(encoding="utf-8"))
+            self.assertIn(contrato["alvo"], contrato["limites_estacao_cm"])
+            for chave, hz in contrato["horizontes"].items():
+                niveis = [m["nivel_hierarquia"] for m in hz["modelos"]]
+                self.assertEqual(len(niveis), len(set(niveis)), f"{nome} {chave}: nível repetido")
+                for m in hz["modelos"]:
+                    mat = ROOT / m["mat"]
+                    self.assertTrue(mat.exists(), m["mat"])
+                    self.assertEqual(S._sha256(str(mat)), m["modelo_sha256"].upper(), m["mat"])
+                    self.assertEqual(len(m["inputs"]), m["n_inputs"])
+                    self.assertEqual(m["inputs"][0]["tipo"], "nivel")
+                    self.assertEqual(m["inputs"][0]["estacao"], contrato["alvo"])   # âncora ALT
+                    for est in m["estacoes_nivel"]:
+                        self.assertIn(est, contrato["limites_estacao_cm"])
+
     def test_hierarchy_skips_control_and_falls_back_when_inputs_missing(self) -> None:
         import tempfile
         from unittest import mock
