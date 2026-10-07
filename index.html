@@ -1681,6 +1681,31 @@
   // Research quality gate, also applied to legacy snapshots before the new
   // producer is deployed. Unknown vertical datums are not converted to stage.
   const basinLevelNumber=value=>{const n=basinNumber(value);return n!==null&&n>=0&&n<=5000?n:null;};
+  // Never reuse a legacy aggregate after rejecting its underlying readings.
+  // Keep the supplied trend in the original snapshot and in this audit result.
+  const basinLevelTrend=level=>{
+    const result={value:null,label:null,start:null,end:null,raw_value:basinNumber(level&&level.trend_cm_per_hour),raw_label:level&&level.trend_label||null};
+    const current=basinLevelNumber(level&&level.current_cm);
+    if(!level||level.state!=='available'||current===null)return result;
+    const byTime=new Map();
+    for(const row of Array.isArray(level.series)?level.series:[]){
+      const value=basinLevelNumber(row&&row.cm),time=Date.parse(row&&row.time);
+      if(value===null||!Number.isFinite(time))continue;
+      if(byTime.has(time)&&byTime.get(time)!==value)return result;
+      byTime.set(time,value);
+    }
+    const rows=Array.from(byTime,([time,value])=>({time,value})).sort((a,b)=>a.time-b.time);
+    if(rows.length<2)return result;
+    const first=rows[rows.length-2],last=rows[rows.length-1];
+    const observedAt=Date.parse(level.observed_at_utc);
+    if(last.value!==current||(Number.isFinite(observedAt)&&last.time!==observedAt))return result;
+    const rate=(last.value-first.value)/((last.time-first.time)/3600000);
+    if(!Number.isFinite(rate))return result;
+    result.value=Math.round(rate*1000)/1000;
+    result.label=result.value>0.01?'subindo':result.value<-0.01?'descendo':'estável';
+    result.start=new Date(first.time).toISOString();result.end=new Date(last.time).toISOString();
+    return result;
+  };
   const basinSourceObservationUsable=item=>!!(item&&String(item.source_status)==='0'&&basinFinite(item.value)&&(item.metric!=='chuva_acumulada_24h_mm'||Number(item.value)>=0));
   const basinFold=value=>String(value==null?'':value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   const basinEscape=value=>String(value==null?'':value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -2529,6 +2554,8 @@
     const probability=probabilityStats.value;
     const soil=soilStats.value;
     const observedLevelUsable=level&&level.state==='available'&&basinLevelNumber(level.current_cm)!==null;
+    const levelTrend=basinLevelTrend(level);
+    const levelTrendNote=observedLevelUsable?(levelTrend.value===null?' · tendência indisponível: leituras válidas insuficientes ou incompatíveis':' · '+levelTrend.label+' · '+basinFormat(levelTrend.value,'level_cm')+'/h · '+basinDate(levelTrend.start)+' → '+basinDate(levelTrend.end)):'';
     const levelNote=observedLevelUsable
       ?(level.observed_at_utc?'observado em '+basinDate(level.observed_at_utc)+' · '+basinMinutesNote(level.observed_age_minutes):'idade não informada')
       :'telemetria indisponível';
@@ -2565,7 +2592,7 @@
       basinMetricCard('Chuva prevista · 48 h',forecastRain48Stats.value===null?'indisponível':basinFormat(forecastRain48Stats.value,'precipitation'),windowNote(forecastRain48Stats,48),basinStatsStatus(forecastRain48Stats))+
       basinMetricCard('Chuva prevista · 72 h',forecastRain72Stats.value===null?'indisponível':basinFormat(forecastRain72Stats.value,'precipitation'),windowNote(forecastRain72Stats,72),basinStatsStatus(forecastRain72Stats))+
       basinMetricCard('Probabilidade de chuva',probability===null?'indisponível':basinFormat(probability,'precipitation_probability'),currentMetricNote(probabilityStats,''),basinStatsStatus(probabilityStats))+
-      basinMetricCard('Nível observado',observedLevelUsable?basinFormat(level.current_cm,'level_cm'):'indisponível',levelNote+(observedLevelUsable&&level.trend_label?' · '+level.trend_label:'')+(observedLevelUsable&&level.trend_cm_per_hour!==null&&level.trend_cm_per_hour!==undefined?' · '+basinFormat(level.trend_cm_per_hour,'level_cm')+'/h':''),observedLevelUsable?'complete':'unavailable')+
+      basinMetricCard('Nível observado',observedLevelUsable?basinFormat(level.current_cm,'level_cm'):'indisponível',levelNote+levelTrendNote,observedLevelUsable?'complete':'unavailable')+
       basinMetricCard('Nível previsto · RNA',forecastLevel,rnaNote,rnaStatus)+
       basinMetricCard('Temperatura prevista',temp===null?'indisponível':basinFormat(temp,'temperature_2m'),currentMetricNote(tempStats,''),basinStatsStatus(tempStats))+
       basinMetricCard('Umidade prevista',humidity===null?'indisponível':basinFormat(humidity,'relative_humidity_2m'),currentMetricNote(humidityStats,''),basinStatsStatus(humidityStats))+
