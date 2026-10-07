@@ -7,6 +7,7 @@ on:
     paths:
       - "scripts/build_g040_causal_upper_antas.py"
       - "scripts/build_g040_ecmwf_single_run_forcing.py"
+      - "scripts/build_g040_historical_calibration_forcing.py"
       - "assets/data/hec_hms_g040_full_basin/g040_upper_antas_model_frozen_latest.json"
       - "config/g040_causal_frozen_benchmark_v1.json"
       - ".github/workflows/g040-upper-antas-causal-replay.yml"
@@ -33,6 +34,12 @@ jobs:
 
       - name: Dependencies
         run: pip install --disable-pip-version-check numpy pandas scipy shapely pyproj
+
+      - name: Build independent-event observed forcing
+        run: |
+          python -B scripts/build_g040_historical_calibration_forcing.py \
+            --events E27_MAY2024,E28_JUN2024,E2026_JUL \
+            --max-workers 12
 
       - name: Run three frozen causal replays
         run: |
