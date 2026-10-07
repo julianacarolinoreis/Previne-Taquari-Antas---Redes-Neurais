@@ -1,0 +1,144 @@
+name: G040 frozen antecedent-adaptive benchmark
+
+on:
+  workflow_run:
+    workflows:
+      - "G040 causal frozen ECMWF benchmark"
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: g040-frozen-antecedent-adaptive-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  adaptive:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Selector contract tests
+        run: python -B scripts/test_g040_frozen_antecedent_candidate.py
+
+      - name: Build frozen antecedent selections
+        run: python -B scripts/select_g040_frozen_antecedent_candidate.py
+
+      - name: Cache HEC-HMS 4.13
+        id: cache-hec
+        uses: actions/cache@v4
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+
+      - name: Download HEC-HMS 4.13
+        if: steps.cache-hec.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .hec
+          curl -L --fail --retry 3 --retry-delay 4 \
+            -o /tmp/HEC-HMS-4.13-linux64.tar.gz \
+            https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
+          tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
+
+      - name: Run antecedent-adaptive HEC arm
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          test -n "$HEC_SH"
+          export HEC_SH
+          python - <<'PY'
+          import json, os, subprocess, sys
+          from datetime import datetime,timedelta
+          from pathlib import Path
+          root=Path.cwd()
+          base=root/"assets/data/hec_hms_g040_full_basin"
+          cfg=json.load(open(root/"config/g040_causal_frozen_benchmark_v1.json",encoding="utf-8"))
+          sel=json.load(open(base/"g040_frozen_antecedent_selection_latest.json",encoding="utf-8"))
+          smap={x["target_event_id"]:x for x in sel["selections"]}
+          for case in cfg["cases"]:
+              cid=case["case_id"]; event=case["event_id"]; pick=smap[event]
+              p=pick["selected_parameters"]
+              cdir=base/"causal_frozen_benchmark"/cid
+              for fn in ("rain.json","hydro_forcing.json","hydro_scoring.json","scenario.json","manifest.json"):
+                  if not (cdir/fn).exists():
+                      raise SystemExit(f"missing published fixed-benchmark artifact {cdir/fn}")
+              outroot=base/"antecedent_adaptive_benchmark"/cid/"hec_runs"
+              t0=datetime.fromisoformat(case["decision_time_utc"].replace("Z","+00:00"))
+              end=t0+timedelta(hours=int(cfg["forecast_horizon_hours"]))
+              cmd=[
+                  sys.executable,"-B","scripts/run_hec_hms_g040_e1_hindcast.py",os.environ["HEC_SH"],
+                  "--candidate-id",f"FROZEN_ANTECEDENT_{pick['selected_donor_event_id']}",
+                  "--event-id",event,
+                  "--rain-file",str(cdir/"rain.json"),
+                  "--hydro-file",str(cdir/"hydro_forcing.json"),
+                  "--score-hydro-file",str(cdir/"hydro_scoring.json"),
+                  "--score-start-utc",case["decision_time_utc"],
+                  "--score-end-utc",end.isoformat().replace("+00:00","Z"),
+                  "--scenario-file",str(cdir/"scenario.json"),
+                  "--output-root",str(outroot),
+                  "--cn",str(p["cn"]),"--lag-min",str(p["lag_min"]),
+                  "--k-g1",str(p["k_g1"]),"--k-g2",str(p["k_g2"]),
+                  "--k-g3",str(p["k_g3"]),"--k-g4",str(p["k_g4"]),
+                  "--x",str(p["x"]),
+              ]
+              print("RUN",cid,pick["selected_donor_event_id"],pick["selected_candidate_id"],flush=True)
+              subprocess.check_call(cmd)
+          subprocess.check_call([sys.executable,"-B","scripts/evaluate_g040_antecedent_adaptive_benchmark.py"])
+          PY
+
+      - name: Verify no-leakage and outputs
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          base=Path("assets/data/hec_hms_g040_full_basin")
+          s=json.load(open(base/"g040_frozen_antecedent_selection_latest.json",encoding="utf-8"))
+          assert s["no_validation_leakage"] is True
+          assert s["donor_events"]==["E22_SEP2023","E24_NOV2023"]
+          assert set(s["forbidden_selection_events"])=={"E27_MAY2024","E28_JUN2024","E2026_JUL"}
+          for x in s["selections"]:
+              assert x["selection_uses_target_fit_metrics"] is False
+              assert x["selection_uses_future_event_rain"] is False
+              assert x["selection_uses_future_discharge"] is False
+          r=json.load(open(base/"antecedent_adaptive_benchmark/summary_latest.json",encoding="utf-8"))
+          assert r["status"]=="FROZEN_ANTECEDENT_ADAPTIVE_REPLAY_COMPLETE"
+          assert r["no_validation_leakage"] is True
+          print(json.dumps(r["grand_summary"],indent=2))
+          PY
+
+      - name: Publish adaptive evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="assets/data/hec_hms_g040_full_basin"
+          TMP="/tmp/g040-adaptive-publish"
+          rm -rf "$TMP"; mkdir -p "$TMP"
+          cp "$BASE/g040_frozen_antecedent_selection_latest.json" "$TMP/"
+          cp -r "$BASE/antecedent_adaptive_benchmark" "$TMP/"
+          git config user.name "previne-g040-antecedent-bot"
+          git config user.email "previne-g040-antecedent-bot@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp "$TMP/g040_frozen_antecedent_selection_latest.json" "$BASE/"
+            rm -rf "$BASE/antecedent_adaptive_benchmark"
+            cp -r "$TMP/antecedent_adaptive_benchmark" "$BASE/"
+            git add -- "$BASE/g040_frozen_antecedent_selection_latest.json" "$BASE/antecedent_adaptive_benchmark"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "bot: publish frozen antecedent-adaptive benchmark [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt*2))
+          done
+          exit 1
