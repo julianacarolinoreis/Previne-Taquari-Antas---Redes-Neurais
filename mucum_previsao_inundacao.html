@@ -159,6 +159,100 @@
   <div class="modes" aria-label="Modo de visualização"><button id="mode-s" class="on" aria-pressed="true">Visualização simples</button><button id="mode-t" aria-pressed="false">Visualização detalhada</button><button id="mode-p" aria-pressed="false">Panorama Geral</button></div>
 </header>
 <main>
+  <section id="river-overview" aria-labelledby="overview-title">
+    <div class="overview-head">
+      <div>
+        <span class="overview-eyebrow">Acompanhe a evolução</span>
+        <h2 id="overview-title">O rio nas últimas 24 horas</h2>
+        <p id="overview-source-status">Carregando níveis observados e horizontes ativos da rede neural…</p>
+      </div>
+      <div class="trend-badge" id="overview-trend-badge">Calculando tendência…</div>
+    </div>
+    <div class="overview-chart-shell">
+      <svg id="river-level-chart" viewBox="0 0 960 320" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="overview-title overview-accessible"></svg>
+      <div class="overview-empty" id="overview-empty">Carregando histórico e previsão ao vivo…</div>
+    </div>
+    <div class="overview-legend" id="overview-legend" aria-label="Legenda do gráfico">
+      <span><i class="legend-line observed"></i>Nível observado</span>
+      <span><i class="legend-line forecast horizon-2"></i>Previsão +2 h</span>
+      <span><i class="legend-line forecast horizon-4"></i>Previsão +4 h</span>
+      <span><i class="legend-line threshold"></i>Cota oficial, quando próxima da escala</span>
+    </div>
+    <div class="overview-metrics" id="overview-metrics"></div>
+    <section class="overview-week" aria-labelledby="overview-week-title">
+      <div class="overview-week-head">
+        <h3 id="overview-week-title">Nível do rio nos últimos 7 dias</h3>
+        <p id="overview-week-status">Carregando a cobertura histórica da semana…</p>
+      </div>
+      <div class="overview-chart-shell">
+        <svg id="river-week-chart" viewBox="0 0 960 320" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="overview-week-title overview-week-accessible"></svg>
+        <div class="overview-empty" id="overview-week-empty">Carregando histórico semanal…</div>
+      </div>
+      <p class="sr-only" id="overview-week-accessible">Carregando histórico do nível do rio nos últimos sete dias.</p>
+    </section>
+    <section class="error-report" aria-labelledby="rna-error-title">
+      <div class="error-report-head">
+        <div><h3 id="rna-error-title">Erros conferidos no ao vivo</h3><p>O relatório só compara previsão e leitura ANA no mesmo horário-alvo. “Sem resultado” permanece visível quando a leitura exata ainda não chegou. “Acerto” é uma previsão conferida com erro absoluto de até 10 cm. MAE é o erro absoluto médio e não tem sinal; o viés positivo indica que a RNA previu acima do observado e o negativo, abaixo. Só entram previsões com leitura ANA exatamente no horário-alvo. Troque a janela para recalcular MAE, RMSE, viés, maior erro e acertos daquele período.</p></div>
+        <div class="error-window-control" role="group" aria-label="Janela da avaliação do erro"><span>Janela da avaliação</span><button type="button" data-error-window="168" class="on" aria-pressed="true" aria-label="Últimos 7 dias">7 dias</button><button type="button" data-error-window="120" aria-pressed="false" aria-label="Últimos 5 dias">5 dias</button><button type="button" data-error-window="72" aria-pressed="false" aria-label="Últimos 3 dias">3 dias</button><button type="button" data-error-window="24" aria-pressed="false" aria-label="Últimas 24 horas">24 h</button><button type="button" data-error-window="12" aria-pressed="false" aria-label="Últimas 12 horas">12 h</button><button type="button" data-error-window="6" aria-pressed="false" aria-label="Últimas 6 horas">6 h</button></div>
+      </div>
+      <div class="error-report-summary" id="rna-error-summary" aria-live="polite"></div>
+      <div class="error-report-legend"><span><i class="error-legend-line"></i>observado ANA</span><span><i class="error-legend-line predicted"></i>previsto pela RNA</span></div>
+      <div class="error-report-grid" id="rna-error-grid"></div>
+      <p class="overview-note" id="rna-error-source" aria-live="polite">Carregando o histórico auditado.</p>
+    </section>
+    <section class="error-report" aria-labelledby="rna-catalog-error-title">
+      <div class="error-report-head">
+        <div><h3 id="rna-catalog-error-title">Auditoria histórica dos quatro modelos publicados</h3><p>Snapshot histórico da seleção q59/q62, com Excel–MAT–CSV reconciliados. É evidência de desempenho da pesquisa, não validação operacional atual.</p></div>
+      </div>
+      <div class="error-report-summary" id="rna-catalog-error-summary"></div>
+      <div class="error-report-grid" id="rna-catalog-error-grid"></div>
+      <p class="overview-note" id="rna-catalog-error-source">Carregando as séries auditáveis.</p>
+    </section>
+    <section class="window-compare" aria-labelledby="window-compare-title">
+      <div class="window-compare-head">
+        <div><span class="overview-eyebrow">Comparação de janelas</span><h3 id="window-compare-title">Como o erro muda conforme o período?</h3><p>As seis janelas usam o mesmo conjunto de previsões conferidas e recalculam os indicadores separadamente. A linha destacada é a janela escolhida no relatório acima.</p></div>
+      </div>
+      <div class="window-compare-table-shell">
+        <table id="window-compare-table">
+          <caption class="sr-only">Comparação de previsões conferidas, acertos até 10 centímetros, MAE, RMSE e viés por janela.</caption>
+          <thead><tr><th scope="col">Janela</th><th scope="col">Conferidas</th><th scope="col">Acertos ±10 cm</th><th scope="col">MAE</th><th scope="col">RMSE</th><th scope="col">Viés</th></tr></thead>
+          <tbody id="window-compare-body"><tr><td colspan="6">Carregando as seis janelas de avaliação…</td></tr></tbody>
+        </table>
+      </div>
+      <p class="overview-note" id="window-compare-source">A tabela será preenchida somente com previsões e leituras auditáveis.</p>
+    </section>
+    <section class="research-separate-link" aria-labelledby="research-separate-title">
+      <h3 id="research-separate-title">Pesquisa “vai mudar ou não?” · 24 h ou mais</h3>
+      <p>Esta pesquisa não faz parte do “Até onde a água pode chegar?”. Ela tem uma página própria, com seus horizontes, fontes e estados experimentais separados.</p>
+      <a href="pesquisa_status_mucum.html">Abrir a pesquisa de Muçum →</a>
+    </section>
+     <div class="overview-insights panorama-only">
+      <article class="overview-insight">
+        <h3>Velocidade do rio</h3>
+        <strong id="overview-trend-detail">Aguardando observações suficientes.</strong>
+        <p>A tendência compara o ritmo recente com a janela anterior para indicar aceleração ou desaceleração.</p>
+      </article>
+      <article class="overview-insight">
+        <h3>Inundação</h3>
+        <strong id="overview-flood-label">Aguardando previsão.</strong>
+        <p id="overview-flood-detail">A comparação usa a cota oficial e previsões pontuais; não representa probabilidade.</p>
+      </article>
+      <article class="overview-insight">
+        <h3>Robô especializado · Muçum</h3>
+        <strong id="overview-robot-label">Robô ao vivo ativo</strong>
+        <p id="overview-robot-detail">A estação Muçum é atualizada automaticamente a cada 5 minutos e publica nível observado e previsão experimental de +2 h, +4 h e +8 h, com modelo principal e comparativo quando disponíveis. A pesquisa “vai mudar ou não?” fica em página separada.</p>
+      </article>
+      <article class="overview-insight">
+        <h3>Pesquisa separada</h3>
+        <strong>“Vai mudar ou não?” · 24 h+</strong>
+        <p>Os resultados experimentais ficam na página própria de pesquisa, fora deste panorama de nível e mancha.</p>
+        <a href="pesquisa_status_mucum.html">Abrir pesquisa →</a>
+      </article>
+    </div>
+     <p class="overview-note">Os botões do ao vivo mostram 2 h, os dois candidatos 4 h e os dois candidatos 8 h quando cada saída tem todos os inputs exatos. A pesquisa de 24 h ou mais fica separada e não é probabilidade operacional nem alerta oficial. A camada do mapa é um proxy de extravasamento relativo ao HAND 0 e não substitui alerta oficial.</p>
+    <p class="sr-only" id="overview-accessible" aria-live="polite">Carregando panorama do rio.</p>
+  </section>
+
   <section class="public-map-panel" aria-labelledby="public-map-title">
     <div class="public-map-heading"><div><h2 id="public-map-title">Explore as cidades</h2><p id="public-map-caption">Escolha Santa Tereza ou Muçum no mapa.</p></div><span class="public-map-tag">Bacia Taquari–Antas</span></div>
   <div id="map" role="application" aria-label="Mapa interativo de previsão de inundação em Muçum" aria-describedby="map-accessible-description"><span class="sr-only" id="map-accessible-description">Use os controles de camadas para alternar imagem de satélite, ruas, rótulos e estações. A mancha colorida representa somente água estimada fora do leito; ela é um proxy de pesquisa.</span><span class="sr-only" id="map-accessible-summary" role="status" aria-live="polite"></span></div>
@@ -328,99 +422,6 @@
     </div>
   </aside>
 
-  <section id="river-overview" aria-labelledby="overview-title">
-    <div class="overview-head">
-      <div>
-        <span class="overview-eyebrow">Acompanhe a evolução</span>
-        <h2 id="overview-title">O rio nas últimas 24 horas</h2>
-        <p id="overview-source-status">Carregando níveis observados e horizontes ativos da rede neural…</p>
-      </div>
-      <div class="trend-badge" id="overview-trend-badge">Calculando tendência…</div>
-    </div>
-    <div class="overview-chart-shell">
-      <svg id="river-level-chart" viewBox="0 0 960 320" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="overview-title overview-accessible"></svg>
-      <div class="overview-empty" id="overview-empty">Carregando histórico e previsão ao vivo…</div>
-    </div>
-    <div class="overview-legend" id="overview-legend" aria-label="Legenda do gráfico">
-      <span><i class="legend-line observed"></i>Nível observado</span>
-      <span><i class="legend-line forecast horizon-2"></i>Previsão +2 h</span>
-      <span><i class="legend-line forecast horizon-4"></i>Previsão +4 h</span>
-      <span><i class="legend-line threshold"></i>Cota oficial, quando próxima da escala</span>
-    </div>
-    <div class="overview-metrics" id="overview-metrics"></div>
-    <section class="overview-week" aria-labelledby="overview-week-title">
-      <div class="overview-week-head">
-        <h3 id="overview-week-title">Nível do rio nos últimos 7 dias</h3>
-        <p id="overview-week-status">Carregando a cobertura histórica da semana…</p>
-      </div>
-      <div class="overview-chart-shell">
-        <svg id="river-week-chart" viewBox="0 0 960 320" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="overview-week-title overview-week-accessible"></svg>
-        <div class="overview-empty" id="overview-week-empty">Carregando histórico semanal…</div>
-      </div>
-      <p class="sr-only" id="overview-week-accessible">Carregando histórico do nível do rio nos últimos sete dias.</p>
-    </section>
-    <section class="error-report" aria-labelledby="rna-error-title">
-      <div class="error-report-head">
-        <div><h3 id="rna-error-title">Erros conferidos no ao vivo</h3><p>O relatório só compara previsão e leitura ANA no mesmo horário-alvo. “Sem resultado” permanece visível quando a leitura exata ainda não chegou. “Acerto” é uma previsão conferida com erro absoluto de até 10 cm. MAE é o erro absoluto médio e não tem sinal; o viés positivo indica que a RNA previu acima do observado e o negativo, abaixo. Só entram previsões com leitura ANA exatamente no horário-alvo. Troque a janela para recalcular MAE, RMSE, viés, maior erro e acertos daquele período.</p></div>
-        <div class="error-window-control" role="group" aria-label="Janela da avaliação do erro"><span>Janela da avaliação</span><button type="button" data-error-window="168" class="on" aria-pressed="true" aria-label="Últimos 7 dias">7 dias</button><button type="button" data-error-window="120" aria-pressed="false" aria-label="Últimos 5 dias">5 dias</button><button type="button" data-error-window="72" aria-pressed="false" aria-label="Últimos 3 dias">3 dias</button><button type="button" data-error-window="24" aria-pressed="false" aria-label="Últimas 24 horas">24 h</button><button type="button" data-error-window="12" aria-pressed="false" aria-label="Últimas 12 horas">12 h</button><button type="button" data-error-window="6" aria-pressed="false" aria-label="Últimas 6 horas">6 h</button></div>
-      </div>
-      <div class="error-report-summary" id="rna-error-summary" aria-live="polite"></div>
-      <div class="error-report-legend"><span><i class="error-legend-line"></i>observado ANA</span><span><i class="error-legend-line predicted"></i>previsto pela RNA</span></div>
-      <div class="error-report-grid" id="rna-error-grid"></div>
-      <p class="overview-note" id="rna-error-source" aria-live="polite">Carregando o histórico auditado.</p>
-    </section>
-    <section class="error-report" aria-labelledby="rna-catalog-error-title">
-      <div class="error-report-head">
-        <div><h3 id="rna-catalog-error-title">Auditoria histórica dos quatro modelos publicados</h3><p>Snapshot histórico da seleção q59/q62, com Excel–MAT–CSV reconciliados. É evidência de desempenho da pesquisa, não validação operacional atual.</p></div>
-      </div>
-      <div class="error-report-summary" id="rna-catalog-error-summary"></div>
-      <div class="error-report-grid" id="rna-catalog-error-grid"></div>
-      <p class="overview-note" id="rna-catalog-error-source">Carregando as séries auditáveis.</p>
-    </section>
-    <section class="window-compare" aria-labelledby="window-compare-title">
-      <div class="window-compare-head">
-        <div><span class="overview-eyebrow">Comparação de janelas</span><h3 id="window-compare-title">Como o erro muda conforme o período?</h3><p>As seis janelas usam o mesmo conjunto de previsões conferidas e recalculam os indicadores separadamente. A linha destacada é a janela escolhida no relatório acima.</p></div>
-      </div>
-      <div class="window-compare-table-shell">
-        <table id="window-compare-table">
-          <caption class="sr-only">Comparação de previsões conferidas, acertos até 10 centímetros, MAE, RMSE e viés por janela.</caption>
-          <thead><tr><th scope="col">Janela</th><th scope="col">Conferidas</th><th scope="col">Acertos ±10 cm</th><th scope="col">MAE</th><th scope="col">RMSE</th><th scope="col">Viés</th></tr></thead>
-          <tbody id="window-compare-body"><tr><td colspan="6">Carregando as seis janelas de avaliação…</td></tr></tbody>
-        </table>
-      </div>
-      <p class="overview-note" id="window-compare-source">A tabela será preenchida somente com previsões e leituras auditáveis.</p>
-    </section>
-    <section class="research-separate-link" aria-labelledby="research-separate-title">
-      <h3 id="research-separate-title">Pesquisa “vai mudar ou não?” · 24 h ou mais</h3>
-      <p>Esta pesquisa não faz parte do “Até onde a água pode chegar?”. Ela tem uma página própria, com seus horizontes, fontes e estados experimentais separados.</p>
-      <a href="pesquisa_status_mucum.html">Abrir a pesquisa de Muçum →</a>
-    </section>
-     <div class="overview-insights panorama-only">
-      <article class="overview-insight">
-        <h3>Velocidade do rio</h3>
-        <strong id="overview-trend-detail">Aguardando observações suficientes.</strong>
-        <p>A tendência compara o ritmo recente com a janela anterior para indicar aceleração ou desaceleração.</p>
-      </article>
-      <article class="overview-insight">
-        <h3>Inundação</h3>
-        <strong id="overview-flood-label">Aguardando previsão.</strong>
-        <p id="overview-flood-detail">A comparação usa a cota oficial e previsões pontuais; não representa probabilidade.</p>
-      </article>
-      <article class="overview-insight">
-        <h3>Robô especializado · Muçum</h3>
-        <strong id="overview-robot-label">Robô ao vivo ativo</strong>
-        <p id="overview-robot-detail">A estação Muçum é atualizada automaticamente a cada 5 minutos e publica nível observado e previsão experimental de +2 h, +4 h e +8 h, com modelo principal e comparativo quando disponíveis. A pesquisa “vai mudar ou não?” fica em página separada.</p>
-      </article>
-      <article class="overview-insight">
-        <h3>Pesquisa separada</h3>
-        <strong>“Vai mudar ou não?” · 24 h+</strong>
-        <p>Os resultados experimentais ficam na página própria de pesquisa, fora deste panorama de nível e mancha.</p>
-        <a href="pesquisa_status_mucum.html">Abrir pesquisa →</a>
-      </article>
-    </div>
-     <p class="overview-note">Os botões do ao vivo mostram 2 h, os dois candidatos 4 h e os dois candidatos 8 h quando cada saída tem todos os inputs exatos. A pesquisa de 24 h ou mais fica separada e não é probabilidade operacional nem alerta oficial. A camada do mapa é um proxy de extravasamento relativo ao HAND 0 e não substitui alerta oficial.</p>
-    <p class="sr-only" id="overview-accessible" aria-live="polite">Carregando panorama do rio.</p>
-  </section>
 </main>
 <script src="assets/js/previsao_publica.js?v=20261007-publico-1"></script>
 <script src="assets/js/previsao_cidades.js?v=20261007-cidades-1"></script>
