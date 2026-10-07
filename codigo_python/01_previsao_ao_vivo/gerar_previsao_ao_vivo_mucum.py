@@ -290,6 +290,57 @@ def _obter_xml_ana(cod, dias, timeout_s, tentativas_rede, parser, prefixo):
     return None
 
 
+# Salto impossível entre leituras consecutivas (cm): 8 x o percentil 99,9 da
+# variação horária no histórico limpo 2017-2026 (mínimo 150). Em 06/10/2026 a
+# 86298000 saltou de 171 para 1892 cm em 2 h sem cheia real. Leituras além do
+# limite (e as seguintes, até voltar ao patamar) viram dado ausente; a âncora só
+# é refeita depois de interrupção real da telemetria (> 3 h sem leitura).
+SALTO_MAX_CM_POR_ESTACAO = {
+    "86510000": 730, "86472600": 808, "86472000": 938, "86298000": 581,
+    "86507000": 1442, "86125130": 150,
+}
+SALTO_MAX_PADRAO_CM = 600.0
+SALTO_REANCORA_APOS = dt.timedelta(hours=3)
+
+
+def filtrar_saltos_impossiveis(cod, serie):
+    limite = float(SALTO_MAX_CM_POR_ESTACAO.get(str(cod), SALTO_MAX_PADRAO_CM))
+    limpa, n_rej, ancora, anterior = {}, 0, None, None
+    for t in sorted(serie):
+        valor = float(serie[t])
+        interrompida = anterior is not None and (t - anterior) > SALTO_REANCORA_APOS
+        anterior = t
+        if ancora is not None and not interrompida and abs(valor - ancora) > limite:
+            n_rej += 1
+            continue
+        limpa[t] = serie[t]
+        ancora = valor
+    if n_rej:
+        print(f"[ANA {cod}] {n_rej} leituras com salto impossível (> {limite:.0f} cm) descartadas")
+    return limpa
+
+
+# Sensor travado: mesmo valor por >= 72 h (regra do QC do treino) vira dado
+# ausente. Ex.: 86306000 em -332 cm desde 21/09/2026; 86505500 em 115 cm desde 22/07/2026.
+TRAVADO_MIN = dt.timedelta(hours=72)
+
+
+def filtrar_sensor_travado(cod, serie):
+    horas = sorted(serie)
+    limpa = dict(serie)
+    i = 0
+    while i < len(horas):
+        j = i
+        while j + 1 < len(horas) and serie[horas[j + 1]] == serie[horas[i]]:
+            j += 1
+        if horas[j] - horas[i] >= TRAVADO_MIN:
+            for t in horas[i:j + 1]:
+                limpa.pop(t, None)
+            print(f"[ANA {cod}] sensor travado em {serie[horas[i]]} cm de {horas[i]} a {horas[j]}; leituras descartadas")
+        i = j + 1
+    return limpa
+
+
 def buscar_ana(cod, dias=6, tentativas_rede=ANA_RETRIES_NIVEL):
     """Telemetria da ANA com janela ampliada na estação-alvo.
 
@@ -304,6 +355,7 @@ def buscar_ana(cod, dias=6, tentativas_rede=ANA_RETRIES_NIVEL):
         return {}
     serie, _, ultima_raw = _serie_de_xml(xml)
     serie = {hora: valor for hora, valor in serie.items() if nivel_plausivel(valor, cod)}
+    serie = filtrar_sensor_travado(cod, filtrar_saltos_impossiveis(cod, serie))
     if ultima_raw and not nivel_plausivel(ultima_raw[1], cod):
         ULTIMA_RAW_REJEITADA[cod] = ultima_raw
     if serie:

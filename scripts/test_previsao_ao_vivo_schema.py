@@ -138,6 +138,33 @@ class LiveFeedContractTests(unittest.TestCase):
         }
         self.assertTrue(live._precisa_fallback(expired))
 
+    def test_impossible_jump_is_rejected_until_level_returns(self) -> None:
+        # 86298000 em 06/10/2026: 171 cm -> 1475 -> 1892 cm em 2 h, sem cheia real.
+        import datetime as dt
+        from previne.robo import gerar_previsao_ao_vivo as live
+
+        t0 = dt.datetime(2026, 10, 6, 6, 0)
+        valores = [172, 171, 254, 1475, 1870, 1802, 1860, 1892, 180, 182]
+        serie = {t0 + dt.timedelta(hours=i): float(v) for i, v in enumerate(valores)}
+        limpa = live.filtrar_saltos_impossiveis("86298000", serie)
+        self.assertEqual(sorted(limpa.values()), [171.0, 172.0, 180.0, 182.0, 254.0])
+        # uma interrupção real (> 3 h sem leitura) refaz a âncora
+        serie2 = {t0: 200.0, t0 + dt.timedelta(hours=5): 1200.0, t0 + dt.timedelta(hours=6): 1210.0}
+        self.assertEqual(len(live.filtrar_saltos_impossiveis("86298000", serie2)), 3)
+
+    def test_stuck_sensor_is_dropped_after_72h(self) -> None:
+        # 86306000 (Nova Roma do Sul) em -332 cm desde 21/09/2026 20h
+        import datetime as dt
+        from previne.robo import gerar_previsao_ao_vivo as live
+
+        t0 = dt.datetime(2026, 10, 1, 0, 0)
+        travada = {t0 + dt.timedelta(hours=i): -332.0 for i in range(96)}
+        self.assertEqual(live.filtrar_sensor_travado("86306000", travada), {})
+        self.assertIn("86306000", live.SENSORES_TRAVADOS)
+        # rio parado por 1 dia (mesmo valor 24 h) continua valendo
+        estavel = {t0 + dt.timedelta(hours=i): (120.0 if i < 24 else 121.0) for i in range(30)}
+        self.assertEqual(len(live.filtrar_sensor_travado("86125130", estavel)), 30)
+
     def test_ana_reuses_one_xml_for_level_and_rain(self) -> None:
         from previne.robo import gerar_previsao_ao_vivo as live
 
