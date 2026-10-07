@@ -27,6 +27,7 @@ Set-Location $repoRoot
 
 $trackedOutputs = @(
     "santa_tereza_previsao_inundacao.html",
+    "santa_tereza_previsao_inundacao_usuario.html",
     "santa_tereza_inundacao.html",
     "santa_tereza_painel_evacuacao.html",
     "pesquisas/santa-tereza-painel-evacuacao.html",

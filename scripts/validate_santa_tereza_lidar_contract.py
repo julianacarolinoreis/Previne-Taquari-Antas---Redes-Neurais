@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 LIVE = ROOT / "santa_tereza_previsao_inundacao.html"
 HIST = ROOT / "santa_tereza_inundacao.html"
+USER = ROOT / "santa_tereza_previsao_inundacao_usuario.html"
 DIAG = ROOT / "assets/data/santa_tereza_inundacao/hand_lidar_5m_diagnostic.json"
 ELEV = ROOT / "assets/data/santa_tereza_inundacao/mdt/altitude_terreno_lidar_10m.json"
 REFRESH = ROOT / ".github/workflows/refresh-spatial-30m.yml"
@@ -75,8 +76,9 @@ def payload(page: Path) -> tuple[str, dict]:
 
 live_html, live = payload(LIVE)
 hist_html, hist = payload(HIST)
+user_html, user = payload(USER)
 
-for page, html, data in ((LIVE, live_html, live), (HIST, hist_html, hist)):
+for page, html, data in ((LIVE, live_html, live), (HIST, hist_html, hist), (USER, user_html, user)):
     source = str(data.get("fonte") or "")
     if "CLIP_MOSAICO_LIDAR_RS.tif" not in source:
         fail(f"{page.name} não confirma o LiDAR bruto na fonte do HAND")
@@ -95,6 +97,8 @@ for page, html, data in ((LIVE, live_html, live), (HIST, hist_html, hist)):
             fail(f"{page.name} voltou a referenciar ativo legado: {token}")
 
 keys = ("cols", "rows", "S", "W", "N", "E", "hand_zero_cm", "max_hand_m", "fonte")
+if user != live:
+    fail("variante de usuário e página completa divergiram no payload HAND")
 for key in keys:
     if live.get(key) != hist.get(key):
         fail(f"página ao vivo e histórica divergiram no campo {key}")

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 r"""
-Propaga o payload <script id="hand-data"> da página operacional
-santa_tereza_previsao_inundacao.html para santa_tereza_inundacao.html.
+Propaga o payload <script id="hand-data"> da previsão de pesquisa
+para a simulação e, quando existente, para a variante de usuário.
 
 A fonte é o HAND hidráulico de LiDAR calibrado em campo: régua 1,60 m =
 HAND 0, exclusivamente para o rio principal. A página operacional recebe
@@ -24,6 +24,7 @@ import json
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 FONTE = os.path.join(RAIZ, "santa_tereza_previsao_inundacao.html")
 ALVO = os.path.join(RAIZ, "santa_tereza_inundacao.html")
+ALVO_USUARIO = os.path.join(RAIZ, "santa_tereza_previsao_inundacao_usuario.html")
 sys.path.insert(0, os.path.join(RAIZ, "scripts"))
 from santa_tereza_hand_field_contract import validate_raster_payload
 
@@ -36,16 +37,22 @@ def main():
     payload = m.group(1)
     validate_raster_payload(json.loads(payload))
 
-    alvo_html = open(ALVO, encoding="utf-8").read()
-    alvo_html2, n = re.subn(
-        r'<script id="hand-data" type="application/json">.*?</script>',
-        f'<script id="hand-data" type="application/json">{payload}</script>',
-        alvo_html, count=1, flags=re.DOTALL,
-    )
-    if n != 1:
-        raise SystemExit(f"ERRO: hand-data não encontrado em {ALVO}")
-    open(ALVO, "w", encoding="utf-8").write(alvo_html2)
-    print(f"copiado hand-data calibrado de {os.path.basename(FONTE)} para {os.path.basename(ALVO)} ({len(payload)} chars)")
+    alvos = [ALVO] + ([ALVO_USUARIO] if os.path.isfile(ALVO_USUARIO) else [])
+    preparados = []
+    for alvo in alvos:
+        alvo_html = open(alvo, encoding="utf-8").read()
+        alvo_html2, n = re.subn(
+            r'<script id="hand-data" type="application/json">.*?</script>',
+            lambda _: f'<script id="hand-data" type="application/json">{payload}</script>',
+            alvo_html, count=1, flags=re.DOTALL,
+        )
+        if n != 1:
+            raise SystemExit(f"ERRO: hand-data não encontrado em {alvo}")
+        preparados.append((alvo, alvo_html2))
+    # Prepare all consumers before the first write; no partial structural sync.
+    for alvo, html in preparados:
+        open(alvo, "w", encoding="utf-8", newline="\n").write(html)
+        print(f"copiado hand-data calibrado de {os.path.basename(FONTE)} para {os.path.basename(alvo)} ({len(payload)} chars)")
 
 
 if __name__ == "__main__":

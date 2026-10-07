@@ -19,7 +19,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ID = "santa_tereza_lidar_campo_rio_principal_zero160_v1"
-PAGES = ("santa_tereza_previsao_inundacao.html", "santa_tereza_inundacao.html")
+PAGES = ("santa_tereza_previsao_inundacao.html", "santa_tereza_inundacao.html",
+         "santa_tereza_previsao_inundacao_usuario.html")
 
 
 def function_code(text: str, name: str) -> str:
@@ -70,7 +71,7 @@ class FieldWebTests(unittest.TestCase):
             with self.subTest(page=page):
                 text = (ROOT / page).read_text(encoding="utf-8")
                 names = ["loadHand", "ensureHand", "handAt", "pointFloodStatus"]
-                names += ["stageToSpatialHand", "handZeroCm"] if page == PAGES[0] else ["stageToHand"]
+                names += ["stageToSpatialHand", "handZeroCm"] if page != PAGES[1] else ["stageToHand"]
                 functions = "\n".join(function_code(text, name) for name in names)
                 match = re.search(r"map\.on\('click', (async e=>\{[\s\S]*?)\n    \}\);", text)
                 self.assertIsNotNone(match, "real map-click callback must be exercised")
@@ -105,10 +106,10 @@ const click=vm.runInContext('('+CALLBACK+')',context);
  }
  console.log(JSON.stringify({decoded,points,cases}));
 })().catch(e=>{console.error(e);process.exitCode=1;});
-""".replace("FUNCTIONS", json.dumps(functions)).replace("CALLBACK", json.dumps(callback)).replace("IS_FORECAST", str(page == PAGES[0]).lower())
+""".replace("FUNCTIONS", json.dumps(functions)).replace("CALLBACK", json.dumps(callback)).replace("IS_FORECAST", str(page != PAGES[1]).lower())
                 result = self.node(code)
                 self.assertEqual(result["decoded"], [0, 250, 255])
-                self.assertEqual(result["points"][:2], [{"dm": 0, "saturated": False}, {"dm": 250, "saturated": True}] if page == PAGES[0] else [0, 250])
+                self.assertEqual(result["points"][:2], [{"dm": 0, "saturated": False}, {"dm": 250, "saturated": True}] if page != PAGES[1] else [0, 250])
                 self.assertIsNone(result["points"][2])
                 for case in result["cases"]:
                     for popup in case["popups"]:
@@ -117,7 +118,7 @@ const click=vm.runInContext('('+CALLBACK+')',context);
                         self.assertIn("Não é alerta oficial", popup)
                         self.assertNotIn("Régua para a água chegar aqui", popup)
                         self.assertNotIn("Água em +", popup)
-                        if page == PAGES[0]:
+                        if page != PAGES[1]:
                             self.assertIn("Limiar estimado da régua neste proxy", popup)
                             self.assertIn("SIM/NÃO compara", popup)
                             for horizon in ("2 h", "4 h", "8 h"):
@@ -160,7 +161,7 @@ const outside=context.setLayer(layer,25.01);const cleared=received===null;
 console.log(JSON.stringify({selected,area,identity,holes,outside,cleared}));
 """.replace("FUNCTIONS", json.dumps(functions))
                 result = self.node(code)
-                expected = [None, None if page == PAGES[0] else 0, 0.1, 0.1, 0.1, 0.2, 25, 25, None]
+                expected = [None, 0 if page == PAGES[1] else None, 0.1, 0.1, 0.1, 0.2, 25, 25, None]
                 self.assertEqual(result["selected"], expected)
                 self.assertEqual(result["area"], 1)
                 self.assertTrue(result["identity"])
@@ -173,7 +174,7 @@ console.log(JSON.stringify({selected,area,identity,holes,outside,cleared}));
             text = (ROOT / page).read_text(encoding="utf-8")
             functions = function_code(text, "loadContornos")
             metadata = {"cidade": "santa_tereza", "hand_zero_cm": 160, "rio": "somente rio principal"}
-            metadata.update({"hand_source": {"source_id": SOURCE_ID}} if page == PAGES[0] else {"source_id": SOURCE_ID})
+            metadata.update({"hand_source": {"source_id": SOURCE_ID}} if page != PAGES[1] else {"source_id": SOURCE_ID})
             document = {"metadata": metadata, "features": [{"properties": {"nivel_m": i / 10}} for i in range(251)]}
             cases = [("valid", document, True)]
             for key, value in (("hand_zero_cm", 400), ("rio", "tributarios")):
@@ -236,6 +237,43 @@ context.loadContornos().then(()=>console.log(JSON.stringify(context.contornos!==
                     self.assertIn("sem cobertura HAND no intervalo", text)
                     self.assertNotIn("MIN_VISUAL_HOLE_M2", text)
                     self.assertIn("Comparação entre proxies HAND", text)
+
+    def test_all_three_consumers_embed_the_same_validated_field_payload(self):
+        from santa_tereza_hand_field_contract import validate_raster_payload
+        payloads = []
+        for page in PAGES:
+            text = (ROOT / page).read_text(encoding="utf-8")
+            data = json.loads(re.search(
+                r'<script id="hand-data" type="application/json">(.*?)</script>', text, re.S).group(1))
+            validate_raster_payload(data)
+            payloads.append(data)
+        self.assertEqual(payloads[0], payloads[1])
+        self.assertEqual(payloads[0], payloads[2])
+
+    def test_sync_prepares_user_variant_before_any_write_and_preserves_other_html(self):
+        with tempfile.TemporaryDirectory(prefix="stz-sync-all-consumers-") as directory:
+            root = Path(directory)
+            sync = Path("codigo_python/01_previsao_ao_vivo/atualizar_hand_previsao_santa_tereza.py")
+            for relative in (sync, Path("scripts/santa_tereza_hand_field_contract.py")):
+                (root / relative).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT / relative, root / relative)
+            source = (ROOT / PAGES[0]).read_text(encoding="utf-8")
+            script = re.search(r'<script id="hand-data" type="application/json">.*?</script>', source, re.S).group(0)
+            (root / PAGES[0]).write_text(script, encoding="utf-8")
+            simulation, user = (root / PAGES[1]), (root / PAGES[2])
+            sentinel = '<div>preservar interface</div><script id="hand-data" type="application/json">{}</script>'
+            simulation.write_text(sentinel, encoding="utf-8")
+            user.write_text("sentinel: payload ausente", encoding="utf-8")
+            cli = [sys.executable, "-X", "utf8", "-B", str(root / sync)]
+            failed = subprocess.run(cli, capture_output=True, text=True, encoding="utf-8")
+            self.assertNotEqual(failed.returncode, 0)
+            self.assertEqual(simulation.read_text(encoding="utf-8"), sentinel)
+            self.assertEqual(user.read_text(encoding="utf-8"), "sentinel: payload ausente")
+            user.write_text(sentinel, encoding="utf-8")
+            success = subprocess.run(cli, capture_output=True, text=True, encoding="utf-8")
+            self.assertEqual(success.returncode, 0, success.stdout + success.stderr)
+            for target in (simulation, user):
+                self.assertEqual(target.read_text(encoding="utf-8"), '<div>preservar interface</div>' + script)
 
 
 if __name__ == "__main__":
