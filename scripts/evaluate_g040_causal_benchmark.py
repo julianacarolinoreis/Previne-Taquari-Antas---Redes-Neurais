@@ -228,7 +228,8 @@ def main() -> int:
         # Weighted by verification pairs via reconstruction from case aggregate:
         # use numerator-equivalent WAPE weights is not recoverable from aggregate
         # alone, so report median case WAPE and paired win counts transparently.
-        all_hv=[r["aggregate"][str(h)]["hec_wape_all_available"] for r in rows if r["aggregate"][str(h)]["hec_wape_all_available"] is not None]\n        hv=[r["aggregate"][str(h)]["hec_wape"] for r in rows if r["aggregate"][str(h)]["hec_wape"] is not None]
+        all_hv=[r["aggregate"][str(h)]["hec_wape_all_available"] for r in rows if r["aggregate"][str(h)]["hec_wape_all_available"] is not None]
+        hv=[r["aggregate"][str(h)]["hec_wape"] for r in rows if r["aggregate"][str(h)]["hec_wape"] is not None]
         pv=[r["aggregate"][str(h)]["persistence_wape"] for r in rows if r["aggregate"][str(h)]["persistence_wape"] is not None]
         skills=[r["aggregate"][str(h)]["skill_vs_persistence_pct"] for r in rows if r["aggregate"][str(h)]["skill_vs_persistence_pct"] is not None]
         def median(v):
@@ -237,7 +238,8 @@ def main() -> int:
             return z[n//2] if n%2 else (z[n//2-1]+z[n//2])/2
         grand[str(h)]={
             "case_count":len(hv),
-            "median_case_hec_wape_all_available":median(all_hv),\n            "median_case_hec_wape":median(hv),
+            "median_case_hec_wape_all_available":median(all_hv),
+            "median_case_hec_wape":median(hv),
             "median_case_persistence_wape":median(pv),
             "median_skill_vs_persistence_pct":median(skills),
             "hec_wins":sum(1 for r in rows if (r["aggregate"][str(h)]["skill_vs_persistence_pct"] or -1e9)>0),
