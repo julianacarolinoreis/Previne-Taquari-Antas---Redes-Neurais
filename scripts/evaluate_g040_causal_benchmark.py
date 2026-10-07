@@ -48,6 +48,53 @@ def wape(pairs):
 def rmse(pairs):
     return None if not pairs else math.sqrt(sum((s-o)**2 for _t,o,s in pairs)/len(pairs))
 
+def observed_level_rows(pkg: dict[str,Any],code: str):
+    c=next((x for x in pkg.get("controls") or [] if str(x.get("code"))==str(code)),None)
+    if not c:
+        return []
+    rows=[]
+    for r in c.get("recent_rows") or []:
+        if not r.get("time_utc") or r.get("level_source_unit") is None:
+            continue
+        try:
+            v=float(r["level_source_unit"])
+        except (TypeError,ValueError):
+            continue
+        if math.isfinite(v):
+            rows.append((utc(r["time_utc"]),v))
+    rows.sort()
+    return rows
+
+def stage_timing_score(simmap,levelrows,t0,end):
+    if not simmap or len(levelrows)<2:
+        return None
+    pairs=[]
+    for t,qs in sorted(simmap.items()):
+        if t<t0 or t>end or not math.isfinite(qs):
+            continue
+        lv=interp(levelrows,t)
+        if lv is not None and math.isfinite(lv):
+            pairs.append((t,float(lv),float(qs)))
+    if len(pairs)<4:
+        return None
+    oi=max(range(len(pairs)),key=lambda i:pairs[i][1])
+    si=max(range(len(pairs)),key=lambda i:pairs[i][2])
+    do=[pairs[i][1]-pairs[i-1][1] for i in range(1,len(pairs))]
+    ds=[pairs[i][2]-pairs[i-1][2] for i in range(1,len(pairs))]
+    signs=[
+        ((a==0 and b==0) or (a*b>0))
+        for a,b in zip(do,ds)
+        if not (a==0 and b==0)
+    ]
+    return {
+        "pairs":len(pairs),
+        "observed_level_peak_time_utc":pairs[oi][0].isoformat().replace("+00:00","Z"),
+        "simulated_flow_peak_time_utc":pairs[si][0].isoformat().replace("+00:00","Z"),
+        "peak_timing_error_h":(pairs[si][0]-pairs[oi][0]).total_seconds()/3600,
+        "rise_fall_sign_skill":None if not signs else sum(signs)/len(signs),
+        "note":"timing/shape validation only; no high-flow rating-curve extrapolation is used",
+    }
+
 def evaluate_case(case: dict[str,Any]) -> dict[str,Any]:
     case_id=case["case_id"]
     root=CASES/case_id
@@ -84,12 +131,15 @@ def evaluate_case(case: dict[str,Any]) -> dict[str,Any]:
                 "horizons":{},
             })
             continue
+        simmap={t:q for t,q in sims.get("J_"+code,[])}
+        stage_score=stage_timing_score(
+            simmap,observed_level_rows(score_hydro,code),t0,end
+        )
         try:
             _c,obsrows=series_control(score_hydro,code)
         except Exception:
-            continue
-        q0=interp(obsrows,t0)
-        simmap={t:q for t,q in sims.get("J_"+code,[])}
+            obsrows=[]
+        q0=interp(obsrows,t0) if obsrows else None
         pairs=[]
         for t,qs in sorted(simmap.items()):
             if t<t0 or t>end:
@@ -99,6 +149,15 @@ def evaluate_case(case: dict[str,Any]) -> dict[str,Any]:
                 continue
             pairs.append((t,float(qo),float(qs)))
         if not pairs:
+            if stage_score is not None:
+                station_rows.append({
+                    "code":code,
+                    "q_at_t0_m3s":q0,
+                    "persistence_baseline_available":False,
+                    "available_future_pairs":0,
+                    "stage_validation":stage_score,
+                    "horizons":{},
+                })
             continue
 
         by_h={}
@@ -129,6 +188,7 @@ def evaluate_case(case: dict[str,Any]) -> dict[str,Any]:
             "persistence_baseline_available":q0 is not None,
             "available_future_pairs":len(pairs),
             "first_verification_time_utc":pairs[0][0].isoformat().replace("+00:00","Z"),
+            "stage_validation":stage_score,
             "horizons":by_h,
         })
 
@@ -193,13 +253,13 @@ def main() -> int:
         "future_weather_forcing":"exact archived ECMWF single run",
         "future_source_boundary_flow":"frozen causal upper-Antas rainfall-runoff forecast at 86472000; no future observed boundary flow",
         "model_parameters":"best calibration candidate; validation/holdout excluded from fitting",
-        "metric":"WAPE = sum(|forecast-observed|)/sum(|observed|), evaluated only after t0",
+        "metric":"flow WAPE on valid rating-curve discharge plus independent observed-level peak timing/shape after t0",
         "grand_summary":grand,
         "cases":rows,
         "limitations":[
             "E1 remains an intermediate BHO6 branch model, not the final verified 145-subbasin HEC model",
             "primary boundary 86472000 is forecast by the frozen upper-Antas rainfall-runoff model; its forecast error propagates downstream",
-            "high-flow discharge verification remains sensitive to rating-curve limits; disaster-stage validation must also be performed in level",
+            "high-flow discharge magnitude remains sensitive to rating-curve limits; level observations are therefore used independently for peak timing and rise/fall validation without extrapolating a rating curve",
             "three frozen cases are a first independent replay set, not sufficient for operational promotion"
         ],
         "promotion_allowed":False,
