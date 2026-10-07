@@ -306,7 +306,14 @@ def forecast_case(case_id:str,forecast_file:Path,output:Path)->dict[str,Any]:
         }
 
     obs=observed_q(event_id)
-    verification=metrics(axis,corrected,obs) if obs else None
+    # Verification is strictly pseudo-operational: score only t >= decision time.
+    # Pre-t0 observations may initialize/correct state, but can never inflate
+    # validation metrics for the forecast horizon.
+    post_idx=[i for i,t in enumerate(axis) if t>=t0]
+    verification=(
+        metrics([axis[i] for i in post_idx],[corrected[i] for i in post_idx],obs)
+        if obs and post_idx else None
+    )
     rows=[
         {
             "time_utc":iso(t),
@@ -334,6 +341,7 @@ def forecast_case(case_id:str,forecast_file:Path,output:Path)->dict[str,Any]:
         "future_observed_rain_used":False,
         "future_rain_source":"exact ECMWF single run",
         "state_correction":correction,
+        "verification_window":{"start_utc":iso(t0),"end_utc":iso(end),"pre_t0_scored":False},
         "verification_not_used_for_forcing_or_selection":verification,
         "series":rows,
         "promotion_allowed":False,
