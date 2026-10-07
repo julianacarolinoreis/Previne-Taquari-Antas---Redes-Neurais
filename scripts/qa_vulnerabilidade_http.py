@@ -14,7 +14,7 @@ from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
 
-DEFAULT_URL = "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/vulnerabilidade.html"
+DEFAULT_URL = "https://previne-taquari-antas.github.io/Previne-Taquari-Antas---Redes-Neurais/vulnerabilidade.html"
 INITIAL_ASSETS = (
     "assets/data/vulnerabilidade/rs_contorno.geojson",
     "assets/data/vulnerabilidade/bacia.geojson",

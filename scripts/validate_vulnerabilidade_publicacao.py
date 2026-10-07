@@ -176,7 +176,7 @@ def main() -> int:
     fallback = read_json(FALLBACK_MANIFEST)
     commit = str(fallback.get("commit", ""))
     assert re.fullmatch(r"[0-9a-f]{40}", commit), "fallback sem SHA de commit"
-    assert fallback.get("repository") == "julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais"
+    assert fallback.get("repository") == "previne-taquari-antas/Previne-Taquari-Antas---Redes-Neurais"
     assert fallback.get("path") == "assets/data/vulnerabilidade"
     fallback_url = str(fallback.get("url", ""))
     assert fallback_url.endswith(f"/{commit}/assets/data/vulnerabilidade")

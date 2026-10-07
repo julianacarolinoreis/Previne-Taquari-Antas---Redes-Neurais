@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "artifact_id": "previne_ai_lab_shadow_package",
+  "generated_at_utc": "2026-10-03T23:35:58Z",
+  "experiment_id": "stz_2h_auto_v1",
+  "station": {
+    "code": "86472600",
+    "name": "Santa Tereza",
+    "river": "Rio Taquari"
+  },
+  "horizon_hours": 2,
+  "candidate_family": "TCN",
+  "status": "research_shadow_package_ready",
+  "research_only": true,
+  "shadow_only": true,
+  "live_inference_enabled": false,
+  "alerting_enabled": false,
+  "automatic_promotion_allowed": false,
+  "validation_source": "assets/data/ai_lab/auto_training_v2_latest.json",
+  "validation_generated_at_utc": "2026-10-03T23:35:52Z",
+  "validation_engine_version": "2.1-temporal-residual-robust",
+  "validation_evidence": {
+    "model": "TCN",
+    "family": "neural temporal",
+    "representation": "temporal_sequence",
+    "fold_count": 14,
+    "median_mae_cm": 6.912207759860386,
+    "mean_mae_cm": 7.8631975630368975,
+    "worst_fold_mae_cm": 16.102021650834516,
+    "median_rmse_cm": 9.395999370530811,
+    "median_nse": 0.9924044317541117,
+    "median_abs_bias_cm": 1.1262828221319066,
+    "median_peak_abs_error_cm": 3.77288818359375,
+    "worst_peak_abs_error_cm": 15.9117431640625,
+    "median_peak_lag_abs_h": 1.0,
+    "worst_peak_lag_abs_h": 4.0,
+    "selected_profile_counts": {
+      "long_8h_delta": 10,
+      "short_4h_delta": 4
+    },
+    "dominant_profile": "long_8h_delta",
+    "rank": 4,
+    "beats_persistence": true,
+    "beats_persistence_worst_fold": true,
+    "complete_fold_coverage": true,
+    "shadow_eligible": true
+  },
+  "data_contract": {
+    "source_path": "assets/audit_workbooks/2H_ALT__009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21.xlsx",
+    "source_sha256": "33487bf862aea460c336bf098bbb3defe5dd2a0f1bd49396cfb78a18a34371e2",
+    "feature_names": [
+      "input_01_Nivel_86472600",
+      "input_02_DifN-1h_86472600",
+      "input_03_DifN-2h_86472600",
+      "input_04_DifN-4h_86472600",
+      "input_05_Acel-1h_86472600",
+      "input_06_Acel-2h_86472600",
+      "input_07_Acel-4h_86472600",
+      "input_08_Acel-08h_86472600",
+      "input_09_Acel-12h_86472600",
+      "input_10_Nivel_86472000",
+      "input_11_DifN-1h_86472000",
+      "input_12_DifN-2h_86472000",
+      "input_13_DifN-5h_86472000",
+      "input_14_Acel-12h_86472000",
+      "input_15_Acel-20h_86472000"
+    ],
+    "feature_count": 15,
+    "common_sequence_audit": {
+      "max_lookback_h": 8,
+      "expected_step_minutes": 60.0,
+      "step_tolerance_minutes": 5.0,
+      "eligible_sequence_rows": 2365,
+      "warmup_rows_removed": 147,
+      "gap_windows_removed": 165,
+      "eligible_rows_by_event": {
+        "1": 1,
+        "2": 110,
+        "3": 241,
+        "4": 351,
+        "5": 155,
+        "6": 276,
+        "7": 202,
+        "8": 33,
+        "9": 28,
+        "10": 22,
+        "11": 123,
+        "12": 232,
+        "13": 63,
+        "14": 87,
+        "15": 41,
+        "16": 54,
+        "17": 83,
+        "18": 28,
+        "19": 94,
+        "20": 84,
+        "21": 57
+      }
+    }
+  },
+  "selection": {
+    "latest_causal_fold": "20_to_21",
+    "latest_causal_profile": "short_4h_delta",
+    "dominant_cross_fold_profile": "long_8h_delta",
+    "dominant_profile_counts": {
+      "long_8h_delta": 10,
+      "short_4h_delta": 4
+    },
+    "packaging_policy": "package latest causal profile and dominant cross-fold profile when they differ"
+  },
+  "packages": [
+    {
+      "role": "latest_causal_profile",
+      "model": "TCN",
+      "profile": {
+        "id": "short_4h_delta",
+        "lookback_h": 4,
+        "width": 32,
+        "learning_rate": 0.001,
+        "target_mode": "delta",
+        "loss": "huber"
+      },
+      "final_fit": {
+        "research_only_refit": true,
+        "rows": 2365,
+        "trained_through": "2026-07-30T21:00",
+        "epochs": 9,
+        "epoch_rule": "rounded median of early-stopping epochs from causal folds where this profile was selected",
+        "selected_epoch_history": [
+          10,
+          9,
+          8,
+          7
+        ],
+        "parameter_count": 7777,
+        "loss": "huber",
+        "normalization": "stored inside NPZ; fit on final historical refit cohort"
+      },
+      "weights": {
+        "path": "assets/data/ai_lab/shadow/tcn_short_4h_delta.npz",
+        "sha256": "5d9dfb3c7ad929e86f35c971e91e8b12f49e2476c6a350627c5175b324c35c83",
+        "format": "numpy savez compressed; state_dict tensors + normalization",
+        "state_key_map": {
+          "state__000": "net.0.weight",
+          "state__001": "net.0.bias",
+          "state__002": "net.2.weight",
+          "state__003": "net.2.bias",
+          "state__004": "net.4.weight",
+          "state__005": "net.4.bias",
+          "state__006": "head.0.weight",
+          "state__007": "head.0.bias",
+          "state__008": "head.1.weight",
+          "state__009": "head.1.bias"
+        }
+      }
+    },
+    {
+      "role": "dominant_cross_fold_profile",
+      "model": "TCN",
+      "profile": {
+        "id": "long_8h_delta",
+        "lookback_h": 8,
+        "width": 48,
+        "learning_rate": 0.0007,
+        "target_mode": "delta",
+        "loss": "huber"
+      },
+      "final_fit": {
+        "research_only_refit": true,
+        "rows": 2365,
+        "trained_through": "2026-07-30T21:00",
+        "epochs": 7,
+        "epoch_rule": "rounded median of early-stopping epochs from causal folds where this profile was selected",
+        "selected_epoch_history": [
+          16,
+          4,
+          3,
+          5,
+          7,
+          9,
+          6,
+          12,
+          7,
+          13
+        ],
+        "parameter_count": 16273,
+        "loss": "huber",
+        "normalization": "stored inside NPZ; fit on final historical refit cohort"
+      },
+      "weights": {
+        "path": "assets/data/ai_lab/shadow/tcn_long_8h_delta.npz",
+        "sha256": "81dafd748d77b4c6edfeaa358bcf1b29f3eafc9e1db79ff3491d8ece4e84435d",
+        "format": "numpy savez compressed; state_dict tensors + normalization",
+        "state_key_map": {
+          "state__000": "net.0.weight",
+          "state__001": "net.0.bias",
+          "state__002": "net.2.weight",
+          "state__003": "net.2.bias",
+          "state__004": "net.4.weight",
+          "state__005": "net.4.bias",
+          "state__006": "head.0.weight",
+          "state__007": "head.0.bias",
+          "state__008": "head.1.weight",
+          "state__009": "head.1.bias"
+        }
+      }
+    }
+  ],
+  "safety": {
+    "does_not_modify_live_rna": true,
+    "does_not_emit_alerts": true,
+    "does_not_change_thresholds": true,
+    "next_required_step": "audited live shadow inference using exactly the same feature contract"
+  }
+}

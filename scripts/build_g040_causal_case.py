@@ -1,0 +1,417 @@
+#!/usr/bin/env python3
+"""Build one causal G040 replay package from observed history + exact ECMWF run.
+
+Causality rules:
+- observed component rainfall is used only through t0;
+- exact archived ECMWF rainfall is used strictly after t0;
+- observed Source discharge is used only through t0;
+- Source discharge after t0 is persisted from the last observation, never read
+  from the verifying future hydrograph;
+- untouched future hydrograph is kept as a separate score-only artifact.
+
+The output is compatible with run_hec_hms_g040_e1_hindcast.py.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import math
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any
+
+ROOT=Path(__file__).resolve().parents[1]
+BASE=ROOT/"assets/data/hec_hms_g040_full_basin"
+CONFIG=ROOT/"config/g040_causal_frozen_benchmark_v1.json"
+OBSROOT=BASE/"historical_calibration_forcing"
+OUTROOT=BASE/"causal_frozen_benchmark"
+BRT=timezone(timedelta(hours=-3))
+PRIMARY="86472000"
+PRIMARY_FALLBACKS=("86510000",)
+OPTIONAL=("86500000","86595000","86746000")
+MIN_FLOW_HOURS=18
+
+def load(path: Path) -> dict[str,Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+def utc(value: str) -> datetime:
+    d=datetime.fromisoformat(str(value).replace("Z","+00:00"))
+    return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+
+def local_rain_time(value: str) -> datetime:
+    d=datetime.fromisoformat(str(value))
+    if d.tzinfo is None:
+        d=d.replace(tzinfo=BRT)
+    return d.astimezone(timezone.utc)
+
+def iso_utc(d: datetime) -> str:
+    return d.astimezone(timezone.utc).isoformat().replace("+00:00","Z")
+
+def iso_local(d: datetime) -> str:
+    return d.astimezone(BRT).replace(tzinfo=None).isoformat(timespec="minutes")
+
+def floor_hour(d: datetime) -> datetime:
+    return d.replace(minute=0,second=0,microsecond=0)
+
+def hourly_axis(start: datetime,end: datetime) -> list[datetime]:
+    start=floor_hour(start); end=floor_hour(end)
+    out=[]; t=start
+    while t<=end:
+        out.append(t); t+=timedelta(hours=1)
+    return out
+
+def case_config(case_id: str) -> tuple[dict[str,Any],dict[str,Any]]:
+    cfg=load(CONFIG)
+    case=next((x for x in cfg.get("cases") or [] if x.get("case_id")==case_id),None)
+    if not case:
+        raise KeyError(f"unknown case_id {case_id}")
+    return cfg,case
+
+def flow_hour_count(control: dict[str,Any],t0: datetime) -> int:
+    seen=set()
+    lo=t0-timedelta(hours=24)
+    for r in control.get("recent_rows") or []:
+        if r.get("flow_m3s") is None or not r.get("time_utc"):
+            continue
+        t=utc(r["time_utc"])
+        if lo<=t<=t0:
+            seen.add(floor_hour(t))
+    return len(seen)
+
+def last_flow(control: dict[str,Any],t0: datetime) -> tuple[datetime,float]|None:
+    rows=[]
+    for r in control.get("recent_rows") or []:
+        if r.get("flow_m3s") is None or not r.get("time_utc"):
+            continue
+        t=utc(r["time_utc"])
+        q=float(r["flow_m3s"])
+        if t<=t0 and math.isfinite(q) and q>=0:
+            rows.append((t,q))
+    return max(rows,key=lambda x:x[0]) if rows else None
+
+def select_sources(hydro: dict[str,Any],t0: datetime,primary_forecast_ready: bool=False) -> tuple[str,list[str],dict[str,Any]]:
+    by={str(c.get("code")):c for c in hydro.get("controls") or []}
+    primary=None
+    primary_audit={}
+    for code in (PRIMARY,*PRIMARY_FALLBACKS):
+        c=by.get(code) or {}
+        n=flow_hour_count(c,t0)
+        lf=last_flow(c,t0)
+        minimum=0 if (code==PRIMARY and primary_forecast_ready) else (1 if code==PRIMARY else MIN_FLOW_HOURS)
+        ok=(code==PRIMARY and primary_forecast_ready) or (lf is not None and n>=minimum)
+        primary_audit[code]={
+            "observed_flow_hours_last_24h":n,
+            "minimum_required":minimum,
+            "last_observation_utc":iso_utc(lf[0]) if lf else None,
+            "eligible":ok,
+            "forecast_boundary_available":bool(code==PRIMARY and primary_forecast_ready),
+        }
+        if primary is None and ok:
+            primary=code
+    if primary is None:
+        raise RuntimeError(
+            f"no causal primary source available at/before t0; tried {(PRIMARY,*PRIMARY_FALLBACKS)}"
+        )
+
+    # When Muçum is the primary fallback, Carreiro is already embedded in the
+    # observed Muçum discharge and must not be added again as an upstream Source.
+    upstream_optional={"86510000":{"86500000"}}.get(primary,set())
+    active=[]
+    optional_audit={}
+    for code in OPTIONAL:
+        c=by.get(code) or {}
+        n=flow_hour_count(c,t0)
+        lf=last_flow(c,t0)
+        ok=n>=MIN_FLOW_HOURS and lf is not None and code not in upstream_optional
+        optional_audit[code]={
+            "observed_flow_hours_last_24h":n,
+            "minimum_required":MIN_FLOW_HOURS,
+            "last_observation_utc":iso_utc(lf[0]) if lf else None,
+            "eligible":ok,
+            "suppressed_as_upstream_of_primary":code in upstream_optional,
+        }
+        if ok:
+            active.append(code)
+    return primary,active,{"primary_candidates":primary_audit,"optional_sources":optional_audit}
+
+def primary_forecast_rows(pkg: dict[str,Any]|None) -> dict[datetime,float]:
+    if not pkg:
+        return {}
+    if pkg.get("status")!="UPPER_ANTAS_CAUSAL_BOUNDARY_READY":
+        raise RuntimeError("primary forecast package is not ready")
+    if str(pkg.get("station_code"))!=PRIMARY:
+        raise RuntimeError("primary forecast package has wrong station code")
+    if pkg.get("future_observed_flow_used") is not False:
+        raise RuntimeError("primary forecast package violates causal-flow contract")
+    out={}
+    for r in pkg.get("series") or []:
+        if not r.get("time_utc") or r.get("flow_m3s") is None:
+            continue
+        t=utc(r["time_utc"]); q=float(r["flow_m3s"])
+        if math.isfinite(q) and q>=0:
+            out[t]=q
+    if not out:
+        raise RuntimeError("primary forecast package has no usable flow series")
+    return out
+
+def build_causal_hydro(hydro: dict[str,Any],t0: datetime,end: datetime,primary: str,active: list[str],primary_forecast: dict[str,Any]|None=None) -> dict[str,Any]:
+    sources={primary,*active}
+    forecast_rows=primary_forecast_rows(primary_forecast) if primary==PRIMARY and primary_forecast else {}
+    controls=[]
+    for c in hydro.get("controls") or []:
+        code=str(c.get("code") or "")
+        kept=[]
+        for r in c.get("recent_rows") or []:
+            if not r.get("time_utc"):
+                continue
+            t=utc(r["time_utc"])
+            if t<=t0:
+                kept.append(dict(r))
+        if code in sources:
+            if code==PRIMARY and forecast_rows:
+                # Prefer observations through t0. Fill missing historical boundary
+                # hours and every future hour from the frozen causal upper-Antas model.
+                existing={
+                    utc(r["time_utc"]):r for r in kept
+                    if r.get("time_utc") and r.get("flow_m3s") is not None
+                }
+                for t,q in sorted(forecast_rows.items()):
+                    if t>end:
+                        continue
+                    if t<=t0 and t in existing:
+                        continue
+                    kept.append({
+                        "time_utc":iso_utc(t),
+                        "flow_m3s":q,
+                        "level_source_unit":None,
+                        "boundary_source":"upper_antas_causal_model",
+                    })
+            else:
+                lf=last_flow(c,t0)
+                if lf is None:
+                    raise RuntimeError(f"{code}: no flow to persist at t0")
+                last_t,last_q=lf
+                # Explicit t0 anchor avoids any interpolation through future truth.
+                if not any(r.get("time_utc") and utc(r["time_utc"])==t0 and r.get("flow_m3s") is not None for r in kept):
+                    kept.append({"time_utc":iso_utc(t0),"flow_m3s":last_q,"level_source_unit":None})
+                t=floor_hour(t0)+timedelta(hours=1)
+                while t<=end:
+                    kept.append({"time_utc":iso_utc(t),"flow_m3s":last_q,"level_source_unit":None})
+                    t+=timedelta(hours=1)
+        kept.sort(key=lambda r:utc(r["time_utc"]))
+        controls.append({**{k:v for k,v in c.items() if k!="recent_rows"},"recent_rows":kept})
+    return {
+        "schema_version":"g040_causal_hydro_forcing_v1",
+        "event_id":hydro.get("event_id"),
+        "research_only":True,
+        "source":hydro.get("source"),
+        "decision_time_utc":iso_utc(t0),
+        "future_boundary_policy":(
+            "primary 86472000 from frozen causal upper-Antas model; optional branches persist last observation"
+            if forecast_rows else "last observation persisted after t0"
+        ),
+        "predictive_primary_boundary_used":bool(forecast_rows),
+        "future_observed_discharge_used":False,
+        "controls":controls,
+    }
+
+def component_maps(pkg: dict[str,Any], forecast: bool) -> dict[str,dict[datetime,float]]:
+    out={}
+    for c in pkg.get("components") or []:
+        m={}
+        for r in c.get("series") or []:
+            if r.get("mm") is None:
+                continue
+            key="time_utc" if forecast else "time_local"
+            if not r.get(key):
+                continue
+            t=utc(r[key]) if forecast else local_rain_time(r[key])
+            m[floor_hour(t)]=float(r["mm"])
+        out[str(c.get("component_id"))]=m
+    return out
+
+def build_causal_rain(
+    observed: dict[str,Any],
+    forecast: dict[str,Any],
+    t0: datetime,
+    end: datetime,
+    primary: str,
+    active: list[str],
+    scenario_name: str,
+) -> dict[str,Any]:
+    om=component_maps(observed,False)
+    fm=component_maps(forecast,True)
+    obs_components={str(c.get("component_id")):c for c in observed.get("components") or []}
+    fc_components={str(c.get("component_id")):c for c in forecast.get("components") or []}
+    ids=sorted(set(obs_components)&set(fc_components))
+    if len(ids)!=11:
+        raise RuntimeError(f"expected 11 shared hydrologic components, found {len(ids)}")
+    starts=[]
+    for cid in ids:
+        if om.get(cid):
+            starts.append(min(om[cid]))
+    if len(starts)!=len(ids):
+        raise RuntimeError("one or more observed components have no rainfall rows")
+    start=max(starts)
+    axis=hourly_axis(start,end)
+    active_set=set(active)
+    suppressed_by_primary={
+        "86510000":{"BRANCH_86500000","CORE_INC_86472000_86510000"},
+    }.get(primary,set())
+    components=[]
+    for cid in ids:
+        meta=obs_components[cid]
+        branch=cid.replace("BRANCH_","",1) if cid.startswith("BRANCH_") else None
+        used=(not branch or branch not in active_set) and cid not in suppressed_by_primary
+        rows=[]
+        missing=[]
+        for t in axis:
+            if t<=t0:
+                mm=(om.get(cid) or {}).get(t)
+                source="observed"
+            else:
+                mm=(fm.get(cid) or {}).get(t)
+                source="ecmwf_exact_single_run"
+            if mm is None and used:
+                missing.append(iso_utc(t))
+            rows.append({
+                "time_local":iso_local(t),
+                "mm":None if mm is None else round(float(mm),4),
+                "source":source,
+            })
+        if missing:
+            raise RuntimeError(f"{cid}: causal rain has {len(missing)} missing used hours; first={missing[0]}")
+        components.append({
+            "component_id":cid,
+            "component_type":meta.get("component_type"),
+            "tributary_boundary_code":branch,
+            "used_as_rainfall_runoff_in_current_scenario":used,
+            "suppressed_by_primary_source":cid in suppressed_by_primary,
+            "support_area_km2":float(meta.get("support_area_km2") or fc_components[cid].get("support_area_km2") or 0),
+            "expected_hours":len(axis),
+            "available_hours":sum(r["mm"] is not None for r in rows),
+            "coverage_ratio":sum(r["mm"] is not None for r in rows)/len(rows),
+            "series":rows,
+        })
+    return {
+        "schema_version":"g040_causal_rain_forcing_v1",
+        "generated_at_utc":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
+        "research_only":True,
+        "status":"CAUSAL_FORECAST_RAIN_READY",
+        "decision_time_utc":iso_utc(t0),
+        "transition":{
+            "observed_through_utc":iso_utc(t0),
+            "forecast_strictly_after_utc":iso_utc(t0),
+            "future_observed_rain_used":False,
+            "missing_zero_filled":False,
+        },
+        "forecast_source":forecast.get("source"),
+        "window":{
+            "start_utc":iso_utc(axis[0]),
+            "end_utc":iso_utc(axis[-1]),
+            "hours":len(axis),
+        },
+        "boundary_scenario":{"name":scenario_name,"active_boundary_codes":sorted(active)},
+        "components":components,
+    }
+
+def main() -> int:
+    ap=argparse.ArgumentParser()
+    ap.add_argument("--case-id",required=True)
+    ap.add_argument("--forecast-file",type=Path,required=True)
+    ap.add_argument("--primary-forecast-file",type=Path,default=None)
+    args=ap.parse_args()
+    cfg,case=case_config(args.case_id)
+    event=str(case["event_id"])
+    t0=utc(case["decision_time_utc"])
+    run=utc(case["ecmwf_run_utc"])
+    lag=(t0-run).total_seconds()/3600
+    if abs(lag-float(cfg["ecmwf_availability_lag_hours"]))>1e-6:
+        raise RuntimeError("decision time does not match frozen ECMWF availability lag")
+    horizon=int(cfg["forecast_horizon_hours"])
+    end=t0+timedelta(hours=horizon)
+
+    d=OBSROOT/event
+    observed=load(d/"rain.json")
+    score_hydro=load(d/"hydro.json")
+    forecast=load(args.forecast_file)
+    if forecast.get("status")!="EXACT_ECMWF_SINGLE_RUN_READY":
+        raise RuntimeError("exact ECMWF forecast package is not ready")
+    if utc((forecast.get("source") or {}).get("run_initialization_utc"))!=run:
+        raise RuntimeError("forecast run does not match frozen case")
+
+    primary_forecast=load(args.primary_forecast_file) if args.primary_forecast_file else None
+    if primary_forecast:
+        if str(primary_forecast.get("event_id"))!=event:
+            raise RuntimeError("primary forecast event does not match causal case")
+        if utc(primary_forecast.get("decision_time_utc"))!=t0:
+            raise RuntimeError("primary forecast decision time does not match causal case")
+        if primary_forecast.get("validation_event_used_for_selection") is not False:
+            raise RuntimeError("primary forecast used validation event for selection")
+
+    primary,active,audit=select_sources(score_hydro,t0,bool(primary_forecast))
+    scenario_name=f"causal_{args.case_id}"
+    causal_hydro=build_causal_hydro(score_hydro,t0,end,primary,active,primary_forecast)
+    causal_rain=build_causal_rain(observed,forecast,t0,end,primary,active,scenario_name)
+    scenario={
+        "schema_version":"g040_causal_boundary_scenario_v1",
+        "research_only":True,
+        "current_scenario":scenario_name,
+        "current":{
+            "name":scenario_name,
+            "primary_source_code":primary,
+            "active_boundary_codes":sorted(active),
+            "selection_time_utc":iso_utc(t0),
+            "selection_uses_future_observations":False,
+        },
+    }
+
+    out=OUTROOT/args.case_id
+    out.mkdir(parents=True,exist_ok=True)
+    (out/"rain.json").write_text(json.dumps(causal_rain,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+    (out/"hydro_forcing.json").write_text(json.dumps(causal_hydro,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+    (out/"hydro_scoring.json").write_text(json.dumps(score_hydro,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+    (out/"scenario.json").write_text(json.dumps(scenario,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+    manifest={
+        "schema_version":"g040_causal_case_manifest_v1",
+        "generated_at_utc":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
+        "research_only":True,
+        "case":case,
+        "score_end_utc":iso_utc(end),
+        "primary_source_code":primary,
+        "primary_forecast_file":str(args.primary_forecast_file) if args.primary_forecast_file else None,
+        "predictive_primary_boundary_used":bool(primary_forecast and primary==PRIMARY),
+        "active_optional_boundaries":active,
+        "boundary_eligibility_audit":audit,
+        "causality_gates":{
+            "future_observed_rain_used":False,
+            "future_observed_boundary_flow_used":False,
+            "target_future_observations_separate_score_file":True,
+            "parameters_frozen_before_validation":True,
+            "ecmwf_run_explicit":True,
+            "predictive_primary_boundary_is_frozen":bool(primary_forecast and primary==PRIMARY),
+            "primary_boundary_future_observations_used":False,
+        },
+        "files":{
+            "rain":"rain.json",
+            "hydro_forcing":"hydro_forcing.json",
+            "hydro_scoring":"hydro_scoring.json",
+            "scenario":"scenario.json",
+        },
+    }
+    (out/"manifest.json").write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+    print(json.dumps({
+        "status":"G040_CAUSAL_CASE_READY",
+        "case_id":args.case_id,
+        "event_id":event,
+        "decision_time_utc":iso_utc(t0),
+        "score_end_utc":iso_utc(end),
+        "primary_source_code":primary,
+        "predictive_primary_boundary_used":bool(primary_forecast and primary==PRIMARY),
+        "active_optional_boundaries":active,
+        "rain_hours":causal_rain["window"]["hours"],
+    },ensure_ascii=False))
+    return 0
+
+if __name__=="__main__":
+    raise SystemExit(main())

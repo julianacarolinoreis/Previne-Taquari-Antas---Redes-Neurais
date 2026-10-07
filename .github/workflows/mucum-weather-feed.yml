@@ -12,13 +12,16 @@ on:
       - '.github/workflows/mucum-weather-feed.yml'
   schedule:
     - cron: '17,47 * * * *'
+  repository_dispatch:
+    types:
+      - previne-rain-updated
 
 permissions:
   contents: write
 
 concurrency:
   group: mucum-weather-feed
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   refresh:

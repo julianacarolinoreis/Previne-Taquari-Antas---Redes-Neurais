@@ -12,7 +12,7 @@ Cada camada candidata é validada pela contagem de pontos (faixa plausível
 para o RS) antes de ser aceita. Um tipo ausente vira AVISO (buscamos fonte
 federal na iteração seguinte); com menos de 2 tipos encontrados o robô falha.
 """
-import os, re, json, time, unicodedata, urllib.request
+import os, re, json, time, shutil, unicodedata, urllib.request
 
 RAW = "_servicos_raw"
 os.makedirs(RAW, exist_ok=True)
@@ -27,7 +27,7 @@ TIPOS = {   # tipo: (regex no nome do serviço/camada, faixa plausível no RS in
     "ubs":       (r"\bubs\b|unidade.*basica|atencao.*basica|posto.*saude", (800, 20000)),
 }
 
-def get(url, timeout=120):
+def get(url, timeout=45):
     req = urllib.request.Request(url, headers=UA)
     return urllib.request.urlopen(req, timeout=timeout).read()
 
@@ -72,6 +72,41 @@ def catalogo(root):
             pass
     return servs
 
+def _iede_disponivel():
+    """Teste curto antes das consultas pesadas; evita esperar dezenas de minutos
+    quando os dois endpoints do IEDE estão totalmente fora do ar."""
+    for root in ROOTS:
+        try:
+            get(root + "?f=json", timeout=12)
+            return True
+        except Exception as e:
+            print(f"[preflight] IEDE indisponível em {root}: {e}")
+    return False
+
+if not _iede_disponivel():
+    recuperados = []
+    cache_dir = "assets/data/servicos"
+    for tipo in TIPOS:
+        src = os.path.join(cache_dir, f"{tipo}.geojson")
+        if not os.path.exists(src):
+            continue
+        try:
+            pacote = json.load(open(src, encoding="utf-8"))
+            feats = pacote.get("features", [])
+            if not feats:
+                continue
+            shutil.copyfile(src, os.path.join(RAW, f"{tipo}.geojson"))
+            open(os.path.join(RAW, f"{tipo}_fonte.txt"), "w", encoding="utf-8").write(
+                "CACHE do último recorte publicado; IEDE-RS indisponível nesta rodada"
+            )
+            recuperados.append(tipo)
+        except Exception as e:
+            print(f"[preflight-cache] {tipo}: {e}")
+    if len(recuperados) >= 2:
+        print(f"[preflight-cache] preservando último conjunto validado: {recuperados}")
+        raise SystemExit(0)
+    print("[preflight] cache insuficiente; seguindo para as tentativas detalhadas")
+
 achados = {}
 
 # Camadas FIXAS (validadas em rodadas anteriores + indicação da equipe):
@@ -106,7 +141,7 @@ for tipo, urls in FIXAS.items():
                 break
             except Exception as e:
                 print(f"[{tipo}] fixa (tentativa {tent}): {e}")
-                if tent < 3: time.sleep(30)
+                if tent < 3: time.sleep(10)
 
 # ---- UBS ESTADUAL: varre as pastas de saúde do IEDE atrás de uma camada de
 # unidades básicas que cubra o estado (a ubs_poa é só Porto Alegre). ----
@@ -147,7 +182,7 @@ if "ubs" not in achados:
 for rodada in (1, 2, 3):        # o catálogo do IEDE oscila — insiste com pausa
     if len(achados) == len(TIPOS): break
     if rodada > 1:
-        print(f"[retry] catálogo indisponível — tentativa {rodada}/3 em 90 s"); time.sleep(90)
+        print(f"[retry] catálogo indisponível — tentativa {rodada}/3 em 30 s"); time.sleep(30)
     for root in ROOTS:
         if len(achados) == len(TIPOS): break
         try:
@@ -189,6 +224,37 @@ for rodada in (1, 2, 3):        # o catálogo do IEDE oscila — insiste com pau
 faltam = [t for t in TIPOS if t not in achados]
 if faltam:
     print(f"[AVISO] tipos sem camada no IEDE: {faltam} — na próxima iteração buscamos fonte federal (CNES/INEP)")
+
+# O IEDE pode ficar indisponível por dezenas de minutos. Nessa situação não
+# apagamos nem invalidamos as camadas públicas que já foram validadas. O
+# fallback reaproveita o último recorte publicado apenas para os tipos que não
+# puderam ser baixados nesta rodada; a origem fica explicitamente marcada como
+# cache e uma rodada futura tenta o IEDE novamente.
 if len(achados) < 2:
-    raise RuntimeError(f"só encontrei {list(achados)} — catálogo mudou? revisar TIPOS/ROOTS")
+    cache_dir = "assets/data/servicos"
+    recuperados = []
+    for tipo in TIPOS:
+        if tipo in achados:
+            continue
+        src = os.path.join(cache_dir, f"{tipo}.geojson")
+        if not os.path.exists(src):
+            continue
+        try:
+            pacote = json.load(open(src, encoding="utf-8"))
+            feats = pacote.get("features", [])
+            if not feats:
+                continue
+            shutil.copyfile(src, os.path.join(RAW, f"{tipo}.geojson"))
+            open(os.path.join(RAW, f"{tipo}_fonte.txt"), "w", encoding="utf-8").write(
+                "CACHE do último recorte publicado; IEDE-RS indisponível nesta rodada"
+            )
+            achados[tipo] = len(feats)
+            recuperados.append(tipo)
+        except Exception as e:
+            print(f"[cache] {tipo}: não foi possível preservar o último publicado: {e}")
+    if recuperados:
+        print(f"[cache] IEDE indisponível; preservando último conjunto validado para: {recuperados}")
+
+if len(achados) < 2:
+    raise RuntimeError(f"só encontrei {list(achados)} e não há cache suficiente — revisar TIPOS/ROOTS")
 print("DOWNLOAD COMPLETO:", achados)

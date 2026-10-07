@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "purpose": "Registro de experimentos do PREVINE AI Lab. Alterar este arquivo dispara treinamento automático; nenhum resultado é promovido automaticamente para operação.",
   "experiments": [
     {
@@ -30,8 +30,52 @@
       "min_folds": 3,
       "max_peak_lag_h": 4,
       "seed": 20261002,
-      "status": "pilot_contract",
-      "expected_source_sha256": "33487bf862aea460c336bf098bbb3defe5dd2a0f1bd49396cfb78a18a34371e2"
+      "status": "phase2_1_residual_robust_contract",
+      "expected_source_sha256": "33487bf862aea460c336bf098bbb3defe5dd2a0f1bd49396cfb78a18a34371e2",
+      "temporal": {
+        "enabled": true,
+        "max_lookback_h": 8,
+        "expected_step_minutes": 60,
+        "step_tolerance_minutes": 5,
+        "epochs": 16,
+        "patience": 3,
+        "batch_size": 64,
+        "weight_decay": 0.0001,
+        "profiles": [
+          {
+            "id": "short_4h_level",
+            "lookback_h": 4,
+            "width": 32,
+            "learning_rate": 0.001,
+            "target_mode": "level",
+            "loss": "mse"
+          },
+          {
+            "id": "long_8h_level",
+            "lookback_h": 8,
+            "width": 48,
+            "learning_rate": 0.0007,
+            "target_mode": "level",
+            "loss": "mse"
+          },
+          {
+            "id": "short_4h_delta",
+            "lookback_h": 4,
+            "width": 32,
+            "learning_rate": 0.001,
+            "target_mode": "delta",
+            "loss": "huber"
+          },
+          {
+            "id": "long_8h_delta",
+            "lookback_h": 8,
+            "width": 48,
+            "learning_rate": 0.0007,
+            "target_mode": "delta",
+            "loss": "huber"
+          }
+        ]
+      }
     }
   ]
 }

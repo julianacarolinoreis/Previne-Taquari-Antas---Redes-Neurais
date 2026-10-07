@@ -22,6 +22,17 @@ class PlataformaHecTwinTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.feed = json.loads(FEED.read_text(encoding="utf-8"))
 
+    def test_osm_referrer_policy_survives_v3_generation(self) -> None:
+        html = (
+            ROOT
+            / "assets"
+            / "data"
+            / "estudo_bacia_taquari_antas"
+            / "plataforma_hec_twin_mucum.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn("https://tile.openstreetmap.org/{z}/{x}/{y}.png", html)
+        self.assertIn('referrerPolicy:"strict-origin-when-cross-origin"', html)
+
     def test_has_many_anchors(self) -> None:
         anchors = self.feed["spatial"]["anchors"]
         self.assertGreaterEqual(len(anchors), 25)

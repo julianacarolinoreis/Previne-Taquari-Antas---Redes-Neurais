@@ -307,11 +307,26 @@ def live_context():
     obs.sort(key=lambda x: x[0])
 
     warm_dt, warm_stage = min(obs, key=lambda x: abs((x[0] - target_warm).total_seconds()))
-    if abs((warm_dt - target_warm).total_seconds()) > 1800:
-        raise RuntimeError(f"no Muçum observation within 30 min of warm-up start {EVENT_START_LOCAL}")
+    warm_gap_s = abs((warm_dt - target_warm).total_seconds())
+    if warm_gap_s > 1800:
+        # The live ANA/SGB feed may retain only the most recent part of the event.
+        # In that case, start dynamic state reconstruction at the first available
+        # observation after the requested warm-up start instead of aborting the
+        # entire forecast. The missing antecedent period remains documented in
+        # the rainfall/state audit and is never filled with synthetic stage data.
+        after = [(dt, st) for dt, st in obs if dt >= target_warm]
+        if not after:
+            raise RuntimeError(f"no Muçum observation at/after warm-up start {EVENT_START_LOCAL}")
+        warm_dt, warm_stage = after[0]
+        warm_source = (
+            "ANA/SGB first available observed stage after requested warm-up start "
+            f"(requested {EVENT_START_LOCAL.isoformat()}, gap_h={((warm_dt-target_warm).total_seconds()/3600):.2f})"
+        )
+    else:
+        warm_source = "ANA/SGB observed stage at requested event start"
     warm = _stage_state(
         warm_stage, warm_dt.isoformat().replace("+00:00", "Z"),
-        "ANA/SGB observed stage at 26/09 event start",
+        warm_source,
     )
 
     target_1h = current_dt - timedelta(hours=1)

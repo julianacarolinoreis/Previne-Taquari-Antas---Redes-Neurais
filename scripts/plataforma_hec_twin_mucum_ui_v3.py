@@ -269,7 +269,7 @@ function ageText(c){return c&&c.age_minutes!=null?fmt(c.age_minutes,0)+" min":"â
 
  // Map.
  const map=L.map("map",{scrollWheelZoom:true,zoomControl:true}).setView([-29.25,-51.65],8);
- L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+ L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,referrerPolicy:"strict-origin-when-cross-origin",attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
  const basinLayer=L.layerGroup().addTo(map),ugLayer=L.layerGroup().addTo(map),netLayer=L.layerGroup(),nodeLayer=L.layerGroup().addTo(map);
  let basinBounds=null;const markers={};
  try{const gj=await get(PATHS.basin);const ly=L.geoJSON(gj,{style:{color:"#123f30",weight:2,fillColor:"#dcebe2",fillOpacity:.08}}).addTo(basinLayer);basinBounds=ly.getBounds();if(basinBounds.isValid())map.fitBounds(basinBounds,{padding:[14,14]})}catch(e){}

@@ -96,6 +96,17 @@ BANKFULL_CM = 1500          # cota/limiar de transbordamento adotado para Santa 
 HAND_ZERO_CM = 160
 SAIDA = "previsao_ao_vivo.json"   # na RAIZ: é onde o simulador publicado lê
 HISTORICO_SAIDA = "historico_previsoes_ao_vivo.json"
+AI_LAB_SHADOW_INPUTS_SAIDA = "assets/data/ai_lab/live_inputs_stz_2h.json"
+AI_LAB_2H_FEATURE_NAMES = [
+    "input_01_Nivel_86472600", "input_02_DifN-1h_86472600",
+    "input_03_DifN-2h_86472600", "input_04_DifN-4h_86472600",
+    "input_05_Acel-1h_86472600", "input_06_Acel-2h_86472600",
+    "input_07_Acel-4h_86472600", "input_08_Acel-08h_86472600",
+    "input_09_Acel-12h_86472600", "input_10_Nivel_86472000",
+    "input_11_DifN-1h_86472000", "input_12_DifN-2h_86472000",
+    "input_13_DifN-5h_86472000", "input_14_Acel-12h_86472000",
+    "input_15_Acel-20h_86472000",
+]
 # Guardrails operacionais: servem para sinalizar degradaÃ§Ã£o recente no painel;
 # nÃ£o substituem a validaÃ§Ã£o offline nem alteram a previsÃ£o do MAT.
 LIVE_WARN_MAE_24H_CM = 30.0
@@ -2554,6 +2565,84 @@ def escrever_pacote(horizontes, historico, aviso, series=None):
         json.dump(pacote, f, ensure_ascii=False, indent=1)
     print("escrito", SAIDA, "horizontes=", ",".join(horizontes.keys()))
 
+def escrever_janela_inputs_ai_lab(series, hora_modelo):
+    """Publica janela de 8 h para inferencia sombra do AI Lab.
+
+    Nao altera a previsao operacional. Cada linha so entra quando os 15 inputs
+    do contrato 2h estao completos, em hora cheia exata e com auditoria NORMAL.
+    """
+    os.makedirs(os.path.dirname(AI_LAB_SHADOW_INPUTS_SAIDA), exist_ok=True)
+    referencia = _parse_hora(hora_modelo or "")
+    linhas = []
+    rejeitadas = []
+    if referencia is not None:
+        for atraso in range(7, -1, -1):
+            hora = referencia - dt.timedelta(hours=atraso)
+            try:
+                valores, st0 = montar_inputs(series, hora)
+                audit = auditoria_inputs_2h(series, hora, valores=valores, grade="hourly_exact")
+                pronta = (
+                    st0 is not None
+                    and len(valores) == len(AI_LAB_2H_FEATURE_NAMES)
+                    and all(v is not None for v in valores)
+                    and audit.get("status") == "NORMAL"
+                    and int(audit.get("n_inputs_nao_exatos") or 0) == 0
+                )
+                if pronta:
+                    linhas.append({
+                        "hora_modelo": hora.isoformat(timespec="seconds"),
+                        "nivel_atual_cm": round(float(st0), 3),
+                        "input_values_cm": [round(float(v), 6) for v in valores],
+                        "auditoria_status": audit.get("status"),
+                        "n_inputs_nao_exatos": int(audit.get("n_inputs_nao_exatos") or 0),
+                    })
+                else:
+                    rejeitadas.append({
+                        "hora_modelo": hora.isoformat(timespec="seconds"),
+                        "motivo": "inputs incompletos ou nao exatos",
+                        "auditoria_status": audit.get("status"),
+                        "n_inputs_nao_exatos": audit.get("n_inputs_nao_exatos"),
+                    })
+            except Exception as exc:
+                rejeitadas.append({
+                    "hora_modelo": hora.isoformat(timespec="seconds"),
+                    "motivo": str(exc),
+                })
+
+    consecutiva = False
+    if len(linhas) == 8:
+        horas = [_parse_hora(item["hora_modelo"]) for item in linhas]
+        consecutiva = all(
+            horas[i] is not None and horas[i - 1] is not None
+            and horas[i] - horas[i - 1] == dt.timedelta(hours=1)
+            for i in range(1, len(horas))
+        )
+    pacote = {
+        "schema_version": 1,
+        "artifact_id": "previne_ai_lab_live_inputs_stz_2h",
+        "gerado_em": agora_brt().isoformat(timespec="seconds"),
+        "estacao": "86472600",
+        "horizonte_h": 2,
+        "hora_referencia": (referencia.isoformat(timespec="seconds") if referencia else None),
+        "feature_names": AI_LAB_2H_FEATURE_NAMES,
+        "feature_count": len(AI_LAB_2H_FEATURE_NAMES),
+        "source_workbook_sha256": MODELO_WORKBOOK_SHA256.lower(),
+        "input_contract_version": "hourly_exact_v1",
+        "window_hours": 8,
+        "rows_valid": len(linhas),
+        "ready": bool(len(linhas) == 8 and consecutiva),
+        "status": "READY_SHADOW" if len(linhas) == 8 and consecutiva else "JANELA_INCOMPLETA",
+        "rows": linhas,
+        "rejected": rejeitadas,
+        "research_only": True,
+        "official_alert": False,
+    }
+    with open(AI_LAB_SHADOW_INPUTS_SAIDA, "w", encoding="utf-8") as handle:
+        json.dump(pacote, handle, ensure_ascii=False, indent=1)
+    print("escrito", AI_LAB_SHADOW_INPUTS_SAIDA, "ready=", pacote["ready"], "rows=", len(linhas))
+    return pacote
+
+
 def carregar_saida_atual():
     if not os.path.exists(SAIDA):
         return None
@@ -2822,6 +2911,10 @@ def main():
                     "aguardando conjunto completo de entradas na mesma hora cheia"
                 )
     escrever_pacote(horizontes, historico, aviso, series)
+    try:
+        escrever_janela_inputs_ai_lab(series, (horizontes.get("2h") or {}).get("hora_modelo"))
+    except Exception as e:
+        print("falha ao publicar janela sombra AI Lab:", e)
     return
 
 if __name__ == "__main__":

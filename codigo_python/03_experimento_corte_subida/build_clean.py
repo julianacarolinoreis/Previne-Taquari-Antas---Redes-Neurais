@@ -13,7 +13,7 @@ import json, os, urllib.request, csv
 from collections import OrderedDict
 from seg import segment
 
-BASE = "https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais"
+BASE = "https://raw.githubusercontent.com/previne-taquari-antas/Previne-Taquari-Antas---Redes-Neurais"
 OUTDIR = "clean_out"
 os.makedirs(OUTDIR + "/datasets", exist_ok=True)
 os.makedirs("wb_cache", exist_ok=True)

@@ -2,8 +2,14 @@
   'use strict';
 
   var FEED = 'assets/data/research_basin_screening_latest.json';
-  var AUTO_TRAIN_LOCAL = 'assets/data/ai_lab/auto_training_latest.json';
-  var AUTO_TRAIN_RAW = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/auto_training_latest.json';
+  var AUTO_TRAIN_LOCAL = 'assets/data/ai_lab/auto_training_v2_latest.json';
+  var AUTO_TRAIN_RAW = 'https://raw.githubusercontent.com/previne-taquari-antas/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/auto_training_v2_latest.json';
+  var AUTO_TRAIN_FALLBACK_LOCAL = 'assets/data/ai_lab/auto_training_latest.json';
+  var AUTO_TRAIN_FALLBACK_RAW = 'https://raw.githubusercontent.com/previne-taquari-antas/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/auto_training_latest.json';
+  var SHADOW_MANIFEST_LOCAL = 'assets/data/ai_lab/shadow_bundle_manifest.json';
+  var SHADOW_MANIFEST_RAW = 'https://raw.githubusercontent.com/previne-taquari-antas/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/shadow_bundle_manifest.json';
+  var SHADOW_LIVE_LOCAL = 'assets/data/ai_lab/shadow_live_latest.json';
+  var SHADOW_LIVE_RAW = 'https://raw.githubusercontent.com/previne-taquari-antas/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/ai_lab/shadow_live_latest.json';
   var BRAZIL_BOUNDS = [[-34.8,-74.2],[5.7,-34.0]];
   var state = { feed:null, autoTraining:null, map:null, markers:[], stationIndex:[], selected:null };
 
@@ -41,9 +47,10 @@
   function initMap(){
     if(!window.L){ text('map-status','Mapa indisponível: biblioteca cartográfica não carregou.'); return; }
     state.map=L.map('brazil-map',{zoomControl:true,minZoom:3,maxZoom:12}).fitBounds(BRAZIL_BOUNDS);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
       maxZoom:19,
-      attribution:'© OpenStreetMap'
+      referrerPolicy:'strict-origin-when-cross-origin',
+      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(state.map);
     el('fit-brazil').addEventListener('click',function(){ state.map.fitBounds(BRAZIL_BOUNDS); });
   }
@@ -204,8 +211,12 @@
     setPill(el('auto-training-status'),{label:'concluído',cls:'good'});
     text('training-experiment',data.label || data.experiment_id || '—');
     text('training-target',(data.station && data.station.code ? 'Estação '+data.station.code+' · ' : '')+(data.target || 'alvo')+' · +'+fmtNumber(data.horizon_hours,0)+' h');
-    text('training-rows',fmtNumber(data.data_audit && data.data_audit.finite_rows,0));
-    text('training-features',fmtNumber(data.data_audit && data.data_audit.feature_count,0)+' entradas auditadas');
+    var seqAudit=data.sequence_audit || {};
+    var rowCount=seqAudit.eligible_sequence_rows!==undefined ? seqAudit.eligible_sequence_rows : (data.data_audit && data.data_audit.finite_rows);
+    text('training-rows',fmtNumber(rowCount,0));
+    var featureSummary=fmtNumber(data.data_audit && data.data_audit.feature_count,0)+' entradas auditadas';
+    if(seqAudit.max_lookback_h!==undefined) featureSummary += ' · janela comum '+fmtNumber(seqAudit.max_lookback_h,0)+' h';
+    text('training-features',featureSummary);
     text('training-folds',fmtNumber((data.folds || []).length,0));
     text('training-shadow-count',fmtNumber((data.shadow_candidates || []).length,0));
     text('training-generated',fmtTime(data.generated_at_utc));
@@ -217,25 +228,57 @@
     var foldCount=(data.folds || []).length;
     var eligibleCount=(data.leaderboard || []).filter(function(row){return row.shadow_eligible;}).length;
     text('agent-data',duplicateCount===0 ? fmtNumber(audit.finite_rows,0)+' linhas · 0 duplicidades' : duplicateCount+' duplicidades bloqueantes');
-    text('agent-features',featureCount+' entradas · '+skippedCount+' linhas descartadas');
+    text('agent-features',featureCount+' entradas · '+(seqAudit.max_lookback_h ? 'sequência '+seqAudit.max_lookback_h+' h · ' : '')+skippedCount+' linhas brutas descartadas');
     text('agent-train',modelCount+' famílias/configurações avaliadas');
     text('agent-validation',foldCount+' dobras causais por evento');
     text('agent-shadow',eligibleCount+' candidato(s) passaram aos gates básicos');
     [['agent-data-dot',duplicateCount===0],['agent-features-dot',featureCount>0],['agent-train-dot',modelCount>1],['agent-validation-dot',foldCount>=3],['agent-shadow-dot',eligibleCount>0]].forEach(function(pair){
       var dot=el(pair[0]); if(dot) dot.className=pair[1]?'agent-ok':'agent-warn';
     });
-    text('training-message','Rodada concluída. O leaderboard é evidência de pesquisa; candidatos aprovados seguem apenas para modo sombra.');
+    var version=data.engine_version ? 'Motor '+data.engine_version+'. ' : '';
+    text('training-message',version+'Rodada concluída. O leaderboard é evidência de pesquisa; candidatos aprovados seguem apenas para a próxima etapa de modo sombra.');
     var body=el('training-table-body');
-    var rows=(data.leaderboard || []).slice(0,12);
+    var allRows=(data.leaderboard || []);
+    var bestOverall=allRows.length ? allRows[0] : null;
+    var bestTemporal=allRows.find(function(row){return row.representation==='temporal_sequence';});
+    var bestEligible=allRows.find(function(row){return row.shadow_eligible;});
+    var bestTemporalEligible=allRows.find(function(row){return row.representation==='temporal_sequence' && row.shadow_eligible;});
+    var bestStaticEligible=allRows.find(function(row){return row.representation==='static_current_row' && row.shadow_eligible;});
+    var baseline=allRows.find(function(row){return row.model==='Persistência';});
+    text('training-best-overall',bestOverall ? bestOverall.model : '—');
+    text('training-best-overall-metric',bestOverall ? 'MAE '+fmtNumber(bestOverall.median_mae_cm,2)+' cm · '+(bestOverall.shadow_eligible?'gate sombra':'retido pelo gate') : '—');
+    text('training-best-temporal',bestTemporalEligible ? bestTemporalEligible.model : (bestTemporal ? bestTemporal.model : '—'));
+    text('training-best-temporal-metric',bestTemporalEligible ? 'elegível · MAE '+fmtNumber(bestTemporalEligible.median_mae_cm,2)+' cm · '+(bestTemporalEligible.dominant_profile || 'perfil variável') : (bestTemporal ? 'melhor mediana: '+fmtNumber(bestTemporal.median_mae_cm,2)+' cm · retido pelo gate' : '—'));
+    text('training-baseline',baseline ? fmtNumber(baseline.median_mae_cm,2)+' cm MAE' : '—');
+    var rec=el('training-recommendation');
+    if(rec && bestOverall){
+      var copy='';
+      if(bestOverall.shadow_eligible && bestOverall.representation==='temporal_sequence'){
+        copy='<strong>Rede temporal prioritária para sombra</strong><p>'+escapeHtml(bestOverall.model)+' liderou a coorte e também passou aos gates. Deve seguir para inferência em sombra; ainda não é modelo operacional.</p>';
+      }else if(bestTemporalEligible){
+        var staticText=bestStaticEligible ? ' '+escapeHtml(bestStaticEligible.model)+' deve acompanhar como comparador estático.' : '';
+        copy='<strong>Rede temporal aprovada para sombra, com ressalva</strong><p>'+escapeHtml(bestOverall.model)+' lidera as métricas medianas, mas foi retido por robustez em pelo menos um evento. '+escapeHtml(bestTemporalEligible.model)+' é a melhor rede temporal que passou integralmente aos gates e deve seguir para sombra.'+staticText+'</p>';
+      }else if(bestEligible){
+        copy='<strong>Não forçar rede neural</strong><p>'+escapeHtml(bestOverall.model)+' lidera o ranking bruto, mas nenhuma rede temporal passou ao gate. '+escapeHtml(bestEligible.model)+' é o melhor candidato elegível para sombra nesta coorte.</p>';
+      }else{
+        copy='<strong>Nenhum modelo pronto para sombra</strong><p>Há modelos com bom desempenho mediano, mas nenhum passou a todos os gates de robustez. A rodada deve permanecer em pesquisa.</p>';
+      }
+      rec.innerHTML=copy;
+    }
+    var rows=(data.leaderboard || []).slice(0,16);
     if(!rows.length){
-      body.innerHTML='<tr><td colspan="8" class="empty-cell">A rodada não publicou modelos.</td></tr>';
+      body.innerHTML='<tr><td colspan="10" class="empty-cell">A rodada não publicou modelos.</td></tr>';
       return;
     }
     body.innerHTML=rows.map(function(row){
       var gate=row.shadow_eligible ? '<span class="training-gate pass">sombra</span>' : '<span class="training-gate hold">reter</span>';
+      var kind=row.representation==='temporal_sequence' ? 'temporal' : (row.representation==='baseline' ? 'baseline' : 'estático');
+      var profile=row.dominant_profile || '—';
       return '<tr'+(row.shadow_eligible?' class="shadow-pass"':'')+'>'+
         '<td>'+escapeHtml(row.rank)+'</td>'+
-        '<td><strong>'+escapeHtml(row.model)+'</strong></td>'+
+        '<td><strong>'+escapeHtml(row.model)+'</strong><small class="model-family-mini">'+escapeHtml(row.family || '')+'</small></td>'+
+        '<td><span class="representation-tag '+(kind==='temporal'?'temporal':'')+'">'+kind+'</span></td>'+
+        '<td>'+escapeHtml(profile)+'</td>'+
         '<td>'+fmtNumber(row.median_mae_cm,2)+' cm</td>'+
         '<td>'+fmtNumber(row.median_rmse_cm,2)+' cm</td>'+
         '<td>'+fmtNumber(row.median_nse,3)+'</td>'+
@@ -244,9 +287,80 @@
         '<td>'+gate+'</td></tr>';
     }).join('');
   }
+  function shortHash(value){
+    var s=String(value || ''); return s ? s.slice(0,12)+'…' : '—';
+  }
+  function renderShadowPackage(data){
+    setPill(el('shadow-package-status'),{label:'pacote criado',cls:'good'});
+    var temporal=data.temporal_candidate || {};
+    var temporalBundle=temporal.bundle || {};
+    var temporalMetrics=temporal.metrics || {};
+    var stat=data.static_comparator || {};
+    var statMetrics=stat.metrics || {};
+    var source=data.source || {};
+    text('shadow-temporal-model',temporalMetrics.model || temporalBundle.model || '—');
+    var profile=temporalBundle.profile || {};
+    text('shadow-temporal-profile',(profile.id || temporalMetrics.dominant_profile || 'perfil não informado')+' · '+(profile.lookback_h || '—')+' h · '+(profile.target_mode || temporalBundle.target_mode || '—'));
+    text('shadow-static-model',statMetrics.model || (stat.bundle && stat.bundle.model) || '—');
+    text('shadow-static-metric',statMetrics.median_mae_cm!==undefined ? 'MAE med. '+fmtNumber(statMetrics.median_mae_cm,2)+' cm' : '—');
+    text('shadow-inputs',fmtNumber(source.feature_count,0)+' variáveis · '+fmtNumber(source.eligible_sequence_rows,0)+' linhas');
+    text('shadow-source-hash','fonte '+shortHash(source.sha256));
+    text('shadow-package-note','Pacote de pesquisa para inferência em sombra. Pesos e normalizadores ficam no artefato do Actions; o site publica apenas este manifesto auditável.');
+  }
+  function metricMini(metric){
+    metric=metric || {};
+    var n=Number(metric.n_conferidas || 0);
+    if(!n) return '0 conferidas';
+    return n+' conferidas · MAE '+fmtNumber(metric.mae_cm,1)+' cm';
+  }
+  function renderShadowLive(data){
+    var pred=data.prediction || {};
+    var metrics=data.live_audit_metrics || {};
+    var running=data.status==='SHADOW_RUNNING';
+    setPill(el('shadow-live-status'),{label:running?'rodando':'aguardando',cls:running?'good':'warn'});
+    text('shadow-live-current',pred.nivel_atual_cm!==undefined ? fmtLevel(pred.nivel_atual_cm) : '—');
+    text('shadow-live-base-time',pred.hora_modelo ? 'base '+fmtTime(pred.hora_modelo) : '—');
+    text('shadow-live-temporal',pred.temporal_previsto_cm!==undefined ? fmtLevel(pred.temporal_previsto_cm) : '—');
+    text('shadow-live-temporal-delta',pred.temporal_delta_cm!==undefined ? 'Δ '+(Number(pred.temporal_delta_cm)>=0?'+':'')+fmtNumber(pred.temporal_delta_cm,1)+' cm' : '—');
+    text('shadow-live-static',pred.static_previsto_cm!==undefined ? fmtLevel(pred.static_previsto_cm) : '—');
+    text('shadow-live-operational',pred.modelo_operacional_previsto_cm!==undefined && pred.modelo_operacional_previsto_cm!==null ? fmtLevel(pred.modelo_operacional_previsto_cm) : '—');
+    text('shadow-live-target',pred.hora_alvo ? 'Alvo: '+fmtTime(pred.hora_alvo)+'. Resultado experimental; não entra no alerta nem substitui o modelo operacional.' : (data.note || 'Aguardando janela válida.'));
+    text('shadow-audit-temporal',metricMini(metrics.temporal));
+    text('shadow-audit-static',metricMini(metrics.static));
+    text('shadow-audit-operational',metricMini(metrics.operational_reference));
+  }
+  async function loadShadowLive(){
+    var sources=[SHADOW_LIVE_RAW,SHADOW_LIVE_LOCAL], lastError=null;
+    for(var i=0;i<sources.length;i++){
+      try{
+        var response=await fetch(sources[i],{cache:'no-store'});
+        if(!response.ok) throw new Error('HTTP '+response.status);
+        renderShadowLive(await response.json());
+        return;
+      }catch(err){lastError=err;}
+    }
+    setPill(el('shadow-live-status'),{label:'sem rodada',cls:'neutral'});
+    if(lastError) console.warn('AI Lab live shadow:',lastError);
+  }
+
+  async function loadShadowPackage(){
+    var sources=[SHADOW_MANIFEST_RAW,SHADOW_MANIFEST_LOCAL], lastError=null;
+    for(var i=0;i<sources.length;i++){
+      try{
+        var response=await fetch(sources[i],{cache:'no-store'});
+        if(!response.ok) throw new Error('HTTP '+response.status);
+        renderShadowPackage(await response.json());
+        return;
+      }catch(err){lastError=err;}
+    }
+    setPill(el('shadow-package-status'),{label:'ainda não criado',cls:'warn'});
+    text('shadow-package-note','O gate já pode ter candidatos, mas o pacote de pesos ainda não foi publicado. O manifesto aparecerá aqui quando a construção concluir.');
+    if(lastError) console.warn('AI Lab shadow package:',lastError);
+  }
+
   async function loadAutoTraining(){
     setPill(el('auto-training-status'),{label:'consultando',cls:'neutral'});
-    var sources=[AUTO_TRAIN_RAW,AUTO_TRAIN_LOCAL];
+    var sources=[AUTO_TRAIN_RAW,AUTO_TRAIN_LOCAL,AUTO_TRAIN_FALLBACK_RAW,AUTO_TRAIN_FALLBACK_LOCAL];
     var lastError=null;
     for(var i=0;i<sources.length;i++){
       try{
@@ -320,6 +434,8 @@
     wire();
     loadFeed();
     loadAutoTraining();
+    loadShadowPackage();
+    loadShadowLive();
     updateTrainingRequest();
   });
 })();

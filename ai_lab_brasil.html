@@ -227,29 +227,69 @@
         <article class="training-config">
           <p class="section-kicker">Pedido atual</p>
           <h3 id="training-request">Selecione um ponto e horizonte</h3>
-          <p>Fase 1 executável: Persistência, Ridge, Elastic Net, SVR, MLP, Random Forest, Extra Trees, HistGradientBoosting e XGBoost quando disponível.</p>
+          <p>Motor controlado: Persistência e modelos tabulares continuam ativos; LSTM, GRU, TCN e Transformer temporal agora treinam no mesmo conjunto de horários elegíveis.</p>
           <div class="family-cloud" aria-label="Famílias em execução">
-            <span>baseline</span><span>linear</span><span>kernel</span><span>MLP</span><span>árvores</span><span>boosting</span>
+            <span>baseline</span><span>linear</span><span>kernel</span><span>MLP</span><span>árvores</span><span>boosting</span><span>LSTM</span><span>GRU</span><span>TCN</span><span>Transformer</span>
           </div>
-          <p class="phase-note"><strong>Fase 2:</strong> LSTM, GRU, TCN e Transformers entram com contrato sequencial próprio; não são marcados como treinados antes disso.</p>
+          <p class="phase-note"><strong>Fase 2.1 ativa:</strong> cada arquitetura compara 4 h e 8 h, previsão direta de nível e previsão residual Δnível. Os perfis Δ usam perda Huber. A escolha acontece somente no evento de validação; o teste permanece intocado até a avaliação final da dobra.</p>
         </article>
         <article class="training-results">
           <div class="training-results-head">
             <div><p class="section-kicker">Última rodada concluída</p><h3>Leaderboard auditável</h3></div>
             <span id="training-generated" class="muted">—</span>
           </div>
+          <div id="training-recommendation" class="training-recommendation"><strong>Recomendação dos agentes</strong><p>Aguardando uma rodada comparável.</p></div>
+          <div class="training-winners">
+            <article><span>Melhor geral</span><strong id="training-best-overall">—</strong><small id="training-best-overall-metric">—</small></article>
+            <article><span>Melhor temporal</span><strong id="training-best-temporal">—</strong><small id="training-best-temporal-metric">—</small></article>
+            <article><span>Persistência</span><strong id="training-baseline">—</strong><small id="training-baseline-metric">referência obrigatória</small></article>
+          </div>
+          <div id="shadow-package-card" class="shadow-package-card">
+              <div><span>Pacote de sombra</span><strong id="shadow-package-title">aguardando</strong><small id="shadow-package-note">Nenhum pacote carregado.</small></div>
+              <div id="shadow-package-profiles" class="shadow-profile-list"></div>
+            </div>
           <div class="model-table-wrap training-table-wrap">
             <table class="model-table training-table">
-              <thead><tr><th>#</th><th>modelo</th><th>MAE med.</th><th>RMSE med.</th><th>NSE med.</th><th>erro pico</th><th>atraso pico</th><th>gate</th></tr></thead>
-              <tbody id="training-table-body"><tr><td colspan="8" class="empty-cell">Aguardando primeira rodada.</td></tr></tbody>
+              <thead><tr><th>#</th><th>modelo</th><th>tipo</th><th>perfil</th><th>MAE med.</th><th>RMSE med.</th><th>NSE med.</th><th>erro pico</th><th>atraso pico</th><th>gate</th></tr></thead>
+              <tbody id="training-table-body"><tr><td colspan="10" class="empty-cell">Aguardando primeira rodada.</td></tr></tbody>
             </table>
           </div>
         </article>
       </div>
+      <div id="shadow-package" class="shadow-package">
+        <div class="shadow-package-head"><div><p class="section-kicker">Pacote de sombra</p><h3>Da validação para inferência comparativa</h3></div><span id="shadow-package-status" class="pill neutral">consultando</span></div>
+        <div class="shadow-package-grid">
+          <article><span>Rede temporal</span><strong id="shadow-temporal-model">—</strong><small id="shadow-temporal-profile">—</small></article>
+          <article><span>Comparador</span><strong id="shadow-static-model">—</strong><small id="shadow-static-metric">—</small></article>
+          <article><span>Contrato de inputs</span><strong id="shadow-inputs">—</strong><small id="shadow-source-hash">—</small></article>
+        </div>
+        <p id="shadow-package-note">O pacote só é criado depois que um modelo passa ao gate; ele continua sendo pesquisa e não publica alerta.</p>
+        <div id="shadow-live-panel" class="shadow-live-panel">
+          <div class="shadow-live-head">
+            <div><p class="section-kicker">Sombra ao vivo</p><h4>TCN × comparador × modelo operacional</h4></div>
+            <span id="shadow-live-status" class="pill neutral">consultando</span>
+          </div>
+          <div class="shadow-live-values">
+            <article><span>Nível base</span><strong id="shadow-live-current">—</strong><small id="shadow-live-base-time">—</small></article>
+            <article class="temporal"><span>TCN sombra</span><strong id="shadow-live-temporal">—</strong><small id="shadow-live-temporal-delta">—</small></article>
+            <article><span>Ridge sombra</span><strong id="shadow-live-static">—</strong><small>comparador estático</small></article>
+            <article><span>RNA operacional</span><strong id="shadow-live-operational">—</strong><small>referência; não alterada</small></article>
+          </div>
+          <p id="shadow-live-target">Aguardando primeira inferência sombra.</p>
+          <div class="shadow-audit-mini">
+            <span>TCN: <b id="shadow-audit-temporal">0 conferidas</b></span>
+            <span>Ridge: <b id="shadow-audit-static">0 conferidas</b></span>
+            <span>Operacional: <b id="shadow-audit-operational">0 conferidas</b></span>
+          </div>
+        </div>
+      </div>
       <div class="training-actions">
-        <a class="primary-link" href="https://github.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/actions/workflows/ai-lab-auto-train.yml" target="_blank" rel="noopener">Executar / abrir fila no GitHub</a>
-        <a class="secondary-link" href="assets/data/ai_lab/auto_training_latest.json">JSON auditável</a>
-        <a class="secondary-link" href="assets/data/ai_lab/auto_training_leaderboard.csv">CSV do leaderboard</a>
+        <a class="primary-link" href="https://github.com/previne-taquari-antas/Previne-Taquari-Antas---Redes-Neurais/actions/workflows/ai-lab-auto-train.yml" target="_blank" rel="noopener">Executar / abrir fila no GitHub</a>
+        <a class="secondary-link" href="assets/data/ai_lab/auto_training_v2_latest.json">JSON fase 2</a>
+        <a class="secondary-link" href="assets/data/ai_lab/auto_training_v2_leaderboard.csv">CSV fase 2</a>
+        <a class="secondary-link" href="assets/data/ai_lab/auto_training_latest.json">JSON fase 1</a>
+        <a class="secondary-link" href="assets/data/ai_lab/shadow/shadow_manifest_latest.json">Manifesto sombra</a>
+        <a class="secondary-link" href="assets/data/ai_lab/shadow_bundle_manifest.json">Manifesto sombra</a>
       </div>
       <p id="training-message" class="training-message" aria-live="polite">Carregando o estado do treinamento automático…</p>
     </section>
@@ -260,7 +300,7 @@
         <h2>Fábrica de candidatos</h2>
         <p>O motor executável recebe um contrato de experimento, audita as entradas, cria dobras causais por evento, treina candidatos e publica métricas para modo sombra.</p>
         <div class="family-cloud" aria-label="Famílias previstas">
-          <span>Ridge</span><span>Elastic Net</span><span>SVR</span><span>MLP</span><span>Random Forest</span><span>Extra Trees</span><span>HistGB</span><span>XGBoost</span>
+          <span>Ridge</span><span>Elastic Net</span><span>SVR</span><span>MLP</span><span>Random Forest</span><span>Extra Trees</span><span>HistGB</span><span>XGBoost</span><span>LSTM</span><span>GRU</span><span>TCN</span><span>Transformer</span>
         </div>
       </article>
       <article class="factory-card">

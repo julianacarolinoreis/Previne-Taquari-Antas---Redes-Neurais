@@ -1,0 +1,133 @@
+name: G040 upper-Antas causal ECMWF replay
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/build_g040_causal_upper_antas.py"
+      - "scripts/build_g040_ecmwf_single_run_forcing.py"
+      - "scripts/build_g040_historical_calibration_forcing.py"
+      - "assets/data/hec_hms_g040_full_basin/g040_upper_antas_model_frozen_latest.json"
+      - "config/g040_causal_frozen_benchmark_v1.json"
+      - ".github/workflows/g040-upper-antas-causal-replay.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: g040-upper-antas-causal-replay-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dependencies
+        run: pip install --disable-pip-version-check numpy pandas scipy shapely pyproj
+
+      - name: Build independent-event observed forcing
+        run: |
+          python -B scripts/build_g040_historical_calibration_forcing.py \
+            --events E27_MAY2024,E28_JUN2024,E2026_JUL \
+            --max-workers 12
+
+      - name: Run three frozen causal replays
+        run: |
+          python - <<'PY'
+          import csv, json, subprocess, sys
+          from pathlib import Path
+          root=Path.cwd()
+          base=root/"assets/data/hec_hms_g040_full_basin"
+          outroot=base/"upper_antas_causal_replays"
+          outroot.mkdir(parents=True,exist_ok=True)
+          cfg=json.load(open(root/"config/g040_causal_frozen_benchmark_v1.json",encoding="utf-8"))
+          summary=[]
+          for case in cfg["cases"]:
+              cid=case["case_id"]
+              cdir=outroot/cid
+              cdir.mkdir(parents=True,exist_ok=True)
+              forecast=cdir/"ecmwf_exact_run.json"
+              boundary=cdir/"upper_antas_boundary.json"
+              run=case["ecmwf_run_utc"].replace(":00Z","")
+              subprocess.check_call([
+                  sys.executable,"-B","scripts/build_g040_ecmwf_single_run_forcing.py",
+                  "--run",run,"--output",str(forecast),
+              ])
+              subprocess.check_call([
+                  sys.executable,"-B","scripts/build_g040_causal_upper_antas.py",
+                  "--case-id",cid,"--forecast-file",str(forecast),"--output",str(boundary),
+              ])
+              j=json.load(open(boundary,encoding="utf-8"))
+              m=j.get("verification_not_used_for_forcing_or_selection") or {}
+              summary.append({
+                  "case_id":cid,
+                  "event_id":case["event_id"],
+                  "split":case["split"],
+                  "nse":m.get("nse"),
+                  "peak_relative_error":m.get("peak_relative_error"),
+                  "peak_lag_hours":m.get("peak_lag_hours"),
+                  "volume_error":m.get("volume_error"),
+                  "observed_peak_m3s":m.get("observed_peak_m3s"),
+                  "simulated_peak_m3s":m.get("simulated_peak_m3s"),
+                  "state_correction_applied":bool((j.get("state_correction") or {}).get("applied")),
+                  "future_observed_flow_used":j.get("future_observed_flow_used"),
+              })
+          payload={
+              "schema_version":"g040_upper_antas_causal_replay_summary_v1",
+              "research_only":True,
+              "status":"UPPER_ANTAS_CAUSAL_REPLAYS_COMPLETE",
+              "calibration_events":["E22_SEP2023","E24_NOV2023"],
+              "validation_events_used_for_selection":False,
+              "cases":summary,
+          }
+          (outroot/"summary_latest.json").write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          with (outroot/"summary.csv").open("w",encoding="utf-8",newline="") as f:
+              w=csv.DictWriter(f,fieldnames=list(summary[0]))
+              w.writeheader(); w.writerows(summary)
+          print(json.dumps(payload,ensure_ascii=False,indent=2))
+          PY
+
+      - name: Verify no-leakage gates
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("assets/data/hec_hms_g040_full_basin/upper_antas_causal_replays/summary_latest.json")
+          j=json.loads(p.read_text(encoding="utf-8"))
+          assert j["status"]=="UPPER_ANTAS_CAUSAL_REPLAYS_COMPLETE"
+          assert j["validation_events_used_for_selection"] is False
+          assert len(j["cases"])==3
+          assert all(c["future_observed_flow_used"] is False for c in j["cases"])
+          PY
+
+      - name: Publish replay evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          D="assets/data/hec_hms_g040_full_basin/upper_antas_causal_replays"
+          rm -rf /tmp/upper_replays
+          cp -r "$D" /tmp/upper_replays
+          git config user.name "previne-upper-antas-replay-bot"
+          git config user.email "previne-upper-antas-replay-bot@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            rm -rf "$D"
+            cp -r /tmp/upper_replays "$D"
+            git add -- "$D"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "bot: publish upper-Antas causal ECMWF replays [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt*2))
+          done
+          exit 1

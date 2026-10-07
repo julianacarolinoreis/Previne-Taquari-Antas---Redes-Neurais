@@ -36,6 +36,8 @@ try:
         read_support,
         vectorized_idw_matrix,
     )
+    from scripts.g040_rain_grid import build_grid_cells
+    from scripts.g040_nested_zone_rain import aggregate_grid_by_zone, audit_summary as nested_grid_audit
     from scripts.build_mucum_observed_multistation import (
         BRT,
         UTC,
@@ -53,6 +55,8 @@ except ModuleNotFoundError:
         read_support,
         vectorized_idw_matrix,
     )
+    from g040_rain_grid import build_grid_cells
+    from g040_nested_zone_rain import aggregate_grid_by_zone, audit_summary as nested_grid_audit
     from build_mucum_observed_multistation import (
         BRT,
         UTC,
@@ -78,6 +82,7 @@ SOURCE_PRIMARY = "86472000"
 DEFAULT_EVENTS = ("E22_SEP2023", "E24_NOV2023")
 MIN_BRANCH_FLOW_COVERAGE = 0.75
 MIN_RAIN_STATIONS_FOR_STRONG_HOUR = 3
+UPPER_WARMUP_DAYS = 7
 
 
 def parse_local(value: str) -> datetime:
@@ -303,21 +308,84 @@ def component_forcing(
     return components, diagnostics
 
 
+def nested_zone_forcing(
+    stations: list[dict[str, Any]],
+    series_by_code: dict[str, dict[datetime, float]],
+    times: list[datetime],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Observed IDW^2 rain on the same fixed 600-cell support used by exact ECMWF.
+
+    This is deliberately independent from the downstream BHO6 component mesh:
+    it extends rainfall support upstream of Linha José Júlio for the nested
+    Prata + Antas rainfall-runoff boundary model. Missing hours remain missing.
+    """
+    grid=build_grid_cells()
+    points=[{"lon":float(c["longitude"]),"lat":float(c["latitude"])} for c in grid]
+    codes=[str(x["code"]) for x in stations]
+    d2=vectorized_idw_matrix(points,stations) if stations else np.empty((len(grid),0),dtype=float)
+    rows_by_zone: dict[str,list[dict[str,Any]]]={}
+    valid_counts=[]
+    for hour in times:
+        vals=np.array(
+            [series_by_code.get(code,{}).get(hour,np.nan) for code in codes],
+            dtype=float,
+        )
+        valid=int(np.isfinite(vals).sum())
+        valid_counts.append(valid)
+        pred=interpolate_points(d2,vals) if valid else np.full(len(grid),np.nan,dtype=float)
+        by_cell={
+            str(c["cell_id"]):(None if not np.isfinite(pred[i]) else float(pred[i]))
+            for i,c in enumerate(grid)
+        }
+        by_zone=aggregate_grid_by_zone(by_cell)
+        for sid,mm in by_zone.items():
+            rows_by_zone.setdefault(sid,[]).append({
+                "time_local":iso_local(hour),
+                "mm":None if mm is None else round(float(mm),4),
+                "valid_station_count":valid,
+            })
+    zones=[]
+    for sid,rows in sorted(rows_by_zone.items()):
+        available=sum(r.get("mm") is not None for r in rows)
+        zones.append({
+            "subbasin_id":sid,
+            "expected_hours":len(times),
+            "available_hours":available,
+            "coverage_ratio":round(available/max(len(times),1),6),
+            "series":rows,
+        })
+    return zones,{
+        "window_hours":len(times),
+        "zone_count":len(zones),
+        "complete_zone_count":sum(z["available_hours"]==z["expected_hours"] for z in zones),
+        "minimum_valid_station_count":min(valid_counts) if valid_counts else 0,
+        "median_valid_station_count":sorted(valid_counts)[len(valid_counts)//2] if valid_counts else 0,
+        "maximum_valid_station_count":max(valid_counts) if valid_counts else 0,
+        "grid_overlap":nested_grid_audit(),
+        "missing_zero_filled":False,
+    }
+
+
 def build_event(event_id: str, *, max_workers: int) -> dict[str, Any]:
     event = historical_hydro(event_id)
     start, end = event_window(event)
     times = hourly_axis(start, end)
     expected_hours = len(times)
+    upper_rain_start=start-timedelta(days=UPPER_WARMUP_DAYS)
+    upper_times=hourly_axis(upper_rain_start,end)
 
     active = event_active_boundaries(event, expected_hours)
     scenario_name = f"historical_{event_id}"
 
     candidates = rain_candidates()
     stations, series_by_code, failures = fetch_event_rain(
-        candidates, start, end, max_workers=max_workers
+        candidates, upper_rain_start, end, max_workers=max_workers
     )
     components, rain_diag = component_forcing(
         stations, series_by_code, times, active
+    )
+    nested_zones,nested_diag=nested_zone_forcing(
+        stations,series_by_code,upper_times
     )
 
     outdir = OUTROOT / event_id
@@ -357,6 +425,15 @@ def build_event(event_id: str, *, max_workers: int) -> dict[str, Any]:
             "failures": failures,
         },
         "rain_diagnostics": rain_diag,
+        "upper_antas_nested_forcing": {
+            "purpose": "7-day observed warm-up plus event rain for predictive 86472000 boundary",
+            "warmup_days": UPPER_WARMUP_DAYS,
+            "start_local": iso_local(upper_rain_start),
+            "end_local": iso_local(end),
+            "spatial_support": "same fixed 600-cell G040 grid used by exact ECMWF; IDW^2 observed gauges then zone-area integration",
+            "diagnostics": nested_diag,
+            "zones": nested_zones,
+        },
         "components": components,
     }
 
@@ -400,6 +477,8 @@ def build_event(event_id: str, *, max_workers: int) -> dict[str, Any]:
         "rain_status": rain_payload["status"],
         "rain_station_count": len(stations),
         "rain_diagnostics": rain_diag,
+        "upper_antas_nested_complete": nested_diag["complete_zone_count"] == nested_diag["zone_count"],
+        "upper_antas_nested_diagnostics": nested_diag,
         "active_boundary_codes": active,
         "primary_source_flow_hours": int((source_by.get(SOURCE_PRIMARY) or {}).get("flow_hour_count") or 0),
         "muçum_flow_hours": int((source_by.get("86510000") or {}).get("flow_hour_count") or 0),

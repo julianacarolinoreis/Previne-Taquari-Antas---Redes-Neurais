@@ -1,0 +1,80 @@
+name: G040 frozen upper-Antas calibration
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/build_g040_causal_upper_antas.py"
+      - "scripts/test_g040_causal_upper_antas.py"
+      - "assets/data/hec_hms_g040_full_basin/historical_calibration_forcing/E22_SEP2023/rain.json"
+      - "assets/data/hec_hms_g040_full_basin/historical_calibration_forcing/E24_NOV2023/rain.json"
+      - ".github/workflows/g040-upper-antas-frozen.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: g040-upper-antas-frozen-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dependencies
+        run: pip install --disable-pip-version-check numpy pandas scipy
+
+      - name: Contract tests
+        run: python -B scripts/test_g040_causal_upper_antas.py
+
+      - name: Frozen calibration
+        run: python -B scripts/build_g040_causal_upper_antas.py --calibrate
+
+      - name: Verify frozen split
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("assets/data/hec_hms_g040_full_basin/g040_upper_antas_model_frozen_latest.json")
+          j=json.loads(p.read_text(encoding="utf-8"))
+          assert j["status"]=="UPPER_ANTAS_FROZEN_CALIBRATION_READY"
+          assert j["calibration_events"]==["E22_SEP2023","E24_NOV2023"]
+          assert j["validation_events_excluded_from_selection"]==["E27_MAY2024","E28_JUN2024","E2026_JUL"]
+          assert j["no_validation_leakage"] is True
+          print(json.dumps({
+              "parameters":j["parameters"],
+              "objective":j["objective"],
+              "event_metrics":j["event_metrics"],
+              "candidate_count":j["candidate_count"],
+          },ensure_ascii=False,indent=2))
+          PY
+
+      - name: Publish frozen model
+        shell: bash
+        run: |
+          set -euo pipefail
+          P="assets/data/hec_hms_g040_full_basin/g040_upper_antas_model_frozen_latest.json"
+          cp "$P" /tmp/g040_upper_antas_model_frozen_latest.json
+          git config user.name "previne-upper-antas-bot"
+          git config user.email "previne-upper-antas-bot@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp /tmp/g040_upper_antas_model_frozen_latest.json "$P"
+            git add -- "$P"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "bot: publish frozen upper-Antas boundary model [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt*2))
+          done
+          exit 1

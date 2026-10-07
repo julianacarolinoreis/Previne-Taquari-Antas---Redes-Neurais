@@ -6,6 +6,12 @@ name: Serviços públicos — dados IEDE (bacia Taquari-Antas)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "codigo_python/07_servicos_publicos/baixar_servicos.py"
+      - "codigo_python/07_servicos_publicos/preparar_servicos.py"
+      - ".github/workflows/servicos-publicos-dados.yml"
   schedule:
     - cron: "43 6 4 * *"   # dia 4 de cada mês, 06:43 UTC
 
@@ -14,11 +20,12 @@ permissions:
 
 concurrency:
   group: servicos-publicos-dados
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   dados:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
 

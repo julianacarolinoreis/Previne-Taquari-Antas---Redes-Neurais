@@ -1,6 +1,6 @@
 {
   "schema_version": "g040_e1_hindcast_candidate_v1",
-  "generated_at_utc": "2026-10-02T12:16:54.379829Z",
+  "generated_at_utc": "2026-10-06T23:48:34.972128Z",
   "research_only": true,
   "candidate_id": "DIAG_E22_ANCHOR_EVENT2",
   "event_id": "E22_SEP2023",
@@ -12,11 +12,18 @@
     "end_utc": "2023-09-13T02:00:00Z",
     "hours": 288
   },
+  "score_window": {
+    "start_utc": "2023-09-01T03:00:00Z",
+    "end_utc": "2023-09-13T02:00:00Z",
+    "hours": 288
+  },
   "boundary_scenario": "historical_E22_SEP2023",
+  "primary_source_code": "86472000",
   "active_boundary_codes": [],
   "input_artifacts": {
     "rain_file": "/home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/assets/data/hec_hms_g040_full_basin/historical_calibration_forcing/E22_SEP2023/rain.json",
     "hydro_file": "/home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/assets/data/hec_hms_g040_full_basin/historical_calibration_forcing/E22_SEP2023/hydro.json",
+    "score_hydro_file": "/home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/assets/data/hec_hms_g040_full_basin/historical_calibration_forcing/E22_SEP2023/hydro.json",
     "scenario_file": "/home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/assets/data/hec_hms_g040_full_basin/historical_calibration_forcing/E22_SEP2023/scenario.json"
   },
   "rainfall_runoff_components": [
@@ -182,7 +189,9 @@
     "event-specific E1 candidate; multi-event selection is performed by the calibration orchestrator",
     "baseflow method not documented in recovered original report",
     "global CN and lag are temporary calibration parameterization, not 145-subbasin transfer",
-    "model stops at Porto Mariante until lower-TaQ routing/backwater evidence is closed"
+    "model stops at Porto Mariante until lower-TaQ routing/backwater evidence is closed",
+    "when score_hydro_file differs from hydro_file, future observations are verification-only and never enter forcing",
+    "if Muçum is the primary fallback, Muçum itself is boundary-only and is excluded from forecast scoring"
   ],
   "promotion_allowed": false
 }

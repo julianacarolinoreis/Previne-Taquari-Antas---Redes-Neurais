@@ -43,6 +43,10 @@ on:
       - "scripts/test_hec_twin_mucum_forward_5d.py"
   schedule:
     - cron: "2,12,22,32,42,52 * * * *"
+  workflow_run:
+    workflows:
+      - "Atualiza feed meteorológico de Muçum"
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -50,10 +54,11 @@ permissions:
 
 concurrency:
   group: hec-twin-mucum-forward
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   forecast:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -119,6 +124,53 @@ jobs:
             exit 1
           fi
           python -B scripts/run_hec_hms_operational_latest.py "$HEC_SH"
+
+      - name: Publica núcleo HEC/IFS imediatamente
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-hec-bot"
+          git config user.email "previne-hec-bot@users.noreply.github.com"
+          git add -- \
+            assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_latest.json \
+            assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_rain_hourly.csv \
+            assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_flow_hourly.csv \
+            assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum \
+            assets/data/estudo_bacia_taquari_antas/hec_twin_ifs_spatial_forcing_5d_latest.json \
+            assets/data/estudo_bacia_taquari_antas/mucum_06z_upstream_assimilated_latest.json \
+            assets/data/estudo_bacia_taquari_antas/mucum_06z_upstream_assimilated_series.csv \
+            assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d_latest.json \
+            assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d.html \
+            assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d \
+            assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum \
+            assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum_latest.json \
+            assets/data/estudo_bacia_taquari_antas/hec_hms_operational_forecast_latest.json
+          if git diff --cached --quiet; then
+            echo "Núcleo já está publicado."
+          else
+            git commit -m "bot: núcleo HEC/IFS Muçum atualizado [skip ci]"
+            STASHED=0
+            if ! git diff --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
+              git stash push --include-untracked -m "hec-core-unpublished-rest"
+              STASHED=1
+            fi
+            publicado=0
+            for attempt in 1 2 3 4 5; do
+              if git pull --rebase origin main && git push origin HEAD:main; then
+                publicado=1
+                break
+              fi
+              echo "Push do núcleo HEC ocupado; nova tentativa ${attempt}/5."
+              sleep $((attempt * 2))
+            done
+            if [ "$STASHED" = "1" ]; then
+              git stash pop || true
+            fi
+            if [ "$publicado" != "1" ]; then
+              echo "Não foi possível publicar o núcleo HEC/IFS após 5 tentativas."
+              exit 1
+            fi
+          fi
 
       - name: HEC-HMS fronteiras observadas · LJJ + Carreiro
         continue-on-error: true

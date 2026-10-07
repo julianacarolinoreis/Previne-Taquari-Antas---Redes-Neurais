@@ -40,6 +40,7 @@ MAX_MUSKINGUM_SUBREACHES=100
 
 MAIN_CHECKPOINTS=["86510000","86720000","86743000","86879000","86879300","86895000"]
 SOURCE_PRIMARY="86472000"
+SUPPORTED_PRIMARY_SOURCES={"86472000","86510000"}
 BRANCH_CODES=["86500000","86595000","86746000"]
 
 # Mainstem routing pieces through Porto Mariante.
@@ -146,8 +147,8 @@ def rain_at(rows,t):
     m={floor_hour(a):v for a,v in rows}
     return m.get(floor_hour(t))
 
-def choose_window(rain,hydro,active):
-    source_codes=[SOURCE_PRIMARY,*active]
+def choose_window(rain,hydro,active,primary_source=SOURCE_PRIMARY):
+    source_codes=[primary_source,*active]
     series=[]
     for code in source_codes:
         _c,rows=series_control(hydro,code)
@@ -301,11 +302,18 @@ def route_k(reach_length,group,args):
     total=getattr(args,"k_"+group)
     return float(total)*float(reach_length)/float(GROUP_LENGTH[group])
 
-def build_basin(rain,active,args):
+def active_reaches(primary_source):
+    if primary_source=="86472000":
+        return list(REACHES)
+    if primary_source=="86510000":
+        return [r for r in REACHES if r[0] not in {"R_86472000_JOIN_86500000","R_JOIN_86500000_86510000"}]
+    raise RuntimeError(f"unsupported primary source {primary_source}")
+
+def build_basin(rain,active,args,primary_source=SOURCE_PRIMARY):
     parts=["""Basin: G040 E1 Hindcast
      Description: research E1 observed-branch whole-basin hindcast through Porto Mariante
-     Last Modified Date: 30 September 2026
-     Last Modified Time: 19:00:00
+     Last Modified Date: 06 October 2026
+     Last Modified Time: 20:00:00
      Version: 4.13
      Filepath Separator: \\
      Unit System: Metric
@@ -316,26 +324,25 @@ def build_basin(rain,active,args):
      Enable Sediment Routing: No
 End:
 """]
-    # Primary source and mainstem reaches/junctions.
-    parts.append(source_block("86472000","R_86472000_JOIN_86500000",12918.656))
     active_set=set(active)
-    # Each tributary join exists. Active branch = observed Source; inactive = rainfall Subbasin.
-    # Core incremental runoff remains represented separately at the downstream checkpoint.
-    downstream_by_reach={name:down for name,_up,down,_len,_g in REACHES}
-    upstream_to_reach={}
-    for name,up,down,l,g in REACHES:
-        upstream_to_reach[up]=name
 
-    # First join Carreiro
-    if "86500000" in active_set:
-        parts.append(source_block("86500000","J_JOIN_86500000",1816.359))
+    if primary_source=="86472000":
+        parts.append(source_block("86472000","R_86472000_JOIN_86500000",12918.656))
+        if "86500000" in active_set:
+            parts.append(source_block("86500000","J_JOIN_86500000",1816.359))
+        else:
+            cid="BRANCH_86500000"
+            parts.append(subbasin_block(hec_subbasin_name(cid),rain[cid]["area_km2"],"J_JOIN_86500000",args.cn,args.lag_min))
+        parts.append(junction_block("J_JOIN_86500000","R_JOIN_86500000_86510000"))
+        parts.append(junction_block("J_86510000","R_86510000_JOIN_86595000",True))
+    elif primary_source=="86510000":
+        # Muçum observed discharge already integrates Linha José Júlio,
+        # Carreiro and the incremental area upstream of Muçum. Those elements
+        # are therefore removed rather than double-counted.
+        inc=float((rain.get("CORE_INC_86472000_86510000") or {}).get("area_km2") or 0.0)
+        parts.append(source_block("86510000","R_86510000_JOIN_86595000",12918.656+1816.359+inc))
     else:
-        cid="BRANCH_86500000"
-        parts.append(subbasin_block(hec_subbasin_name(cid),rain[cid]["area_km2"],"J_JOIN_86500000",args.cn,args.lag_min))
-    parts.append(junction_block("J_JOIN_86500000","R_JOIN_86500000_86510000"))
-
-    # Muçum checkpoint
-    parts.append(junction_block("J_86510000","R_86510000_JOIN_86595000",True))
+        raise RuntimeError(f"unsupported primary source {primary_source}")
 
     if "86595000" in active_set:
         parts.append(source_block("86595000","J_JOIN_86595000",2431.975))
@@ -356,12 +363,15 @@ End:
     parts.append(junction_block("J_86879300","R_86879300_86895000",True))
     parts.append(junction_block("J_86895000",None,True))
 
-    # Core runoff subbasins.
+    # Add only rainfall-runoff components that remain active in this scenario.
     for cid,down in CORE_TO_CHECKPOINT.items():
-        if cid not in rain: raise RuntimeError(f"missing rain component {cid}")
+        if cid not in rain:
+            raise RuntimeError(f"missing rain component {cid}")
+        if not rain[cid].get("used"):
+            continue
         parts.append(subbasin_block(hec_subbasin_name(cid),rain[cid]["area_km2"],down,args.cn,args.lag_min))
 
-    for name,up,down,l,g in REACHES:
+    for name,up,down,l,g in active_reaches(primary_source):
         parts.append(reach_block(name,down,route_k(l,g,args),args.x))
     return "\n".join(parts)
 
@@ -460,21 +470,21 @@ def gage_block(name,gtype,path,start,end):
 End:
 """
 
-def build_gage(start,end,active,used_components):
+def build_gage(start,end,active,used_components,primary_source=SOURCE_PRIMARY):
     dp=dpart(local_naive(start))
     lines=["""Gage Manager: G040 E1 Hindcast
      Version: 4.13
      Filepath Separator: \\
 End:
 """]
-    for code in [SOURCE_PRIMARY,*active]:
+    for code in [primary_source,*active]:
         lines.append(gage_block(f"Q_{code}","Flow",f"/G040/{code}/FLOW/{dp}/1Hour/FORECAST/",start,end))
     for cid in used_components:
         lines.append(gage_block(f"RAIN_{safe(cid)}","Precipitation",f"/G040/{safe(cid)}/PRECIP-INC/{dp}/1Hour/FORECAST/",start,end))
     return "\n".join(lines)
 
-def validate_project_contract(gage_text, met_text, basin_text, active, used_components):
-    required_sources=[SOURCE_PRIMARY,*active]
+def validate_project_contract(gage_text, met_text, basin_text, active, used_components,primary_source=SOURCE_PRIMARY):
+    required_sources=[primary_source,*active]
     missing_q=[code for code in required_sources if f"Gage: Q_{code}" not in gage_text]
     if missing_q:
         raise RuntimeError(f"missing flow gages in generated gage manager: {missing_q}")
@@ -612,9 +622,12 @@ def _sd(a):
     m=sum(a)/len(a)
     return math.sqrt(sum((x-m)**2 for x in a)/(len(a)-1))
 
-def score_outputs(out_by,hydro,times):
+def score_outputs(out_by,hydro,times,boundary_source_code=None):
     result={}
     for code in MAIN_CHECKPOINTS:
+        if code==boundary_source_code:
+            result[code]={"pairs":0,"status":"boundary_source_not_scored"}
+            continue
         element="J_"+code
         sim_rows=out_by.get(element) or []
         simmap={t:q for t,q in sim_rows}
@@ -682,6 +695,13 @@ def main():
     ap.add_argument("--event-id",default=None)
     ap.add_argument("--rain-file",type=Path,default=OBSRAIN)
     ap.add_argument("--hydro-file",type=Path,default=HYDRO)
+    ap.add_argument("--score-hydro-file",type=Path,default=None,
+        help="Optional untouched observed hydro package used only for verification scores. "
+             "Use this in causal forecast replays so future observed boundary flow never enters forcing.")
+    ap.add_argument("--score-start-utc",default=None,
+        help="Optional ISO UTC time; verification metrics use only timestamps at/after this time.")
+    ap.add_argument("--score-end-utc",default=None,
+        help="Optional ISO UTC time; verification metrics use only timestamps at/before this time.")
     ap.add_argument("--scenario-file",type=Path,default=SCENARIOS)
     ap.add_argument("--output-root",type=Path,default=OUTROOT)
     args=ap.parse_args()
@@ -690,19 +710,28 @@ def main():
     if not (0<=args.x<=0.5): raise SystemExit("Muskingum X outside [0,0.5]")
 
     rainpkg=loadj(args.rain_file); hydro=loadj(args.hydro_file); scenarios=loadj(args.scenario_file)
-    if rainpkg.get("status") not in {"OBSERVED_RAIN_READY","OBSERVED_RAIN_PARTIAL"}:
-        raise RuntimeError("observed G040 rain not ready")
+    score_hydro=loadj(args.score_hydro_file) if args.score_hydro_file else hydro
+    if rainpkg.get("status") not in {"OBSERVED_RAIN_READY","OBSERVED_RAIN_PARTIAL","CAUSAL_FORECAST_RAIN_READY"}:
+        raise RuntimeError("G040 rain forcing not ready")
     current=scenarios.get("current") or {}
     active=[str(x) for x in current.get("active_boundary_codes") or []]
+    primary_source=str(current.get("primary_source_code") or SOURCE_PRIMARY)
+    if primary_source not in SUPPORTED_PRIMARY_SOURCES:
+        raise RuntimeError(f"unsupported primary source {primary_source}")
     if str((rainpkg.get("boundary_scenario") or {}).get("name"))!=str(scenarios.get("current_scenario")):
         raise RuntimeError("rain/hydro scenario mismatch")
     rain=rain_components(rainpkg)
-    start,end,used=choose_window(rain,hydro,active)
+    start,end,used=choose_window(rain,hydro,active,primary_source)
     # Through Porto Mariante only.
     used=[cid for cid in used if cid in CORE_TO_CHECKPOINT or cid in {"BRANCH_86500000","BRANCH_86595000","BRANCH_86746000"}]
     times=hourly_axis(start,end)
 
-    source_values={code:source_hourly(hydro,code,times) for code in [SOURCE_PRIMARY,*active]}
+    source_values={code:source_hourly(hydro,code,times) for code in [primary_source,*active]}
+    score_start=utc(args.score_start_utc) if args.score_start_utc else None
+    score_end=utc(args.score_end_utc) if args.score_end_utc else None
+    score_times=[t for t in times if (score_start is None or t>=score_start) and (score_end is None or t<=score_end)]
+    if (score_start or score_end) and not score_times:
+        raise RuntimeError("score window does not overlap HEC simulation window")
     rain_values={}
     for cid in used:
         vals=[rain_at(rain[cid]["rows"],t) for t in times]
@@ -716,10 +745,10 @@ def main():
     project_text=build_project()
     run_text=build_run()
     control_text=build_control(start,end)
-    gage_text=build_gage(start,end,active,used)
+    gage_text=build_gage(start,end,active,used,primary_source)
     met_text=build_met(used)
-    basin_text=build_basin(rain,active,args)
-    preflight=validate_project_contract(gage_text,met_text,basin_text,active,used)
+    basin_text=build_basin(rain,active,args,primary_source)
+    preflight=validate_project_contract(gage_text,met_text,basin_text,active,used,primary_source)
 
     (proj/"g040_e1_hindcast.hms").write_text(project_text,encoding="utf-8")
     (proj/"g040_e1_hindcast.run").write_text(run_text,encoding="utf-8")
@@ -734,30 +763,38 @@ def main():
     (rt/"run.log").write_text(proc.stdout+"\n--- STDERR ---\n"+proc.stderr,encoding="utf-8")
     ok="G040_E1_HINDCAST_COMPUTE_OK" in proc.stdout and (proj/"hec_output_values.csv").exists()
     scores={}
-    if ok: scores=score_outputs(read_output_csv(proj/"hec_output_values.csv"),hydro,times)
+    if ok: scores=score_outputs(read_output_csv(proj/"hec_output_values.csv"),score_hydro,score_times,primary_source)
     result={"schema_version":"g040_e1_hindcast_candidate_v1",
       "generated_at_utc":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
       "research_only":True,"candidate_id":args.candidate_id,"event_id":args.event_id,"hec_hms_version":"4.13",
       "compute_ok":ok,"returncode":proc.returncode,
       "window":{"start_utc":start.isoformat().replace("+00:00","Z"),
                 "end_utc":end.isoformat().replace("+00:00","Z"),"hours":len(times)},
-      "boundary_scenario":scenarios.get("current_scenario"),"active_boundary_codes":active,
-      "input_artifacts":{"rain_file":str(Path(args.rain_file)),"hydro_file":str(Path(args.hydro_file)),"scenario_file":str(Path(args.scenario_file))},
+      "score_window":{"start_utc":score_times[0].isoformat().replace("+00:00","Z") if score_times else None,
+                      "end_utc":score_times[-1].isoformat().replace("+00:00","Z") if score_times else None,
+                      "hours":len(score_times)},
+      "boundary_scenario":scenarios.get("current_scenario"),"primary_source_code":primary_source,
+      "active_boundary_codes":active,
+      "input_artifacts":{"rain_file":str(Path(args.rain_file)),"hydro_file":str(Path(args.hydro_file)),
+        "score_hydro_file":str(Path(args.score_hydro_file)) if args.score_hydro_file else str(Path(args.hydro_file)),
+        "scenario_file":str(Path(args.scenario_file))},
       "rainfall_runoff_components":used,
       "preflight_contract":preflight,
       "parameters":{"cn":args.cn,"lag_min":args.lag_min,"baseflow":"None",
         "k_group_h":{"g1":args.k_g1,"g2":args.k_g2,"g3":args.k_g3,"g4":args.k_g4},
         "x":args.x,
         "compute_interval_min":COMPUTE_INTERVAL_MIN,
-        "reach_k_h":{name:route_k(l,g,args) for name,up,down,l,g in REACHES},
+        "reach_k_h":{name:route_k(l,g,args) for name,up,down,l,g in active_reaches(primary_source)},
         "muskingum_subreaches":{
           name:muskingum_steps(route_k(l,g,args),args.x)
-          for name,up,down,l,g in REACHES
+          for name,up,down,l,g in active_reaches(primary_source)
         }},
       "scores":scores,
       "limitations":["event-specific E1 candidate; multi-event selection is performed by the calibration orchestrator","baseflow method not documented in recovered original report",
         "global CN and lag are temporary calibration parameterization, not 145-subbasin transfer",
-        "model stops at Porto Mariante until lower-TaQ routing/backwater evidence is closed"],
+        "model stops at Porto Mariante until lower-TaQ routing/backwater evidence is closed",
+        "when score_hydro_file differs from hydro_file, future observations are verification-only and never enter forcing",
+        "if Muçum is the primary fallback, Muçum itself is boundary-only and is excluded from forecast scoring"],
       "promotion_allowed":False}
     (rt/"result.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(json.dumps(result,ensure_ascii=False))
