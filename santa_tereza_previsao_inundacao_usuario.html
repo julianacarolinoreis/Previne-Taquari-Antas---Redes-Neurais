@@ -153,16 +153,22 @@
 </style>
 <link rel="stylesheet" href="assets/previsao_panorama_usuario.css?v=20260913-briefing-v1">
 <link rel="stylesheet" href="assets/css/gestor_chrome_usuario.css">
+<link rel="stylesheet" href="assets/css/previsao_cidades_usuario.css?v=20261007-cidades-1">
 </head>
 <body class="has-gestor-chrome gestor-fill-layout">
 <header>
   <span class="mark"></span>
-  <div><h1>Até onde a água pode chegar?</h1><div class="loc">Santa Tereza · bacia Taquari-Antas</div></div>
+  <div class="forecast-title"><h1>Até onde a água pode chegar?</h1><div class="loc">Santa Tereza · bacia Taquari-Antas</div></div>
+  <nav class="forecast-city-switch" aria-label="Cidade das informações"><a href="santa_tereza_previsao_inundacao_usuario.html" data-forecast-city-link="santa_tereza" aria-current="page">Santa Tereza</a><a href="mucum_previsao_inundacao_usuario.html" data-forecast-city-link="mucum">Muçum</a></nav>
   <div class="modes" aria-label="Modo de visualização"><button id="mode-s" class="on" aria-pressed="true">Visualização simples</button><button id="mode-t" aria-pressed="false">Visualização detalhada</button><button id="mode-p" aria-pressed="false">Panorama Geral</button></div>
 </header>
 <main>
   <div id="map" role="application" aria-label="Mapa interativo de previsão de inundação em Santa Tereza" aria-describedby="map-accessible-description"><span class="sr-only" id="map-accessible-description">Use os controles de camadas para alternar imagem de satélite, ruas, rótulos e estações. A mancha colorida representa somente água estimada fora do leito; ela é um proxy de pesquisa.</span><span class="sr-only" id="map-accessible-summary" role="status" aria-live="polite"></span></div>
   <aside>
+    <section class="forecast-city-context" aria-label="Informações de Santa Tereza">
+      <div><span>Informações de</span><strong>Santa Tereza</strong></div>
+      <div class="forecast-map-actions"><button type="button" data-city-view="both">Ver as duas no mapa</button><button type="button" data-city-view="selected">Ampliar Santa Tereza</button></div>
+    </section>
     <button class="live-btn" id="live-btn" type="button" aria-pressed="false">🔴 Ativar previsão ao vivo · Santa Tereza</button>
     <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span><span class="live-bar-copy"><span class="live-bar-kicker">AO VIVO · <span id="live-kind">atualização</span></span><span id="live-when">—</span></span></div>
     <div class="live-note" id="live-note" style="display:none"></div>
@@ -403,6 +409,7 @@
     <p class="sr-only" id="overview-accessible" aria-live="polite">Carregando panorama do rio.</p>
   </section>
 </main>
+<script src="assets/js/previsao_cidades_usuario.js?v=20261007-cidades-1"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="assets/js/fmt_quando.js?v=20260916-hora-0h4"></script>
 <script src="assets/js/live_feed.js?v=20260921-live-refresh-2"></script>
@@ -1351,6 +1358,7 @@ async function init(){
     const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,referrerPolicy:'strict-origin-when-cross-origin',attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'});
     sat.on('tileerror',()=>{if(!map.hasLayer(osm)&&!map.hasLayer(sat)) osm.addTo(map);});
     sat.addTo(map); labels.addTo(map);
+    if(window.PREVINE_CITY_MAP) PREVINE_CITY_MAP.init({map:map,city:'santa_tereza',bounds:BOUNDS,variant:'usuario'});
     telemetryLayer=L.layerGroup().addTo(map);
     const layerControl=L.control.layers(
       {'Satélite':sat,'Ruas':osm},

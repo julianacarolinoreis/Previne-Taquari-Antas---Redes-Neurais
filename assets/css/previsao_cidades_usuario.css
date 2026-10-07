@@ -1,0 +1,41 @@
+/* Escolha do município dentro do cabeçalho existente, sem a antiga barra. */
+header .forecast-title { flex: 1 1 235px; min-width: 0; }
+.forecast-city-switch { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: 12px; background: #f4f8f5; }
+.forecast-city-switch a { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 8px 13px; border-radius: 9px; text-decoration: none; color: var(--ink); font-size: 12px; font-weight: 750; white-space: nowrap; }
+.forecast-city-switch a[aria-current="page"] { background: var(--brand); color: #fff; box-shadow: 0 1px 3px #14382d20; }
+.forecast-city-switch a:focus-visible, .forecast-city-context button:focus-visible, .forecast-city-pin:focus-visible { outline: 3px solid #f0a33a; outline-offset: 3px; }
+header .modes { margin-left: 0; }
+.forecast-city-context { padding: 10px 11px; margin-bottom: 12px; border: 1px solid #d3e3da; border-radius: 12px; background: #f7fbf8; }
+.forecast-city-context > div:first-child { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+.forecast-city-context span { color: #536b5e; font-size: 11px; }
+.forecast-city-context strong { color: #14382d; font-size: 16px; }
+.forecast-map-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.forecast-map-actions button { min-height: 34px; flex: 1; border: 1px solid #c7d9ce; border-radius: 8px; background: #fff; color: #214c38; padding: 6px 9px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.forecast-city-icon { background: transparent; border: 0; }
+.forecast-city-pin { position: relative; display: flex; width: 44px; height: 44px; align-items: center; justify-content: center; color: #183c2c; text-decoration: none; border-radius: 50%; }
+.forecast-city-dot { display: block; width: 26px; height: 26px; border: 3px solid #fff; border-radius: 50%; background: #435e73; box-shadow: 0 0 0 2px #435e73, 0 2px 6px #0005; }
+.is-selected .forecast-city-dot { background: #0f6b4a; box-shadow: 0 0 0 2px #0f6b4a, 0 0 0 8px #0f6b4a30, 0 2px 6px #0005; }
+.forecast-city-label { position: absolute; left: 50%; top: 47px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 95px; padding: 7px 10px; border: 1px solid #d6e1dc; border-radius: 10px; background: #fff; box-shadow: 0 2px 8px #0003; white-space: nowrap; }
+.city-santa_tereza .forecast-city-label { top: auto; bottom: 47px; }
+.forecast-city-label strong { color: #183c2c; font-size: 12px; line-height: 1.2; }
+.forecast-city-label small { color: #627568; font-size: 10px; line-height: 1.2; }
+.is-selected .forecast-city-label { border: 2px solid #0f6b4a; background: #f3fbf6; }
+.is-selected .forecast-city-label small { color: #0f6b4a; font-weight: 750; }
+.forecast-map-hint { max-width: 290px; padding: 8px 10px; border: 1px solid #d9e3dd; border-radius: 9px; background: #ffffffed; box-shadow: 0 1px 5px #0002; color: #294b39; font-size: 10px; line-height: 1.35; }
+.forecast-map-hint strong, .forecast-map-hint span { display: block; }
+.forecast-map-hint span { margin-top: 3px; color: #586c60; }
+@media (min-width: 901px) {
+  body.has-gestor-chrome.gestor-fill-layout > main { height: calc(100vh - var(--forecast-header-height, 61px)) !important; min-height: calc(100vh - var(--forecast-header-height, 61px)); }
+  aside { top: var(--forecast-header-height, 61px); max-height: calc(100vh - var(--forecast-header-height, 61px)); }
+}
+@media (max-width: 1100px) {
+  header .forecast-title { flex: 1 1 260px; }
+  header .modes { margin-left: auto; }
+}
+@media (max-width: 600px) {
+  header .forecast-title { flex: 1; }
+  header .forecast-city-switch { order: 2; width: 100%; }
+  .forecast-city-switch a { flex: 1; min-height: 44px; }
+  header .modes { order: 3; }
+  .forecast-map-hint { max-width: 250px; padding: 6px 8px; font-size: 9px; }
+}
