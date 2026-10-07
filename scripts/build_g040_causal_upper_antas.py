@@ -355,6 +355,29 @@ def last_q_at_or_before(event_id:str,t0:datetime)->tuple[datetime,float]|None:
     rows=[(t,q) for t,q in observed_q(event_id).items() if t<=t0]
     return max(rows,key=lambda x:x[0]) if rows else None
 
+def horizon_verification(
+    axis:list[datetime],sim:list[float],obs:dict[datetime,float],t0:datetime
+)->dict[str,Any]:
+    """Evaluation-only endpoint errors; never used for calibration/selection."""
+    sim_by={t:float(q) for t,q in zip(axis,sim)}
+    out={}
+    for h in (6,12,24,48,72):
+        t=t0+timedelta(hours=h)
+        qo=obs.get(t); qs=sim_by.get(t)
+        if qo is None or qs is None or not math.isfinite(float(qs)):
+            out[str(h)]={"available":False}
+            continue
+        signed=100.0*(float(qs)-float(qo))/float(qo) if float(qo)!=0 else None
+        out[str(h)]={
+            "available":True,
+            "time_utc":iso(t),
+            "observed_m3s":round(float(qo),3),
+            "simulated_m3s":round(float(qs),3),
+            "signed_error_pct":None if signed is None else round(signed,3),
+            "absolute_error_pct":None if signed is None else round(abs(signed),3),
+        }
+    return out
+
 def forecast_case(case_id:str,forecast_file:Path,output:Path)->dict[str,Any]:
     if not MODEL.exists():
         raise RuntimeError("frozen upper-Antas model missing; run --calibrate")
@@ -408,6 +431,7 @@ def forecast_case(case_id:str,forecast_file:Path,output:Path)->dict[str,Any]:
         metrics([axis[i] for i in post_idx],[corrected[i] for i in post_idx],obs)
         if obs and post_idx else None
     )
+    horizons=horizon_verification(axis,corrected,obs,t0) if obs else {}
     rows=[
         {
             "time_utc":iso(t),
@@ -438,6 +462,7 @@ def forecast_case(case_id:str,forecast_file:Path,output:Path)->dict[str,Any]:
         "state_correction":correction,
         "verification_window":{"start_utc":iso(t0),"end_utc":iso(end),"pre_t0_scored":False},
         "verification_not_used_for_forcing_or_selection":verification,
+        "horizon_verification_not_used_for_selection":horizons,
         "series":rows,
         "promotion_allowed":False,
     }
