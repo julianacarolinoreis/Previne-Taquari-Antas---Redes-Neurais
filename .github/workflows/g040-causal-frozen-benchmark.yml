@@ -45,6 +45,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          sparse-checkout: |
+            scripts
+            config
+            assets/data/hec_hms_g040_full_basin
+            assets/data/estudo_bacia_taquari_antas
+          sparse-checkout-cone-mode: true
 
       - uses: actions/setup-python@v5
         with:
