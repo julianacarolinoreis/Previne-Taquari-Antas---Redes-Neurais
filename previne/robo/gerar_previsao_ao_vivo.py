@@ -111,6 +111,17 @@ AI_LAB_2H_FEATURE_NAMES = [
 # nÃ£o substituem a validaÃ§Ã£o offline nem alteram a previsÃ£o do MAT.
 LIVE_WARN_MAE_24H_CM = 30.0
 LIVE_WARN_MAX_24H_CM = 100.0
+
+# Bloqueio operacional temporario solicitado em 2026-10-07.
+# A telemetria usada pelo horizonte de 8 h esta sob suspeita e nao deve
+# alimentar/publicar a RNA ate revisao explicita. O bloqueio vale para
+# V001, V002 e seus fallbacks; 2 h e 4 h permanecem inalterados.
+SUSPENSAO_STZ_8H_ATIVA = True
+SUSPENSAO_STZ_8H_HORIZONTES = {"8h", "8h_v002"}
+SUSPENSAO_STZ_8H_MOTIVO = (
+    "suspenso temporariamente: telemetria de Santa Tereza 86472600 "
+    "considerada invalida para a previsao de 8 h; nao publicar ate revisao"
+)
 ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
 # Espelho oficial do mesmo servico: o host telemetriaws1 pode oscilar por
 # ciclo, enquanto o host www continua respondendo.
@@ -275,7 +286,7 @@ MODELOS = [
         "input_contract_version": "hourly_exact_v1",
         "input_grade": "hourly_exact",
         "principal": False,
-        "ativo_ao_vivo": True,
+        "ativo_ao_vivo": False,
         "versao": "V001",
         "status_publicacao": "experimental",
         "modelo_sha256": MODELO_8H_MAT_SHA256,
@@ -295,7 +306,7 @@ MODELOS = [
         "input_contract_version": "hourly_exact_v1",
         "input_grade": "hourly_exact",
         "principal": False,
-        "ativo_ao_vivo": True,
+        "ativo_ao_vivo": False,
         "shadow_only": True,
         "versao": "V002",
         "status_publicacao": "sombra_experimental",
@@ -347,7 +358,7 @@ FALLBACKS_HORIZONTE = {
         "inputs_total": 10,
         "montador": "8h_alt_c0217",
         "principal": False,
-        "ativo_ao_vivo": True,
+        "ativo_ao_vivo": False,
         "shadow_only": False,
         "versao": "fallback C0217 / T2_V1_3_NH_075",
         "status_publicacao": "fallback_operacional_experimental",
@@ -375,7 +386,7 @@ FALLBACKS_HORIZONTE = {
         "inputs_total": 10,
         "montador": "8h_alt_c0217",
         "principal": False,
-        "ativo_ao_vivo": True,
+        "ativo_ao_vivo": False,
         "shadow_only": True,
         "versao": "fallback comparativo C0217 / T3_V1_2_NH_075",
         "status_publicacao": "fallback_operacional_experimental",
@@ -2329,6 +2340,79 @@ def _anexar_fontes_chuva_8h(out, cfg, series):
     return out
 
 
+def horizonte_stz_8h_suspenso(cfg):
+    return bool(
+        SUSPENSAO_STZ_8H_ATIVA
+        and cfg.get("horizonte") in SUSPENSAO_STZ_8H_HORIZONTES
+    )
+
+
+def _fontes_chuva_8h_suspensa():
+    """Mantem a proveniencia do contrato sem fingir que houve entrada valida."""
+    return {
+        "contrato_formula": FORMULA_8H_CONTRATO,
+        "regra_ausencia": (
+            "horizonte suspenso; nenhuma leitura de nivel ou chuva e usada "
+            "para gerar previsao enquanto o bloqueio operacional estiver ativo"
+        ),
+        "alinhamento_a894": "nao aplicado durante a suspensao operacional",
+        "grupo_18h_24h": ["2851072", "A894", "432040401A"],
+        "grupo_6h": ["A894", "432040401A"],
+        "estacoes": {},
+    }
+
+
+def saida_suspensa_stz_8h(cfg, aviso, estacoes_status=None):
+    """Publica estado indisponivel sem executar MAT nem fallback do horizonte 8 h."""
+    out = _base_saida(
+        cfg, None, None, None,
+        SUSPENSAO_STZ_8H_MOTIVO,
+        aviso, [], estacoes_status or [],
+    )
+    out["ativo_ao_vivo"] = False
+    out["disponivel"] = False
+    out["nivel_previsto_cm"] = None
+    out["delta_previsto_cm"] = None
+    out["input_values_cm"] = []
+    out["passos"] = []
+    out["status_dados"] = (
+        "telemetria de Santa Tereza sinalizada como invalida; "
+        "RNA 8h bloqueada para publicacao"
+    )
+    out["auditoria_inputs"] = {
+        "status": "INVALIDO",
+        "motivo": SUSPENSAO_STZ_8H_MOTIVO,
+        "motivo_publicacao": SUSPENSAO_STZ_8H_MOTIVO,
+        "n_inputs": cfg.get("inputs_total"),
+        "n_inputs_nao_exatos": 0,
+        "input_grade": cfg.get("input_grade"),
+        "contrato_temporal": cfg.get("input_contract_version"),
+        "bloqueio_operacional": True,
+    }
+    out["qualidade_ao_vivo"] = {
+        "status": "SUSPENSO_TELEMETRIA_INVALIDA",
+        "regra": "bloqueio operacional manual do horizonte 8 h",
+        "modelo": cfg.get("modelo"),
+    }
+    out["suspensao_operacional"] = {
+        "ativa": True,
+        "estacao": "86472600",
+        "escopo": "Santa Tereza - RNA 8h",
+        "motivo": SUSPENSAO_STZ_8H_MOTIVO,
+    }
+    out["proxima_base_diagnostico"] = {
+        "hora": None,
+        "pronta": False,
+        "inputs_faltantes_n": None,
+        "inputs_faltantes": [],
+        "auditoria_status": "SUSPENSO",
+        "motivo": SUSPENSAO_STZ_8H_MOTIVO,
+    }
+    if cfg.get("montador") in ("8h_alt_v001", "8h_alt_v002"):
+        out["fontes_chuva_8h"] = _fontes_chuva_8h_suspensa()
+    return out
+
+
 def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
     if t is None:
         out = _base_saida(
@@ -2682,20 +2766,23 @@ def escrever_pacote_indisponivel(motivo, aviso):
     historico = carregar_historico()
     horizontes = {}
     for cfg in MODELOS:
-        out = _base_saida(cfg, None, None, None, motivo, aviso, [], resumo_estacoes({}))
-        out["disponivel"] = False
-        out["auditoria_inputs"] = {
-            "status": "INVALIDO",
-            "motivo": motivo,
-            "n_inputs": cfg["inputs_total"],
-            "input_grade": "hourly_exact",
-            "contrato_temporal": "hourly_exact_v1",
-        }
+        if horizonte_stz_8h_suspenso(cfg):
+            out = saida_suspensa_stz_8h(cfg, aviso, [])
+        else:
+            out = _base_saida(cfg, None, None, None, motivo, aviso, [], resumo_estacoes({}))
+            out["disponivel"] = False
+            out["auditoria_inputs"] = {
+                "status": "INVALIDO",
+                "motivo": motivo,
+                "n_inputs": cfg["inputs_total"],
+                "input_grade": "hourly_exact",
+                "contrato_temporal": "hourly_exact_v1",
+            }
+            out["qualidade_ao_vivo"] = {
+                "status": "DADO_INDISPONIVEL",
+                "modelo": cfg["modelo"],
+            }
         out["auditoria"] = resumo_auditoria(historico, cfg["horizonte"], cfg["modelo"])
-        out["qualidade_ao_vivo"] = {
-            "status": "DADO_INDISPONIVEL",
-            "modelo": cfg["modelo"],
-        }
         horizontes[cfg["horizonte"]] = out
     escrever_pacote(horizontes, historico, aviso)
 
@@ -2725,6 +2812,17 @@ def preservar_saida_valida_em_falha(motivo, aviso):
                 item["status"] = "aguardando nova telemetria"
                 item["status_dados"] = "consulta ANA instavel; exibindo ultima previsao valida"
                 item["erro_robo_ultima_consulta"] = motivo
+        # O horizonte 8 h nunca herda uma previsao antiga durante a suspensao.
+        for cfg in MODELOS:
+            if horizonte_stz_8h_suspenso(cfg):
+                anterior = (atual.get("horizontes") or {}).get(cfg["horizonte"]) or {}
+                suspenso = saida_suspensa_stz_8h(
+                    cfg, aviso, anterior.get("estacoes_status") or []
+                )
+                suspenso["ultima_tentativa_em"] = agora
+                suspenso["ultima_tentativa_status"] = "falha"
+                suspenso["erro_robo_ultima_consulta"] = motivo
+                atual["horizontes"][cfg["horizonte"]] = suspenso
         with open(SAIDA, "w", encoding="utf-8") as f:
             json.dump(atual, f, ensure_ascii=False, indent=1)
         print("mantida ultima previsao valida:", motivo)
@@ -2791,7 +2889,7 @@ def aplicar_fallback_operacional(cfg, preferencial, series, horas, aviso, estaco
 
 
 def main():
-    aviso = "EXPERIMENTAL - nao e alerta oficial. Teste interno da previsao de RNA (2h principal, 2h versao B em sombra, 4h, 8h V001 e 8h V002), em paralelo ao SGB/SACE. A versao B e o 8h V002 sao comparativos."
+    aviso = "EXPERIMENTAL - nao e alerta oficial. RNAs 2h/4h seguem em teste; 8h V001/V002 estao temporariamente suspensas por telemetria invalida de Santa Tereza. Em paralelo ao SGB/SACE."
     try:
         CHUVA_ANA_CACHE.clear()
         ANA_XML_CACHE.clear()
@@ -2815,6 +2913,11 @@ def main():
 
     horizontes = {}
     for cfg in MODELOS:
+        if horizonte_stz_8h_suspenso(cfg):
+            horizontes[cfg["horizonte"]] = saida_suspensa_stz_8h(
+                cfg, aviso, estacoes_status
+            )
+            continue
         t_modelo = escolher_hora_modelo(cfg, series, horas)
         out = gerar_saida_modelo(cfg, series, t_modelo, aviso, estacoes_status)
         out["proxima_base_diagnostico"] = diagnosticar_proxima_base(cfg, series, t_modelo)
@@ -2836,6 +2939,8 @@ def main():
     tel = ULTIMA_RAW.get("86472600")
     for hz, out in horizontes.items():
         out["auditoria"] = resumo_auditoria(historico, hz, out.get("modelo"))
+        if (out.get("suspensao_operacional") or {}).get("ativa"):
+            continue
         audit = out["auditoria"]
         mae24 = audit.get("mae_24h_cm")
         max24 = audit.get("maior_erro_abs_24h_cm")
