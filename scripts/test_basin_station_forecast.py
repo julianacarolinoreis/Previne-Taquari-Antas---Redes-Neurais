@@ -1,14 +1,117 @@
 import csv
+import hashlib
 import json
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from scripts import build_basin_station_forecast as feed
 
 
 class BasinStationForecastTests(unittest.TestCase):
+    def write_provenance(self, path, captured_at):
+        with path.open(encoding="utf-8", newline="") as handle:
+            rows = list(csv.DictReader(handle))
+        cells = {}
+        for row in rows:
+            for column, value in row.items():
+                if column.startswith('chuva_') and value not in (None, ''):
+                    cells.setdefault(column, {})[row['COD_SEQUENCIAL']] = captured_at.isoformat()
+        Path(str(path) + '.provenance.json').write_text(json.dumps({
+            'schema_version': 1, 'csv_sha256': hashlib.sha256(path.read_bytes()).hexdigest(), 'cells': cells,
+        }), encoding='utf-8')
+
+    def observed_samples(self, samples, now):
+        """Exercise the public CSV loader using local interval-start labels."""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "rain.csv"
+            with path.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=["COD_SEQUENCIAL", "chuva_86472600"])
+                writer.writeheader()
+                for local_time, value in samples:
+                    writer.writerow({"COD_SEQUENCIAL": local_time, "chuva_86472600": value})
+            self.write_provenance(path, now)
+            return feed.load_observed_rain(path, now=now)["86472600"]
+
+    def test_retained_partial_cell_does_not_close_without_a_new_source_consultation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'rain.csv'
+            path.write_text('COD_SEQUENCIAL,chuva_86472600\n202609301200,2.5\n202609301300,0\n', encoding='utf-8')
+            self.write_provenance(path, datetime(2026, 9, 30, 16, 30, tzinfo=timezone.utc))
+            original = path.read_bytes()
+            for now in (datetime(2026, 9, 30, 16, 59, tzinfo=timezone.utc), datetime(2026, 9, 30, 17, 10, tzinfo=timezone.utc)):
+                result = feed.load_observed_rain(path, now=now)['86472600']
+                self.assertTrue(result['rows'][-1]['partial'])
+                self.assertEqual(result['windows']['1h']['mm'], 2.5)
+                self.assertEqual(result['last_closed_interval_end_utc'], '2026-09-30T16:00Z')
+                self.assertEqual(result['rows'][-1]['confirmation'], 'captured_during_interval')
+            self.assertEqual(path.read_bytes(), original)
+            self.write_provenance(path, datetime(2026, 9, 30, 17, 5, tzinfo=timezone.utc))
+            result = feed.load_observed_rain(path, now=datetime(2026, 9, 30, 17, 10, tzinfo=timezone.utc))['86472600']
+            self.assertFalse(result['rows'][-1]['partial'])
+            self.assertEqual(result['windows']['1h']['mm'], 0)
+            self.assertTrue(result['windows']['1h']['complete'])
+
+    def test_legacy_or_mismatched_provenance_cannot_claim_confirmed_coverage(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'rain.csv'
+            path.write_text('COD_SEQUENCIAL,chuva_86472600\n202609301200,2.5\n', encoding='utf-8')
+            now = datetime(2026, 9, 30, 17, 10, tzinfo=timezone.utc)
+            result = feed.load_observed_rain(path, now=now)['86472600']
+            self.assertEqual(result['windows']['1h']['mm'], 2.5)
+            self.assertFalse(result['windows']['1h']['complete'])
+            self.assertEqual(result['windows']['1h']['unconfirmed_points'], 1)
+            self.write_provenance(path, now)
+            path.write_text(path.read_text() + '202609301300,1\n', encoding='utf-8')
+            result = feed.load_observed_rain(path, now=now)['86472600']
+            self.assertFalse(result['windows']['1h']['complete'])
+            self.assertEqual(result['rows'][-1]['confirmation'], 'unknown')
+
+    def test_current_hour_zero_is_partial_and_excluded_until_exact_close(self):
+        samples = [("202609301200", 2.5), ("202609301300", 0)]
+        before = self.observed_samples(samples, datetime(2026, 9, 30, 16, 59, 59, tzinfo=timezone.utc))
+        closed = self.observed_samples(samples, datetime(2026, 9, 30, 17, 0, tzinfo=timezone.utc))
+        self.assertEqual(before["timestamp_role"], "interval_start")
+        self.assertEqual(before["last_observed_at_utc"], "2026-09-30T16:00Z")
+        self.assertEqual(before["last_closed_interval_end_utc"], "2026-09-30T16:00Z")
+        self.assertEqual(before["windows"]["1h"]["mm"], 2.5)
+        self.assertEqual(before["windows"]["1h"]["start_utc"], "2026-09-30T15:00Z")
+        self.assertTrue(before["rows"][-1]["partial"])
+        self.assertEqual(before["rows"][-1]["interval_end_utc"], "2026-09-30T17:00Z")
+        self.assertEqual(closed["windows"]["1h"]["mm"], 0)
+        self.assertTrue(closed["windows"]["1h"]["complete"])
+        self.assertEqual(closed["last_closed_interval_end_utc"], "2026-09-30T17:00Z")
+        self.assertEqual(closed["closed_interval_age_minutes"], 0)
+        self.assertFalse(closed["rows"][-1]["partial"])
+
+    def test_only_open_hour_does_not_create_a_complete_observed_window(self):
+        result = self.observed_samples([("202610010000", 0)], datetime(2026, 10, 1, 3, 30, tzinfo=timezone.utc))
+        self.assertEqual(result["state"], "available")
+        self.assertIsNone(result["last_closed_interval_end_utc"])
+        self.assertIsNone(result["closed_interval_age_minutes"])
+        for window in result["windows"].values():
+            self.assertIsNone(window["mm"])
+            self.assertIsNone(window["start_utc"])
+            self.assertIsNone(window["end_utc"])
+            self.assertFalse(window["complete"])
+
+    def test_closed_rain_interval_preserves_brt_day_rollover_and_internal_gap(self):
+        result = self.observed_samples(
+            [("202609302200", 1), ("202609302300", ""), ("202610010000", 3), ("202610010100", 90)],
+            datetime(2026, 10, 1, 4, 30, tzinfo=timezone.utc),
+        )
+        window = result["windows"]["3h"]
+        self.assertEqual(window["mm"], 4)
+        self.assertEqual(window["start_utc"], "2026-10-01T01:00Z")
+        self.assertEqual(window["end_utc"], "2026-10-01T04:00Z")
+        self.assertEqual(window["valid_points"], 2)
+        self.assertFalse(window["complete"])
+        self.assertEqual(result["closed_interval_age_minutes"], 30)
+        self.assertEqual(result["last_observed_at_utc"], "2026-10-01T04:00Z")
+        self.assertEqual(result["rows"][-1]["mm"], 90)
+        self.assertTrue(result["rows"][-1]["partial"])
+
     def test_invalid_coordinate_values_are_skipped_without_crashing(self):
         self.assertIsNone(
             feed.valid_coordinates(
@@ -84,8 +187,58 @@ class BasinStationForecastTests(unittest.TestCase):
         rows = result["86472600"]["rows"]
         self.assertEqual(result["86472600"]["state"], "available")
         self.assertEqual(result["86472600"]["observed_age_minutes"], 0)
+        self.assertEqual(
+            result["86472600"]["source"],
+            "ANA · telemetria horária · assets/data/chuvas_horarias.csv",
+        )
         self.assertTrue(any(row["mm"] is None for row in rows))
         self.assertIn(4.5, [row["mm"] for row in rows])
+
+    def test_observed_rain_source_names_network_and_marks_legacy_column(self):
+        self.assertIn("ANA · telemetria horária", feed.observed_rain_source("86472600"))
+        self.assertIn("INMET · estação A894", feed.observed_rain_source("A894"))
+        self.assertIn("CEMADEN · estação 432040401A", feed.observed_rain_source("432040401A"))
+        self.assertIn("coluna legada", feed.observed_rain_source("02851044"))
+        self.assertIn("rede não identificada", feed.observed_rain_source("unknown"))
+
+    def test_legacy_72h_window_discloses_age_and_unconfirmed_coverage_with_newer_gaps(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "rain.csv"
+            with path.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(
+                    handle,
+                    fieldnames=["COD_SEQUENCIAL", "chuva_86472600"],
+                )
+                writer.writeheader()
+                local_start = datetime(2026, 9, 20, 0)
+                for hour in range(78):
+                    local_time = local_start + timedelta(hours=hour)
+                    writer.writerow({
+                        "COD_SEQUENCIAL": local_time.strftime("%Y%m%d%H%M"),
+                        "chuva_86472600": 1.0 if hour <= 72 else "",
+                    })
+
+            result = feed.load_observed_rain(
+                path,
+                now=datetime(2026, 9, 23, 8, 0, tzinfo=timezone.utc),
+                hours=72,
+            )["86472600"]
+
+        window = result["windows"]["72h"]
+        self.assertFalse(window["complete"])
+        self.assertEqual(window["unconfirmed_points"], 72)
+        self.assertEqual(window["valid_points"], 72)
+        self.assertEqual(window["start_utc"], "2026-09-20T04:00Z")
+        self.assertEqual(window["end_utc"], "2026-09-23T04:00Z")
+        self.assertEqual(result["observed_age_minutes"], 300)
+        self.assertEqual(result["closed_interval_age_minutes"], 240)
+        self.assertEqual([{key: row[key] for key in ("time", "mm")} for row in result["rows"][-5:]], [
+            {"time": "2026-09-23T04:00Z", "mm": None},
+            {"time": "2026-09-23T05:00Z", "mm": None},
+            {"time": "2026-09-23T06:00Z", "mm": None},
+            {"time": "2026-09-23T07:00Z", "mm": None},
+            {"time": "2026-09-23T08:00Z", "mm": None},
+        ])
 
     def test_cemaden_24h_observation_is_not_an_hourly_series(self):
         station = {"source_observations": [{
@@ -119,6 +272,8 @@ class BasinStationForecastTests(unittest.TestCase):
         self.assertEqual(windows["2h"]["expected_points"], 2)
         self.assertFalse(windows["2h"]["complete"])
         self.assertAlmostEqual(windows["2h"]["coverage_ratio"], 0.5, places=3)
+        self.assertEqual(windows["2h"]["start_utc"], "2026-09-20T01:00Z")
+        self.assertEqual(windows["2h"]["end_utc"], "2026-09-20T03:00Z")
 
     def test_observed_windows_use_exact_hour_count(self):
         latest = datetime(2026, 9, 20, 23, tzinfo=timezone.utc)
@@ -135,6 +290,8 @@ class BasinStationForecastTests(unittest.TestCase):
         self.assertEqual(windows["24h"]["valid_points"], 24)
         self.assertEqual(windows["24h"]["expected_points"], 24)
         self.assertTrue(windows["24h"]["complete"])
+        self.assertEqual(windows["24h"]["start_utc"], "2026-09-20T00:00Z")
+        self.assertEqual(windows["24h"]["end_utc"], "2026-09-21T00:00Z")
 
     def test_catalog_merges_flow_and_rain_records_by_network_and_code(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -455,6 +612,17 @@ class BasinStationForecastTests(unittest.TestCase):
         self.assertEqual(level["forecast_status"], "unavailable")
         self.assertEqual(result["scope"]["level_station_count"], 0)
 
+    def test_compact_status_preserves_observed_interval_and_confirmation(self):
+        now = datetime(2026, 9, 30, 17, 10, tzinfo=timezone.utc)
+        observed = self.observed_samples([('202609301300', 0)], now)
+        compact = feed._compact_station_status({'observed_rain': observed}, generated_at=now)['observed_rain']
+        self.assertEqual(compact['timestamp_role'], 'interval_start')
+        self.assertEqual(compact['last_closed_interval_end_utc'], '2026-09-30T17:00Z')
+        self.assertEqual(compact['closed_interval_age_minutes'], 10)
+        self.assertEqual(compact['windows']['1h']['start_utc'], '2026-09-30T16:00Z')
+        self.assertEqual(compact['windows']['1h']['end_utc'], '2026-09-30T17:00Z')
+        self.assertEqual(compact['windows']['1h']['unconfirmed_points'], 0)
+
 
     def test_status_snapshot_keeps_compact_station_contract(self):
         generated = datetime(2026, 10, 1, 13, 0, tzinfo=timezone.utc)
@@ -524,6 +692,55 @@ class BasinStationForecastTests(unittest.TestCase):
             compact["forecast"]["models"]["ecmwf_ifs025"]["precipitation_windows_mm"]["24h"],
             25.0,
         )
+        station['forecast']['times'] = ['2026-09-30T12:00Z', '2026-09-30T15:00Z']
+        expired = feed._compact_station_status(station, generated_at=generated)['forecast']['models']['ecmwf_ifs025']
+        self.assertEqual(expired['precipitation_state'], 'unavailable')
+        self.assertTrue(all(value is None for value in expired['precipitation_windows_mm'].values()))
+
+    def test_suspect_level_points_are_blocked_but_preserved(self):
+        source = {"state": "available", "current_cm": 24907,
+                  "forecast_cm": 24908, "forecast_applicable": True,
+                  "trend_cm_per_hour": 68, "trend_label": "subindo",
+                  "series": [{"time": "2026-10-02T12:00Z", "cm": 350},
+                             {"time": "2026-10-02T13:00Z", "cm": 24907}],
+                  "forecasts": [{"time": "2026-10-02T19:00Z", "cm": 24908}]}
+        normalized = feed.normalize_level_measurement(source)
+        self.assertIsNone(normalized["current_cm"])
+        self.assertEqual(normalized["raw_current_cm"], 24907)
+        self.assertEqual(normalized["series"][0]["cm"], 350)
+        self.assertIsNone(normalized["series"][1]["cm"])
+        self.assertEqual(normalized["series"][1]["raw_cm"], 24907)
+        self.assertIsNone(normalized["forecasts"][0]["cm"])
+        self.assertEqual(normalized["forecasts"][0]["raw_cm"], 24908)
+        self.assertIsNone(normalized["forecast_cm"])
+        self.assertEqual(normalized["raw_forecast_cm"], 24908)
+        self.assertEqual(normalized["forecast_status"], "unavailable")
+        self.assertIsNone(normalized["trend_cm_per_hour"])
+        self.assertIsNone(normalized["trend_label"])
+        self.assertEqual(normalized["series_valid_points"], 1)
+        snapshot = json.loads(json.dumps(normalized))
+        self.assertEqual(feed.normalize_level_measurement(normalized), snapshot)
+
+    def test_unavailable_raw_source_values_do_not_count_as_observations(self):
+        observation = {"value": 250, "source_status": 1}
+        station = {"source_observations": [observation]}
+        self.assertFalse(feed.has_valid_source_observation(station))
+        observation["source_status"] = "0"
+        self.assertTrue(feed.has_valid_source_observation(station))
+        observation.update(metric="chuva_acumulada_24h_mm", value=-1)
+        self.assertFalse(feed.has_valid_source_observation(station))
+        observation["value"] = 0
+        self.assertTrue(feed.has_valid_source_observation(station))
+
+    def test_level_series_gate_applies_without_a_latest_measurement(self):
+        normalized = feed.normalize_level_measurement({
+            "state": "unavailable", "current_cm": None,
+            "series": [{"cm": -1}, {"cm": 0}, {"cm": 5000}, {"cm": 5001}],
+            "forecasts": [],
+        })
+        self.assertEqual([row["cm"] for row in normalized["series"]], [None, 0, 5000, None])
+        self.assertEqual(normalized["series"][0]["raw_cm"], -1)
+        self.assertEqual(normalized["series"][3]["raw_cm"], 5001)
 
     def test_dashboard_contract_includes_g040_health_and_no_current_filter(self):
         html = (feed.ROOT / "dashboard_bacia.html").read_text(encoding="utf-8")

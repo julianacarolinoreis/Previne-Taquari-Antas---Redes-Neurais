@@ -8,8 +8,9 @@ does not claim a score until the target observation has actually arrived.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -23,14 +24,15 @@ def archive_snapshot(
     feed_path: Path = DEFAULT_FEED,
     archive_dir: Path = DEFAULT_ARCHIVE,
 ) -> Path:
-    with feed_path.open(encoding="utf-8") as handle:
-        feed = json.load(handle)
+    source_bytes = feed_path.read_bytes()
+    feed = json.loads(source_bytes)
 
     generated = str(feed.get("generated_at_utc") or "")
     try:
-        stamp = datetime.fromisoformat(generated.replace("Z", "+00:00")).strftime(
-            "%Y%m%dT%H%MZ"
-        )
+        instant = datetime.fromisoformat(generated.replace("Z", "+00:00"))
+        if instant.tzinfo is None:
+            raise ValueError("Horário sem fuso não identifica uma rodada UTC.")
+        stamp = instant.astimezone(timezone.utc).strftime("%Y%m%dT%H%MZ")
     except ValueError as exc:
         raise ValueError("Feed sem generated_at_utc válido.") from exc
 
@@ -38,6 +40,7 @@ def archive_snapshot(
         "schema_version": 1,
         "feed_generated_at_utc": generated,
         "source_feed": "assets/data/basin_station_forecast_latest.json",
+        "source_feed_sha256": hashlib.sha256(source_bytes).hexdigest(),
         "research_only": True,
         "official_alert": False,
         "skill_target": "chuva observada publicada posteriormente",
@@ -69,11 +72,18 @@ def archive_snapshot(
         )
 
     archive_dir.mkdir(parents=True, exist_ok=True)
-    target = archive_dir / f"{stamp}.json"
     serialized = json.dumps(compact, ensure_ascii=False, indent=2) + "\n"
-    if target.exists() and target.read_text(encoding="utf-8") == serialized:
-        return target
-    target.write_text(serialized, encoding="utf-8")
+    # Content addressing is necessary even when the directory is sparse and
+    # older remote snapshots are absent from the working tree. A minute-only
+    # name can otherwise overwrite an unseen snapshot when Git stages it.
+    digest = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+    target = archive_dir / f"{stamp}-{digest}.json"
+    try:
+        with target.open("x", encoding="utf-8", newline="\n") as handle:
+            handle.write(serialized)
+    except FileExistsError:
+        if target.read_text(encoding="utf-8") != serialized:
+            raise ValueError("Colisão no arquivo histórico; snapshot anterior preservado.")
     return target
 
 
