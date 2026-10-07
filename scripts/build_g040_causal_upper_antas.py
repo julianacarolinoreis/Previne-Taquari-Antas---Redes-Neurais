@@ -197,6 +197,21 @@ def robust_multi_event_score(event_scores:list[float])->float:
     worst=min(event_scores)
     return 0.60*mean+0.40*worst
 
+def calibration_gate(metrics_by_event:dict[str,dict[str,float]])->bool:
+    """Calibration-only feasibility gate; validation/holdout never enter here."""
+    if not metrics_by_event:
+        return False
+    for m in metrics_by_event.values():
+        if float(m.get("nse",-999)) < 0.70:
+            return False
+        if abs(float(m.get("peak_relative_error",999))) > 0.15:
+            return False
+        if abs(float(m.get("peak_lag_hours",999))) > 3.0:
+            return False
+        if abs(float(m.get("volume_error",999))) > 0.25:
+            return False
+    return True
+
 def evaluate_candidates(candidates:list[ZoneParams],packs:dict[str,tuple],a:dict[str,float]):
     rows=[]
     seen=set()
@@ -255,7 +270,9 @@ def calibrate()->dict[str,Any]:
         [x[1] for x in coarse]+[x[1] for x in refined],
         packs,a,
     )
-    best_score,best,best_metrics,best_event_scores=rows[0]
+    feasible=[row for row in rows if calibration_gate(row[2])]
+    selected_pool=feasible if feasible else rows
+    best_score,best,best_metrics,best_event_scores=selected_pool[0]
     payload={
         "schema_version":"g040_upper_antas_model_frozen_v1",
         "generated_at_utc":datetime.now(UTC).isoformat().replace("+00:00","Z"),
@@ -271,6 +288,14 @@ def calibrate()->dict[str,Any]:
             "refinement_seed_count":min(12,len(coarse)),
             "refined_candidate_count":len(refined),
             "robust_event_weighting":{"mean":0.60,"worst_event":0.40},
+            "calibration_feasibility_gate":{
+                "nse_min":0.70,
+                "peak_relative_error_max":0.15,
+                "peak_lag_hours_max":3.0,
+                "absolute_volume_error_max":0.25,
+                "feasible_candidate_count":len(feasible),
+                "gate_used_for_selection":bool(feasible),
+            },
             "validation_or_holdout_used":False,
         },
         "parameters":params_dict(best),
