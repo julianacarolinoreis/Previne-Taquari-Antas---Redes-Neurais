@@ -20,6 +20,8 @@ relação ao robô principal, exigidas pelo treino v2:
   * hierarquia de reserva por horizonte: usa o primeiro nível com todas as
     entradas e base com antecedência suficiente; publica o nível usado e o motivo;
   * faixa de incerteza (E95 da auditoria por situação: subida / >= 1500 cm / geral).
+O mesmo script atende Santa Tereza: `--contrato assets/data/santa_tereza_modelos_sombra.json`
+(o contrato define "alvo", "saida_json" e "historico_jsonl").
 EXPERIMENTAL — não é alerta oficial.
 """
 from __future__ import annotations
@@ -290,9 +292,16 @@ def atualizar_historico(registros_novos, niveis_alvo):
     return len(hist)
 
 
-def main():
+def main(argv=None):
+    global ALVO, SAIDA, HISTORICO, CONTRATO
+    argv = sys.argv[1:] if argv is None else argv
+    if "--contrato" in argv:
+        CONTRATO = os.path.join(RAIZ, argv[argv.index("--contrato") + 1])
     agora = R.agora_brt()
     contrato = json.load(open(CONTRATO, encoding="utf-8"))
+    ALVO = str(contrato.get("alvo") or ALVO)
+    SAIDA = os.path.join(RAIZ, contrato.get("saida_json") or os.path.basename(SAIDA))
+    HISTORICO = os.path.join(RAIZ, contrato.get("historico_jsonl") or os.path.basename(HISTORICO))
     limites = contrato.get("limites_estacao_cm", {})
     estacoes = [ALVO] + sorted({c for hz in contrato["horizontes"].values() for m in hz["modelos"]
                                 for c in m.get("estacoes_nivel", []) + m.get("estacoes_chuva", [])} - {ALVO})
@@ -306,7 +315,7 @@ def main():
             niveis[cod] = qc_niveis(cod, niveis.get(cod, {}), limites, niveis[ALVO])
     horas_alvo = sorted(niveis[ALVO])
     saida = {"gerado_em": agora.isoformat(timespec="seconds"), "aviso": "SOMBRA EXPERIMENTAL — não publicado no site; não é alerta oficial.",
-             "contrato": os.path.relpath(CONTRATO, RAIZ), "ultima_hora_mucum": horas_alvo[-1].isoformat() if horas_alvo else None,
+             "contrato": os.path.relpath(CONTRATO, RAIZ), "alvo": ALVO, "ultima_hora_alvo": horas_alvo[-1].isoformat() if horas_alvo else None,
              "estacoes_sem_dado": [c for c in estacoes if not niveis.get(c) and not chuva.get(c)], "horizontes": {}}
     novos = []
     for chave, cfg in contrato["horizontes"].items():
