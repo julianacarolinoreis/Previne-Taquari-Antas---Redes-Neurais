@@ -16,6 +16,8 @@ class TestUpperAntas(unittest.TestCase):
         self.assertNotIn('CAL_EVENTS=("E27',src)
         self.assertIn('"future_observed_flow_used":False',src)
         self.assertIn('"validation_event_used_for_selection":False',src)
+        self.assertIn('"pre_t0_scored":False',src)
+        self.assertIn('post_idx=[i for i,t in enumerate(axis) if t>=t0]',src)
     def test_simulate_nonnegative(self):
         a={m.Z_PRATA:1000.0,m.Z_ANTAS:2000.0}
         p=m.ZoneParams(1.0,0.5,10.0,20.0,0.9,0.001)
