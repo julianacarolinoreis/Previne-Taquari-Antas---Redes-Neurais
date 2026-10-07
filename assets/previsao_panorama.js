@@ -334,6 +334,7 @@
     const hs=live.horizontes&&Object.keys(live.horizontes).length?live.horizontes:{[live.horizonte||'2h']:live};
     const candidatesByHours=new Map();
     Object.entries(hs).forEach(([key,obj])=>{
+      if(document.body.classList.contains('public-forecast') && !window.PREVINE_PUBLIC.isReady(key,obj)) return;
       if(!obj||obj.disponivel===false||obj.shadow_only) return;
       const cm=number(obj.nivel_previsto_cm),hours=horizonHours(key,obj);
       if(cm===null||hours===null||![2,4,8,12].includes(hours)) return;
@@ -555,7 +556,9 @@
     const crossDay=new Date(xMin).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'})!==new Date(xMax).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'});
 
     const spanHours=(xMax-xMin)/36e5;
-    const descText=items.length
+    const descText=document.body.classList.contains('public-forecast')
+      ?`Nível observado nas ${opts.periodLabel}, em azul. Pontos coloridos: previsões disponíveis. Lacunas de telemetria não são ligadas por linhas.`
+      :items.length
       ?`Nível do rio observado nas ${opts.periodLabel}. A linha azul mostra observações; a cinza tracejada mostra o que a RNA previu antes para cada hora-alvo; cada horizonte ativo tem cor e marcador próprios.`
       :`Nível do rio observado nas ${opts.periodLabel}, em linha azul. A cinza tracejada mostra previsões anteriores da RNA. Lacunas de telemetria não são ligadas por linhas.`;
     const desc=svgNode('desc',{},descText);
@@ -1229,12 +1232,13 @@
     // está no futuro. Saídas vencidas continuam em liveStaleHorizons e no
     // histórico/auditoria, mas não são desenhadas como previsão atual.
     const published=items;
-    const previous24=previousForecastPoints(state.history,state.live,current,24);
-    const previousWeek=previousForecastPoints(state.history,state.live,current,168);
+    const publicView=document.body.classList.contains('public-forecast');
+    const previous24=publicView?[]:previousForecastPoints(state.history,state.live,current,24);
+    const previousWeek=publicView?[]:previousForecastPoints(state.history,state.live,current,168);
     const trend=trendInfo(points);
     const flood=floodInfo(current,items,state.config.cotaInundCm);
     drawChart(points,published,state.config.cotaInundCm,{windowHours:24,previous:previous24});
-    drawChart(weekPoints,[],state.config.cotaInundCm,{
+    if(!publicView) drawChart(weekPoints,[],state.config.cotaInundCm,{
       svgId:'river-week-chart',
       emptyId:'overview-week-empty',
       periodLabel:'últimos 7 dias',
@@ -1244,6 +1248,11 @@
       previous:previousWeek
     });
     renderLegend(published,previous24.length>0||previousWeek.length>0);
+    if(publicView){
+      const badge=document.getElementById('overview-trend-badge');
+      if(badge){badge.textContent=trend.label;badge.className='trend-badge '+(flood.alert?'alert':trend.className);}
+    }
+    if(!publicView){
     renderWeekCoverage(weekPoints);
     renderErrorReport();
     renderBriefing(current,items,state.history?errorReportRows(state.history):[]);
@@ -1251,6 +1260,7 @@
     renderRobotStatus();
     renderResearchRisk();
     renderSpecialistReview();
+    }
 
     const status=document.getElementById('overview-source-status');
     if(status){
@@ -1272,7 +1282,9 @@
         :state.historyError
         ?'O histórico não carregou; os horizontes ao vivo continuam visíveis.'
         :'Linha azul: telemetria observada ANA/SGB, independente da auditoria da RNA. Cinza tracejada: o que a RNA previu antes. Cada horizonte ativo tem cor e marcador próprios.';
-      status.textContent=prefix+(freshness?' '+freshness+'.':'');
+      status.textContent=publicView
+        ?(state.historyError?'O histórico não carregou. ':state.liveError?'Os dados atuais não carregaram. ':'')+'Linha azul: nível observado. Os pontos coloridos indicam as previsões disponíveis.'+(telemetryWhen?' Última leitura: '+fmtWhenWithZone(telemetryWhen)+'.':'')
+        :prefix+(freshness?' '+freshness+'.':'');
     }
     const accessible=document.getElementById('overview-accessible');
     if(accessible){

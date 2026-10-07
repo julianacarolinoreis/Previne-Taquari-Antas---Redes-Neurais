@@ -1,0 +1,156 @@
+/* Apresentação pública. As páginas _usuario conservam seus próprios componentes. */
+body.public-forecast {
+  --bg: #f3f6f5;
+  --ink: #172e2c;
+  --muted: #607572;
+  --line: #dfe8e4;
+  --brand: #12654f;
+  background: var(--bg);
+}
+.public-forecast *, .public-forecast svg text {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif !important;
+}
+.public-forecast [hidden], .public-forecast .public-legacy-bindings,
+.public-forecast header .modes { display: none !important; }
+.public-forecast > header {
+  padding: 19px max(24px, calc((100vw - 1540px) / 2));
+  gap: 15px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 3px 18px #18382c04;
+}
+.public-forecast header .mark {
+  display: grid; place-items: center; width: 44px; height: 44px;
+  background: #e8f3ed; color: var(--brand); border-radius: 14px;
+}
+.public-forecast .mark svg { width: 27px; height: 27px; }
+.public-brand-label { display: block; margin-bottom: 5px; color: #12654f; font-size: 10px; letter-spacing: .13em; font-weight: 750; }
+.public-forecast header h1 { font-size: clamp(18px, 1.65vw, 25px); font-weight: 700; letter-spacing: -.035em; line-height: 1.2; }
+.public-forecast header .loc { margin-top: 5px; font-size: 12px; }
+.public-forecast header .forecast-title { flex: 1; }
+.public-forecast .forecast-city-switch { padding: 5px; gap: 5px; background: #f2f6f3; border: 0; border-radius: 14px; }
+.public-forecast .forecast-city-switch a { min-height: 44px; padding: 10px 19px; font-size: 13px; border-radius: 10px; }
+.public-forecast .forecast-city-switch a:hover { background: #e3ede7; }
+.public-forecast .forecast-city-switch a[aria-current="page"] { background: #12654f; color: #fff; box-shadow: 0 2px 5px #12654f24; }
+body.public-forecast.has-gestor-chrome.gestor-fill-layout > main {
+  display: grid; grid-template-columns: minmax(0, 1fr) 338px;
+  grid-template-rows: auto auto; grid-template-areas: "map aside" "overview aside";
+  gap: 22px; align-items: start; width: 100%; max-width: 1588px;
+  height: auto !important; min-height: 0; margin: 0 auto; padding: 26px 24px 36px;
+}
+.public-map-panel { grid-area: map; min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 20px; background: #fff; box-shadow: 0 6px 24px #254a3806; }
+.public-map-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 17px 20px; }
+.public-map-heading h2 { font-size: 15px; margin: 0 0 3px; font-weight: 700; }
+.public-map-heading p { font-size: 12px; line-height: 1.4; color: var(--muted); margin: 0; }
+.public-map-tag { flex-shrink: 0; padding: 6px 9px; border-radius: 7px; color: #416356; background: #eff5f0; font-size: 10px; font-weight: 650; }
+.public-forecast #map { height: clamp(425px, 58vh, 650px); min-height: 425px; width: 100%; z-index: 0; }
+.public-map-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 18px; padding: 13px 20px; font-size: 11px; color: #506962; }
+.public-map-footer span { display: inline-flex; align-items: center; gap: 7px; }
+.public-map-footer i { width: 10px; height: 10px; border-radius: 3px; background: #4a7bdb; }
+.public-map-footer .forecast i { background: #f39735; }
+.public-forecast aside.public-sidebar {
+  grid-area: aside; position: sticky; top: calc(var(--forecast-header-height, 105px) + 20px);
+  max-height: none; overflow: visible; border: 1px solid var(--line); border-radius: 20px;
+  padding: 23px 21px 17px; background: #fff; box-shadow: 0 6px 24px #254a3806;
+}
+.public-forecast .forecast-city-context { border: 0; padding: 0; margin: 0 0 18px; background: none; }
+.public-forecast .forecast-city-context > div:first-child { display: block; }
+.public-forecast .forecast-city-context span { display: block; font-size: 10px; font-weight: 750; letter-spacing: .11em; text-transform: uppercase; margin-bottom: 4px; color: #668078; }
+.public-forecast .forecast-city-context strong { font-size: 26px; font-weight: 700; letter-spacing: -.03em; color: var(--ink); }
+.public-forecast .forecast-map-actions { gap: 7px; margin-top: 12px; }
+.public-forecast .forecast-map-actions button { font-size: 11px; min-height: 37px; color: #42675a; border-color: #dfe9e3; background: #f7faf8; border-radius: 9px; }
+.public-forecast .forecast-map-actions button:hover { background: #eaf2ed; border-color: #abc5b6; }
+.public-status { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 7px; color: #286346; background: #edf6ef; font-size: 10px; font-weight: 700; }
+.public-status::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.public-status.warn { background: #fff3df; color: #8b5a12; }
+.public-current { padding: 18px 0 20px; }
+.public-forecast .q { margin: 0 0 7px; text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 600; color: #5c736b; }
+.public-forecast .public-number { display: block; font-size: 39px; font-weight: 650; letter-spacing: -.04em; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.public-current .public-number { color: #285da4; }
+.public-time { display: block; margin-top: 7px; color: #6b7e77; font-size: 11px; line-height: 1.45; }
+.public-prediction { padding: 18px 16px 17px; border: 1px solid #dae8df; border-radius: 15px; background: #f4f8f5; }
+.public-prediction h3 { margin: 0 0 12px; font-size: 13px; font-weight: 700; }
+.public-forecast .live-hz { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0 0 17px; }
+.public-forecast .live-hz button {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-width: 0; min-height: 62px; padding: 8px 3px; border: 1px solid #dce6df; border-radius: 10px;
+  color: #466455; background: #fff; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.public-forecast .live-hz button small { font-size: 9px; line-height: 1.3; font-weight: 500; }
+.public-forecast .live-hz button.on { background: #12654f; border-color: #12654f; color: #fff; box-shadow: 0 2px 6px #12654f1a; }
+.public-forecast .live-hz button:disabled { background: #edf1ee; color: #7c8c82; border-style: dashed; border-color: #d6dfd8; cursor: default; box-shadow: none; }
+.public-prediction .public-number { color: #173d30; font-size: 36px; }
+.public-prediction .q { font-size: 11px; }
+.public-prediction .public-time { color: #4e6d5d; }
+.public-forecast .live-horizon-status { padding: 0; border: 0; background: none; font-size: 10px; line-height: 1.5; color: #6d7f74; margin: 12px 0 0; }
+.public-service-note { margin: 13px 0 0; padding: 10px 11px; border: 1px solid #f0dfbb; border-radius: 10px; background: #fff9ee; color: #7b5d24; font-size: 11px; line-height: 1.5; }
+.public-details { margin-top: 18px; padding-top: 15px; border-top: 1px solid #e6ede8; }
+.public-details summary { cursor: pointer; font-size: 11px; font-weight: 600; color: #4f695e; min-height: 26px; }
+.public-details .public-detail-body { margin-top: 8px; font-size: 11px; line-height: 1.6; color: #64776d; }
+.public-details p { margin: 7px 0; }
+.public-reference { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0 0; border-top: 1px solid #e6ede8; }
+.public-reference strong { color: #435f50; white-space: nowrap; }
+.public-disclaimer { margin: 10px 0 0; color: #77877e; font-size: 10px; line-height: 1.5; }
+.public-disclaimer strong { color: #5d7166; font-weight: 600; }
+.public-forecast #river-overview { min-width: 0; padding: 22px 22px 19px; border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 6px 24px #254a3806; }
+.public-forecast .overview-head { gap: 12px; margin-bottom: 17px; }
+.public-forecast .overview-eyebrow { font-size: 10px; letter-spacing: .1em; color: #7a8e83; }
+.public-forecast .overview-head h2 { font-size: 19px; letter-spacing: -.025em; font-weight: 650; margin-top: 5px; }
+.public-forecast .overview-head p { font-size: 11px; line-height: 1.5; }
+.public-forecast .trend-badge { min-height: 29px; padding: 6px 9px; font-size: 10px; }
+.public-forecast .overview-chart-shell { border-radius: 12px; background: #fcfefd; min-height: 230px; }
+.public-forecast #river-level-chart { min-height: 230px; }
+.public-forecast .overview-legend { font-size: 10px; gap: 9px 16px; margin-top: 12px; }
+.public-forecast .overview-metrics, .public-forecast .overview-week, .public-forecast .panorama-only,
+.public-forecast .error-report, .public-forecast .window-compare, .public-forecast .overview-insights,
+.public-forecast .research-separate-link, .public-forecast .overview-note { display: none !important; }
+.public-forecast .leaflet-control-layers { border: 0; border-radius: 10px; box-shadow: 0 2px 10px #163e2826; }
+.public-forecast .leaflet-bar { border: 0; box-shadow: 0 2px 10px #163e2826; border-radius: 9px; overflow: hidden; }
+.public-forecast .leaflet-control-attribution { font-size: 9px; }
+.public-forecast .forecast-map-hint { display: none; }
+.public-forecast .forecast-city-label { box-shadow: 0 3px 13px #102e2628; border-radius: 11px; }
+.public-forecast :focus-visible { outline: 3px solid #d7932e; outline-offset: 3px; }
+/* Nunca mostrar os valores ou a mancha de um replay enquanto o feed carrega. */
+.public-forecast:not(.live) .public-number, .public-forecast:not(.live) #s-hz { visibility: hidden; }
+.public-forecast:not(.live) .leaflet-pane[class*="prediction"],
+.public-forecast:not(.live) .leaflet-currentFlood-pane { visibility: hidden; }
+.public-forecast:not(.live) .public-current { position: relative; }
+.public-forecast:not(.live) .public-current::after { content: "Aguardando leitura…"; position: absolute; top: 42px; font-size: 14px; color: #7b8e83; }
+.public-forecast[data-public-state="error"] .public-current::after { content: "Leitura indisponível"; }
+@media (max-width: 1100px) {
+  body.public-forecast.has-gestor-chrome.gestor-fill-layout > main { grid-template-columns: minmax(0, 1fr) 310px; gap: 16px; padding: 20px 18px 28px; }
+  .public-forecast aside.public-sidebar { padding: 20px 17px 16px; }
+  .public-map-tag { display: none; }
+  .public-forecast .overview-head { flex-wrap: wrap; }
+}
+@media (max-width: 900px) {
+  body.public-forecast.has-gestor-chrome.gestor-fill-layout > main { grid-template-columns: minmax(0, 1fr); grid-template-areas: "map" "aside" "overview"; grid-template-rows: auto; padding: 16px; }
+  .public-forecast > header { padding: 16px 18px; }
+  .public-forecast aside.public-sidebar { position: static; padding: 22px; }
+  .public-forecast #map { height: 430px; min-height: 430px; }
+  .public-current { padding-top: 13px; }
+}
+@media (max-width: 600px) {
+  .public-forecast > header { gap: 10px; padding: 15px 16px 12px; }
+  .public-forecast header .mark { width: 36px; height: 36px; border-radius: 11px; }
+  .public-forecast .mark svg { width: 23px; height: 23px; }
+  .public-brand-label { font-size: 9px; margin-bottom: 4px; }
+  .public-forecast header h1 { font-size: 18px; }
+  .public-forecast header .loc { font-size: 10px; }
+  .public-forecast .forecast-city-switch { margin-top: 3px; padding: 4px; }
+  .public-forecast .forecast-city-switch a { min-height: 40px; padding: 8px 14px; font-size: 12px; }
+  body.public-forecast.has-gestor-chrome.gestor-fill-layout > main { padding: 12px; gap: 14px; }
+  .public-map-panel, .public-forecast aside.public-sidebar, .public-forecast #river-overview { border-radius: 16px; }
+  .public-map-heading { padding: 14px; }
+  .public-map-heading h2 { font-size: 14px; }
+  .public-map-heading p { font-size: 10px; }
+  .public-forecast #map { height: 360px; min-height: 360px; }
+  .public-map-footer { padding: 11px 14px; gap: 10px 14px; font-size: 10px; }
+  .public-forecast aside.public-sidebar { padding: 20px; }
+  .public-forecast #river-overview { padding: 18px 14px; }
+  .public-forecast .overview-head h2 { font-size: 17px; }
+  .public-forecast .overview-chart-shell, .public-forecast #river-level-chart { min-height: 180px; }
+  .public-forecast .forecast-city-label { min-width: 80px; padding: 6px 8px; }
+  .public-forecast .forecast-city-label strong { font-size: 11px; }
+  .public-forecast .forecast-city-label small { font-size: 9px; }
+}
