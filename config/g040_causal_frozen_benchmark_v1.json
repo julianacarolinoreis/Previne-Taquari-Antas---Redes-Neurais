@@ -13,9 +13,28 @@
   },
   "boundary_policy": {
     "primary_source": "86472000",
-    "optional_branch_sources": ["86500000", "86595000", "86746000"],
-    "eligibility_at_t0": "at least 18 distinct observed-flow hours in the 24 h ending at t0",
-    "future_after_t0": "last observed discharge persisted; no future observed discharge enters HEC forcing"
+    "primary_future_model": "assets/data/hec_hms_g040_full_basin/g040_upper_antas_model_frozen_latest.json",
+    "primary_future_model_calibration_events": [
+      "E22_SEP2023",
+      "E24_NOV2023"
+    ],
+    "primary_future_model_validation_events_excluded": [
+      "E27_MAY2024",
+      "E28_JUN2024",
+      "E2026_JUL"
+    ],
+    "primary_rain_before_or_at_t0": "observed nested-zone rainfall",
+    "primary_rain_after_t0": "same exact archived ECMWF IFS run used by the downstream replay",
+    "primary_state_correction": "observed 86472000 discharge available at/before t0 only; additive error decays with frozen tau=24 h",
+    "optional_branch_sources": [
+      "86500000",
+      "86595000",
+      "86746000"
+    ],
+    "optional_eligibility_at_t0": "at least 18 distinct observed-flow hours in the 24 h ending at t0",
+    "optional_future_after_t0": "last observed discharge persisted; no future observed discharge enters HEC forcing",
+    "fallback_primary_if_predictive_86472000_unavailable": "86510000 Muçum only when causally available; upstream topology is removed to prevent double counting",
+    "future_observed_discharge_used": false
   },
   "rain_policy": {
     "before_or_at_t0": "observed G040 component forcing",
@@ -50,8 +69,15 @@
   "no_leakage_rules": [
     "E27_MAY2024 and E28_JUN2024 never enter calibration parameter selection",
     "E2026_JUL never enters calibration or validation tuning",
+    "the predictive 86472000 boundary is calibrated only on E22_SEP2023 and E24_NOV2023",
     "future observed rainfall after t0 is verification-only and is not used as forcing",
-    "future observed discharge after t0 is verification-only and is not used as a Source hydrograph",
+    "future observed discharge after t0 is verification-only and is not used as a Source hydrograph or state correction",
     "all verification metrics are computed only at or after t0"
-  ]
+  ],
+  "verification_policy": {
+    "flow_magnitude": "WAPE/RMSE only where observed discharge is available",
+    "persistence_skill": "computed only on identical station-time pairs with a valid observed discharge at t0",
+    "late_starting_observations": "HEC is still scored after observations become available; they are not discarded merely because persistence is unavailable at t0",
+    "high_flow_rating_curve_guard": "observed level is used independently for peak timing and rise/fall shape; no high-flow rating-curve extrapolation is invented"
+  }
 }
