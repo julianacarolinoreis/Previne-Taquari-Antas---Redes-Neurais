@@ -86,14 +86,22 @@ jobs:
 
       # O schedule do GitHub pode ser atrasado ou descartado. O dispatch
       # autenticado com GITHUB_TOKEN cria a proxima execucao sem depender dele.
+      # Falhas transitórias (ANA/GitHub/push) não podem derrubar o robô:
+      # em sucesso o próximo ciclo é rápido; em falha, ele se recupera sozinho
+      # com uma espera maior para evitar tempestade de execuções.
       - name: Encadear proximo ciclo
-        # Em caso de falha, deixe o bootstrap horario recuperar o robo; nao
-        # crie uma tempestade de execucoes falhas a cada 3 minutos.
-        if: ${{ success() }}
+        if: ${{ always() && !cancelled() }}
         env:
           GH_TOKEN: ${{ github.token }}
+          PREVINE_JOB_STATUS: ${{ job.status }}
         run: |
-          sleep 180
+          if [ "${PREVINE_JOB_STATUS}" = "success" ]; then
+            espera=180
+          else
+            espera=600
+          fi
+          echo "status anterior=${PREVINE_JOB_STATUS}; proximo ciclo em ${espera}s"
+          sleep "${espera}"
           curl --fail-with-body --silent --show-error \
             --request POST \
             --url "https://api.github.com/repos/${GITHUB_REPOSITORY}/dispatches" \
