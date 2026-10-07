@@ -87,13 +87,37 @@ jobs:
                   "simulated_peak_m3s":m.get("simulated_peak_m3s"),
                   "state_correction_applied":bool((j.get("state_correction") or {}).get("applied")),
                   "future_observed_flow_used":j.get("future_observed_flow_used"),
+                  "horizon_6h_abs_error_pct":((j.get("horizon_verification_not_used_for_selection") or {}).get("6") or {}).get("absolute_error_pct"),
+                  "horizon_12h_abs_error_pct":((j.get("horizon_verification_not_used_for_selection") or {}).get("12") or {}).get("absolute_error_pct"),
+                  "horizon_24h_abs_error_pct":((j.get("horizon_verification_not_used_for_selection") or {}).get("24") or {}).get("absolute_error_pct"),
+                  "horizon_48h_abs_error_pct":((j.get("horizon_verification_not_used_for_selection") or {}).get("48") or {}).get("absolute_error_pct"),
+                  "horizon_72h_abs_error_pct":((j.get("horizon_verification_not_used_for_selection") or {}).get("72") or {}).get("absolute_error_pct"),
               })
+          # Research gate is deliberately stricter than "workflow succeeded".
+          # It evaluates independent events only and never feeds parameter selection.
+          def case_gate(c):
+              hvals=[c.get("horizon_6h_abs_error_pct"),c.get("horizon_12h_abs_error_pct"),c.get("horizon_24h_abs_error_pct")]
+              havail=[float(x) for x in hvals if x is not None]
+              return {
+                  "nse_ge_0_70": c.get("nse") is not None and float(c["nse"])>=0.70,
+                  "peak_error_le_15pct": c.get("peak_relative_error") is not None and abs(float(c["peak_relative_error"]))<=0.15,
+                  "peak_lag_le_3h": c.get("peak_lag_hours") is not None and abs(float(c["peak_lag_hours"]))<=3.0,
+                  "volume_error_le_20pct": c.get("volume_error") is not None and abs(float(c["volume_error"]))<=0.20,
+                  "short_horizon_abs_error_le_20pct": bool(havail) and max(havail)<=20.0,
+              }
+          gates={c["case_id"]:case_gate(c) for c in summary}
+          all_pass=all(all(v.values()) for v in gates.values())
           payload={
-              "schema_version":"g040_upper_antas_causal_replay_summary_v1",
+              "schema_version":"g040_upper_antas_causal_replay_summary_v2",
               "research_only":True,
               "status":"UPPER_ANTAS_CAUSAL_REPLAYS_COMPLETE",
               "calibration_events":["E22_SEP2023","E24_NOV2023"],
               "validation_events_used_for_selection":False,
+              "research_acceptance_gate":{
+                  "criteria_note":"diagnostic research gate only; independent-event results do not tune the frozen model",
+                  "cases":gates,
+                  "all_cases_pass":all_pass,
+              },
               "cases":summary,
           }
           (outroot/"summary_latest.json").write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
