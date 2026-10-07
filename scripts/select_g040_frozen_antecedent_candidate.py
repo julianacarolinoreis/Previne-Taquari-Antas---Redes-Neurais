@@ -74,6 +74,10 @@ def distance(a:dict[str,float|None],b:dict[str,float|None])->tuple[float,dict[st
     return sum(parts.values())/len(parts),parts
 
 def build(targets:list[str])->dict[str,Any]:
+    cal=load(CAL)
+    robust=cal.get("best_calibration_candidate") or {}
+    if not robust.get("parameters"):
+        raise RuntimeError("robust calibration fallback missing")
     donor_state={eid:event_summary(eid) for eid in DONORS}
     donor_models={eid:donor_candidate(eid) for eid in DONORS}
     selections=[]
@@ -81,25 +85,46 @@ def build(targets:list[str])->dict[str,Any]:
         if target in DONORS:
             raise RuntimeError("target event cannot also be a donor")
         ts=event_summary(target)
+        comparable=[
+            k for k in FEATURES
+            if ts.get(k) is not None and all(donor_state[d].get(k) is not None for d in DONORS)
+        ]
         ranked=[]
-        for donor in DONORS:
-            d,parts=distance(ts,donor_state[donor])
-            ranked.append({
-                "donor_event_id":donor,
-                "distance":d,
-                "feature_distance":parts,
-                "antecedent":donor_state[donor],
-                **donor_models[donor],
-            })
-        ranked.sort(key=lambda x:x["distance"])
-        best=ranked[0]
+        if len(comparable)>=3:
+            for donor in DONORS:
+                d,parts=distance(ts,donor_state[donor])
+                ranked.append({
+                    "donor_event_id":donor,
+                    "distance":d,
+                    "feature_distance":parts,
+                    "antecedent":donor_state[donor],
+                    **donor_models[donor],
+                })
+            ranked.sort(key=lambda x:x["distance"])
+            best=ranked[0]
+            selected_donor=best["donor_event_id"]
+            selected_candidate=best["candidate_id"]
+            selected_parameters=best["parameters"]
+            selected_distance=best["distance"]
+            fallback=False
+            fallback_reason=None
+        else:
+            selected_donor=None
+            selected_candidate=robust.get("candidate_id")
+            selected_parameters=robust.get("parameters")
+            selected_distance=None
+            fallback=True
+            fallback_reason=f"insufficient antecedent features ({len(comparable)}/4); robust frozen calibration used"
         selections.append({
             "target_event_id":target,
             "target_antecedent":ts,
-            "selected_donor_event_id":best["donor_event_id"],
-            "selected_candidate_id":best["candidate_id"],
-            "selected_parameters":best["parameters"],
-            "distance":best["distance"],
+            "comparable_antecedent_features":comparable,
+            "selected_donor_event_id":selected_donor,
+            "selected_candidate_id":selected_candidate,
+            "selected_parameters":selected_parameters,
+            "distance":selected_distance,
+            "robust_fallback_used":fallback,
+            "fallback_reason":fallback_reason,
             "ranked_donors":ranked,
             "selection_uses_target_fit_metrics":False,
             "selection_uses_future_event_rain":False,
@@ -115,6 +140,7 @@ def build(targets:list[str])->dict[str,Any]:
         "features":list(FEATURES),
         "distance":"mean absolute difference in log1p antecedent-rain features",
         "candidate_choice_within_donor":"maximize checkpoint gate passes, then minimize donor-event mean multi-metric penalty",
+        "insufficient_antecedent_policy":"if fewer than 3/4 comparable pre-event features are available, use the frozen robust calibration candidate; never guess wet/dry state",
         "selections":selections,
         "no_validation_leakage":True,
         "promotion_allowed":False,
