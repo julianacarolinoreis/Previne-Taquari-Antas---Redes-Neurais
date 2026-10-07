@@ -25,12 +25,12 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 try:
-    from scripts.hec_twin_nested_v17 import ZoneParams, zone_grid
+    from scripts.hec_twin_nested_v17 import ZoneParams, zone_grid, local_zone_neighbors
     from scripts.run_hec_twin_stz_mucum_calibrate import (
         apply_loss, clark_uh, excess_to_flow, recession_baseflow,
     )
 except ModuleNotFoundError:
-    from hec_twin_nested_v17 import ZoneParams, zone_grid
+    from hec_twin_nested_v17 import ZoneParams, zone_grid, local_zone_neighbors
     from run_hec_twin_stz_mucum_calibrate import (
         apply_loss, clark_uh, excess_to_flow, recession_baseflow,
     )
@@ -165,14 +165,56 @@ def metrics(times:list[datetime],sim:list[float],obs:dict[datetime,float])->dict
     }
 
 def score(m:dict[str,float])->float:
+    """Operationally weighted single-event calibration score.
+
+    NSE rewards hydrograph shape while peak magnitude, peak timing and total
+    volume receive explicit penalties. The thresholds are soft penalties only;
+    validation/holdout events never participate in parameter selection.
+    """
     if not math.isfinite(float(m["nse"])):
         return -1e9
+    peak=abs(float(m["peak_relative_error"]))
+    lag=abs(float(m["peak_lag_hours"]))
+    vol=abs(float(m["volume_error"]))
+    threshold_penalty=(
+        0.75*max(0.0,peak-0.10)
+        +0.025*max(0.0,lag-2.0)
+        +0.35*max(0.0,vol-0.15)
+    )
     return (
         float(m["nse"])
-        -1.25*abs(float(m["peak_relative_error"]))
-        -0.02*abs(float(m["peak_lag_hours"]))
-        -0.40*abs(float(m["volume_error"]))
+        -1.50*peak
+        -0.025*lag
+        -0.50*vol
+        -threshold_penalty
     )
+
+def robust_multi_event_score(event_scores:list[float])->float:
+    """Prefer candidates that are good on both frozen calibration events."""
+    if not event_scores:
+        return -1e9
+    mean=sum(event_scores)/len(event_scores)
+    worst=min(event_scores)
+    return 0.60*mean+0.40*worst
+
+def evaluate_candidates(candidates:list[ZoneParams],packs:dict[str,tuple],a:dict[str,float]):
+    rows=[]
+    seen=set()
+    for p in candidates:
+        key=tuple(params_dict(p).values())
+        if key in seen:
+            continue
+        seen.add(key)
+        em={}
+        scores=[]
+        for eid,(times,prata,antas,q) in packs.items():
+            sim=simulate_upper(prata,antas,p,a)
+            m=metrics(times,sim,q)
+            em[eid]=m
+            scores.append(score(m))
+        rows.append((robust_multi_event_score(scores),p,em,scores))
+    rows.sort(key=lambda x:x[0],reverse=True)
+    return rows
 
 def params_dict(p:ZoneParams)->dict[str,float]:
     return {
@@ -199,17 +241,21 @@ def calibrate()->dict[str,Any]:
             raise RuntimeError(f"{eid}: insufficient 86472000 calibration flow")
         packs[eid]=(times,prata,antas,q)
 
-    rows=[]
-    for p in zone_grid():
-        em={}
-        scores=[]
-        for eid,(times,prata,antas,q) in packs.items():
-            sim=simulate_upper(prata,antas,p,a)
-            m=metrics(times,sim,q)
-            em[eid]=m; scores.append(score(m))
-        rows.append((sum(scores)/len(scores),p,em))
-    rows.sort(key=lambda x:x[0],reverse=True)
-    best_score,best,best_metrics=rows[0]
+    # Stage 1: broad physically bounded grid.
+    coarse=evaluate_candidates(zone_grid(),packs,a)
+
+    # Stage 2: refine around several strong but distinct candidates. This keeps
+    # the search parsimonious while avoiding a coarse-grid optimum.
+    refinement=[]
+    for _score,p,_metrics,_events in coarse[:12]:
+        refinement.extend(local_zone_neighbors(p))
+    refined=evaluate_candidates(refinement,packs,a)
+
+    rows=evaluate_candidates(
+        [x[1] for x in coarse]+[x[1] for x in refined],
+        packs,a,
+    )
+    best_score,best,best_metrics,best_event_scores=rows[0]
     payload={
         "schema_version":"g040_upper_antas_model_frozen_v1",
         "generated_at_utc":datetime.now(UTC).isoformat().replace("+00:00","Z"),
@@ -219,12 +265,24 @@ def calibrate()->dict[str,Any]:
         "calibration_events":list(CAL_EVENTS),
         "validation_events_excluded_from_selection":["E27_MAY2024","E28_JUN2024","E2026_JUL"],
         "candidate_count":len(rows),
+        "search":{
+            "strategy":"two_stage_grid_plus_local_refinement",
+            "coarse_candidate_count":len(coarse),
+            "refinement_seed_count":min(12,len(coarse)),
+            "refined_candidate_count":len(refined),
+            "robust_event_weighting":{"mean":0.60,"worst_event":0.40},
+            "validation_or_holdout_used":False,
+        },
         "parameters":params_dict(best),
         "objective":round(float(best_score),6),
+        "event_objective_scores":{
+            eid:round(float(sc),6) for eid,sc in zip(CAL_EVENTS,best_event_scores)
+        },
         "event_metrics":best_metrics,
         "state_correction_tau_h":STATE_CORRECTION_TAU_H,
         "no_validation_leakage":True,
         "model_structure":"Prata + Antas residual area-weighted rain; Initial+Constant loss; Clark transform; recession baseflow",
+        "selection_objective":"robust multi-event: hydrograph NSE + explicit peak magnitude/timing/volume penalties",
         "areas_km2":{Z_PRATA:a[Z_PRATA],Z_ANTAS:a[Z_ANTAS]},
         "promotion_allowed":False,
     }
