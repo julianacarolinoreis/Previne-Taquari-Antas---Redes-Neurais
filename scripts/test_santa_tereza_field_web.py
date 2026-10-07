@@ -66,6 +66,58 @@ class FieldWebTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
 
+    def test_real_forecast_readiness_keeps_three_independent_point_comparisons(self):
+        """Exercise the actual readiness/point chain, including the public UI delegate."""
+        for page in (PAGES[0], PAGES[2]):
+            with self.subTest(page=page):
+                text = (ROOT / page).read_text(encoding="utf-8")
+                functions = "\n".join(function_code(text, name) for name in (
+                    "parseLocalWhen", "horizonHasForecast", "liveHorizonReady",
+                    "mapForecastHorizons", "handZeroCm", "stageToSpatialHand", "pointFloodStatus"))
+                public = ((ROOT / "assets/js/previsao_publica.js").read_text(encoding="utf-8")
+                          if "window.PREVINE_PUBLIC.isReady(key,D)" in text else "")
+                code = """
+const vm=require('node:vm'),fmt=require(FORMATTER);
+const clock=Date.parse('2026-10-07T15:00:00-03:00');
+class FixedDate extends Date{static now(){return clock;}}
+const forecast=cm=>({modo:'ao_vivo',disponivel:true,hand_zero_cm:160,nivel_previsto_cm:cm,
+ hora_modelo:'2026-10-07T14:00:00-03:00',hora_alvo:'2026-10-07T18:00:00-03:00'});
+const context={Date:FixedDate,window:{PrevineFmtQuando:fmt},PrevineFmtQuando:fmt,
+ HAND:{max_hand_m:25},HAND_ZERO_DEFAULT_CM:160,bankfull:160,liveMode:true,
+ liveData:{horizontes:{'2h':forecast(500),'4h':forecast(390),
+   '8h':{...forecast(2500),disponivel:false},'2h_versao_b':forecast(2500)}},
+ curS:['fixture',2500,null,2500],curEv:'fixture',EVENTS:{fixture:{horizonte:'2h'}},
+ nf1:new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})};
+vm.createContext(context);vm.runInContext(PUBLIC,context);vm.runInContext(FUNCTIONS,context);
+const inspect=()=>context.mapForecastHorizons().map(row=>({key:row.key,ready:row.ready,
+ level:row.D?row.D.nivel_previsto_cm:null,
+ comparison:row.ready?context.pointFloodStatus({dm:25,saturated:false},
+   row.D.nivel_previsto_cm,context.handZeroCm(row.D)):'indisponível'}));
+const independent=inspect();
+context.liveData.horizontes['2h'].hora_alvo='2026-10-07T15:00:00-03:00';
+const expired=inspect();
+context.liveData.horizontes={'2h':{...forecast(2500),disponivel:false},
+ '4h':{...forecast(2500),disponivel:false},'8h':{...forecast(2500),disponivel:false}};
+const unavailable=inspect();
+context.liveData.horizontes={'2h':forecast(0),'4h':forecast(2661)};
+const boundary=inspect();
+console.log(JSON.stringify({independent,expired,unavailable,boundary}));
+""".replace("FORMATTER", json.dumps(str(ROOT / "assets/js/fmt_quando.js")))
+                code = code.replace("PUBLIC", json.dumps(public)).replace("FUNCTIONS", json.dumps(functions))
+                result = self.node(code)
+                for rows in result.values():
+                    self.assertEqual([row["key"] for row in rows], ["2h", "4h", "8h"])
+                self.assertEqual([row["ready"] for row in result["independent"]], [True, True, False])
+                self.assertIn("SIM", result["independent"][0]["comparison"])
+                self.assertIn("não neste proxy", result["independent"][1]["comparison"])
+                self.assertEqual(result["independent"][2]["comparison"], "indisponível")
+                self.assertEqual([row["ready"] for row in result["expired"]], [False, True, False])
+                self.assertTrue(all(not row["ready"] and row["comparison"] == "indisponível"
+                                    for row in result["unavailable"]))
+                self.assertTrue(result["boundary"][0]["ready"], "zero is a valid forecast, not missing")
+                self.assertEqual(result["boundary"][0]["comparison"], "não neste proxy")
+                self.assertIn("sem cobertura HAND no intervalo", result["boundary"][1]["comparison"])
+
     def test_actual_raster_loader_lookup_and_popup_distinguish_nodata_saturation_and_range(self):
         for page in PAGES:
             with self.subTest(page=page):
