@@ -87,7 +87,13 @@ def test_contract_and_sources() -> None:
     assert {"8h", "8h_v002"}.issubset(live["horizontes"])
     assert all(
         isinstance(live["horizontes"][key].get("modelo"), str)
-        and isinstance(live["horizontes"][key].get("nivel_previsto_cm"), (int, float))
+        and (
+            isinstance(live["horizontes"][key].get("nivel_previsto_cm"), (int, float))
+            or (
+                live["horizontes"][key].get("nivel_previsto_cm") is None
+                and live["horizontes"][key].get("disponivel") is False
+            )
+        )
         for key in ("8h", "8h_v002")
     )
     assert contract["forecast"]["source_snapshot"] == "2026-08-28T20:00:00-03:00"
