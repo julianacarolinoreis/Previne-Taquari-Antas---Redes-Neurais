@@ -33,6 +33,22 @@ class PlataformaHecTwinTests(unittest.TestCase):
         self.assertIn("https://tile.openstreetmap.org/{z}/{x}/{y}.png", html)
         self.assertIn('referrerPolicy:"strict-origin-when-cross-origin"', html)
 
+    def test_osm_policy_is_on_actual_tile_binding_and_template(self) -> None:
+        for relative in (
+            "assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html",
+            "scripts/plataforma_hec_twin_mucum_ui_v3.py",
+        ):
+            with self.subTest(path=relative):
+                source = (ROOT / relative).read_text(encoding="utf-8")
+                declarations = [
+                    line for line in source.splitlines()
+                    if 'L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png"' in line
+                ]
+                self.assertEqual(len(declarations), 1)
+                self.assertIn('referrerPolicy:"strict-origin-when-cross-origin"', declarations[0])
+                self.assertIn("https://www.openstreetmap.org/copyright", declarations[0])
+                self.assertIn("OpenStreetMap</a> contributors", declarations[0])
+
     def test_has_many_anchors(self) -> None:
         anchors = self.feed["spatial"]["anchors"]
         self.assertGreaterEqual(len(anchors), 25)
