@@ -238,6 +238,27 @@ def case_config(case_id:str)->tuple[dict[str,Any],dict[str,Any]]:
         raise KeyError(case_id)
     return cfg,case
 
+def fill_short_internal_observed_gaps(
+    rows:dict[datetime,float], start:datetime, end:datetime, max_missing_hours:int=6
+)->tuple[dict[datetime,float],list[str]]:
+    """Linearly fill only short INTERNAL gaps fully bounded by data known by end."""
+    out=dict(rows)
+    known=sorted(t for t in rows if start<=t<=end)
+    filled=[]
+    for a,b in zip(known,known[1:]):
+        dh=int(round((b-a).total_seconds()/3600))
+        missing=dh-1
+        if missing<=0 or missing>max_missing_hours:
+            continue
+        va=float(rows[a]); vb=float(rows[b])
+        for k in range(1,dh):
+            t=a+timedelta(hours=k)
+            if t<start or t>end or t in out:
+                continue
+            out[t]=va+(vb-va)*(k/dh)
+            filled.append(iso(t))
+    return out,filled
+
 def combined_case_rain(event_id:str,forecast:dict[str,Any],t0:datetime,end:datetime):
     obs=load(OBSROOT/event_id/"rain.json")
     oz=zone_rows(obs,forecast=False); fz=zone_rows(forecast,forecast=True)
@@ -246,16 +267,31 @@ def combined_case_rain(event_id:str,forecast:dict[str,Any],t0:datetime,end:datet
             raise RuntimeError(f"{event_id}: {sid} missing observed or forecast nested forcing")
     start=max(min(oz[Z_PRATA]),min(oz[Z_ANTAS]))
     axis=hourly_axis(start,end)
+    oz_prata,fill_prata=fill_short_internal_observed_gaps(oz[Z_PRATA],start,t0)
+    oz_antas,fill_antas=fill_short_internal_observed_gaps(oz[Z_ANTAS],start,t0)
+    filled_times=set(fill_prata)|set(fill_antas)
     p1=[];p2=[];src=[]
     for t in axis:
         if t<=t0:
-            a=oz[Z_PRATA].get(t); b=oz[Z_ANTAS].get(t); source="observed"
+            a=oz_prata.get(t); b=oz_antas.get(t)
+            source="observed_interpolated_causal" if iso(t) in filled_times else "observed"
         else:
             a=fz[Z_PRATA].get(t); b=fz[Z_ANTAS].get(t); source="ecmwf_exact_single_run"
         if a is None or b is None:
-            raise RuntimeError(f"{event_id}: upper causal rain missing {iso(t)} source={source}")
+            raise RuntimeError(
+                f"{event_id}: upper causal rain missing {iso(t)} source={source}; "
+                "gap is not a short internally bounded observed gap"
+            )
         p1.append(float(a));p2.append(float(b));src.append(source)
-    return axis,p1,p2,src
+    audit={
+        "policy":"linear interpolation only for internal observed gaps <=6 h, bounded on both sides by observations available by t0",
+        "zero_fill":False,
+        "future_after_t0_used_for_gap_fill":False,
+        "prata_filled_times_utc":fill_prata,
+        "antas_filled_times_utc":fill_antas,
+        "filled_hour_count_union":len(filled_times),
+    }
+    return axis,p1,p2,src,audit
 
 def last_q_at_or_before(event_id:str,t0:datetime)->tuple[datetime,float]|None:
     rows=[(t,q) for t,q in observed_q(event_id).items() if t<=t0]
@@ -274,7 +310,7 @@ def forecast_case(case_id:str,forecast_file:Path,output:Path)->dict[str,Any]:
     forecast=load(forecast_file)
     if forecast.get("status")!="EXACT_ECMWF_SINGLE_RUN_READY":
         raise RuntimeError("exact ECMWF package not ready")
-    axis,prata,antas,sources=combined_case_rain(event_id,forecast,t0,end)
+    axis,prata,antas,sources,gap_audit=combined_case_rain(event_id,forecast,t0,end)
     p=params_from_dict(model["parameters"])
     raw=simulate_upper(prata,antas,p,areas())
 
@@ -333,6 +369,7 @@ def forecast_case(case_id:str,forecast_file:Path,output:Path)->dict[str,Any]:
         "station_code":PRIMARY,
         "decision_time_utc":iso(t0),
         "forecast_end_utc":iso(end),
+        "observed_rain_gap_fill":gap_audit,
         "model_ref":str(MODEL.relative_to(ROOT)),
         "parameters":model["parameters"],
         "calibration_events":model["calibration_events"],
