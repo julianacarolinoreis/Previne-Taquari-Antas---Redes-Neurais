@@ -28,6 +28,32 @@ def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def canonical_text_sha256(data: bytes) -> str:
+    """utf8_lf_v1: preserve text bytes except CRLF -> LF; reject BOM/lone CR."""
+    text = data.decode("utf-8")
+    assert not text.startswith("\ufeff"), "utf8_lf_v1 não aceita BOM"
+    normalized = data.replace(b"\r\n", b"\n")
+    assert b"\r" not in normalized, "utf8_lf_v1 não aceita CR isolado"
+    return hashlib.sha256(normalized).hexdigest().upper()
+
+
+def test_provenance_is_invariant_to_checkout_line_endings() -> None:
+    html = CASE.read_text(encoding="utf-8")
+    contract = load_json(CONTRACT)
+    for path in (CONTRACT, ROUTE):
+        relative = path.relative_to(ROOT).as_posix()
+        match = re.search(r'path:"' + re.escape(relative)
+                          + r'",role:"[^"]*",sha256:"([A-Fa-f0-9]{64})",hash_representation:"utf8_lf_v1"', html)
+        assert match, f"hash canônico explícito ausente: {relative}"
+        lf = path.read_bytes().replace(b"\r\n", b"\n")
+        crlf = lf.replace(b"\n", b"\r\n")
+        assert canonical_text_sha256(lf) == canonical_text_sha256(crlf) == match.group(1)
+        assert hashlib.sha256(lf).hexdigest().upper() == match.group(1)
+        assert canonical_text_sha256(lf + b" ") != match.group(1), "mudança real não pode ser ignorada"
+    assert contract["spatial"]["source_sha256_representation"] == "utf8_lf_v1"
+    assert contract["spatial"]["source_sha256"] == canonical_text_sha256(ROUTE.read_bytes())
+
+
 def test_contract_and_sources() -> None:
     contract = load_json(CONTRACT)
     route = load_json(ROUTE)
@@ -56,7 +82,8 @@ def test_contract_and_sources() -> None:
         assert metadata["use_for_current_route"] is False
         assert metadata["superseded_by"] == "pesquisas/santa-tereza-painel-evacuacao.html"
         assert (ROOT / metadata["superseded_by"]).is_file()
-    assert spatial["source_sha256"] == hashlib.sha256(ROUTE.read_bytes()).hexdigest().upper()
+    assert spatial["source_sha256_representation"] == "utf8_lf_v1"
+    assert spatial["source_sha256"] == canonical_text_sha256(ROUTE.read_bytes())
     assert spatial["cell_count"] == len(route["quadras"]) == 258
     assert spatial["level_cm"] == route["meta"]["nivel_atual_cm"]
     assert spatial["grid_m"] == route["meta"]["bloco_m"]
@@ -199,7 +226,7 @@ def test_page_embeds_the_audited_snapshot_and_guardrails() -> None:
         relative = source.relative_to(ROOT).as_posix()
         source_hash = re.search(r'path:"' + re.escape(relative) + r'",role:"[^"]*",sha256:"([A-Fa-f0-9]{64})"', html)
         assert source_hash, f"hash ausente: {relative}"
-        assert source_hash.group(1).upper() == hashlib.sha256(source.read_bytes()).hexdigest().upper(), relative
+        assert source_hash.group(1).upper() == canonical_text_sha256(source.read_bytes()), relative
     assert embedded["v001"]["forecast_cm"] == 284.0
     assert embedded["v002"]["forecast_cm"] == 320.0
     assert "V002 · exercício" in html
@@ -338,7 +365,8 @@ def test_rendered_responsive_interactions() -> None:
             assert spatial_reference["use_for_current_route"] is False
             assert spatial_reference["zero_gauge_m"] == 4.0
             for source in exported["source_provenance"]["files"][:2]:
-                assert source["sha256"] == hashlib.sha256((ROOT / source["path"]).read_bytes()).hexdigest().upper()
+                assert source["hash_representation"] == "utf8_lf_v1"
+                assert source["sha256"] == canonical_text_sha256((ROOT / source["path"]).read_bytes())
             assert exported["export_schema_version"] == "exercise_record_v2"
             assert exported["timezone"] == "America/Sao_Paulo"
             assert exported["source_provenance"]["files"][0]["path"] == "assets/data/estudo_caso_resposta_v002.json"
@@ -357,6 +385,7 @@ def test_rendered_responsive_interactions() -> None:
 
 
 if __name__ == "__main__":
-    for test in (test_contract_and_sources, test_page_embeds_the_audited_snapshot_and_guardrails, test_rendered_responsive_interactions):
+    for test in (test_provenance_is_invariant_to_checkout_line_endings, test_contract_and_sources,
+                 test_page_embeds_the_audited_snapshot_and_guardrails, test_rendered_responsive_interactions):
         test()
     print("RESPONSE_EXERCISE_QA_OK")
