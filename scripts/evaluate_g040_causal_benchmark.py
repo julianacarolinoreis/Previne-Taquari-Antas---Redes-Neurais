@@ -65,19 +65,32 @@ def evaluate_case(case: dict[str,Any]) -> dict[str,Any]:
     end=utc(manifest["score_end_utc"])
 
     station_rows=[]
-    aggregate_by_h={h:[] for h in HORIZONS}
+    # "all" evaluates every verification observation that becomes available
+    # after t0. "comparable" is the strict subset where persistence has a
+    # valid q(t0), so HEC-vs-persistence skill always uses identical pairs.
+    all_hec_by_h={h:[] for h in HORIZONS}
+    comparable_hec_by_h={h:[] for h in HORIZONS}
     persistence_by_h={h:[] for h in HORIZONS}
+
+    primary_source=str(manifest.get("primary_source_code") or "")
     for code in MAIN_CHECKPOINTS:
+        # Never score a checkpoint that is itself being used as a boundary.
+        if code==primary_source:
+            station_rows.append({
+                "code":code,
+                "status":"boundary_source_not_scored",
+                "q_at_t0_m3s":None,
+                "available_future_pairs":0,
+                "horizons":{},
+            })
+            continue
         try:
             _c,obsrows=series_control(score_hydro,code)
         except Exception:
             continue
         q0=interp(obsrows,t0)
-        if q0 is None:
-            continue
         simmap={t:q for t,q in sims.get("J_"+code,[])}
         pairs=[]
-        ppairs=[]
         for t,qs in sorted(simmap.items()):
             if t<t0 or t>end:
                 continue
@@ -85,40 +98,52 @@ def evaluate_case(case: dict[str,Any]) -> dict[str,Any]:
             if qo is None or not math.isfinite(qs):
                 continue
             pairs.append((t,float(qo),float(qs)))
-            ppairs.append((t,float(qo),float(q0)))
         if not pairs:
             continue
+
         by_h={}
         for h in HORIZONS:
             lim=t0+timedelta(hours=h)
             hp=[x for x in pairs if x[0]<=lim]
-            pp=[x for x in ppairs if x[0]<=lim]
-            hw=wape(hp); pw=wape(pp)
+            hw=wape(hp)
+            all_hec_by_h[h].extend(hp)
+
+            pp=[]
+            if q0 is not None:
+                pp=[(t,o,float(q0)) for t,o,_s in hp]
+                comparable_hec_by_h[h].extend(hp)
+                persistence_by_h[h].extend(pp)
+            pw=wape(pp)
             by_h[str(h)]={
                 "pairs":len(hp),
                 "hec_wape":hw,
-                "persistence_wape":pw,
                 "hec_rmse_m3s":rmse(hp),
+                "persistence_available":q0 is not None,
+                "persistence_wape":pw,
                 "persistence_rmse_m3s":rmse(pp),
                 "skill_vs_persistence_pct":None if hw is None or pw in (None,0) else 100*(1-hw/pw),
             }
-            aggregate_by_h[h].extend(hp)
-            persistence_by_h[h].extend(pp)
         station_rows.append({
             "code":code,
             "q_at_t0_m3s":q0,
+            "persistence_baseline_available":q0 is not None,
             "available_future_pairs":len(pairs),
+            "first_verification_time_utc":pairs[0][0].isoformat().replace("+00:00","Z"),
             "horizons":by_h,
         })
 
     aggregate={}
     for h in HORIZONS:
-        hw=wape(aggregate_by_h[h]); pw=wape(persistence_by_h[h])
+        all_hw=wape(all_hec_by_h[h])
+        comp_hw=wape(comparable_hec_by_h[h])
+        pw=wape(persistence_by_h[h])
         aggregate[str(h)]={
-            "pairs":len(aggregate_by_h[h]),
-            "hec_wape":hw,
+            "all_available_pairs":len(all_hec_by_h[h]),
+            "hec_wape_all_available":all_hw,
+            "comparable_pairs":len(comparable_hec_by_h[h]),
+            "hec_wape":comp_hw,
             "persistence_wape":pw,
-            "skill_vs_persistence_pct":None if hw is None or pw in (None,0) else 100*(1-hw/pw),
+            "skill_vs_persistence_pct":None if comp_hw is None or pw in (None,0) else 100*(1-comp_hw/pw),
         }
     return {
         "case_id":case_id,
@@ -127,6 +152,8 @@ def evaluate_case(case: dict[str,Any]) -> dict[str,Any]:
         "ecmwf_run_utc":case["ecmwf_run_utc"],
         "decision_time_utc":case["decision_time_utc"],
         "score_end_utc":manifest["score_end_utc"],
+        "primary_source_code":primary_source,
+        "predictive_primary_boundary_used":manifest.get("predictive_primary_boundary_used"),
         "active_optional_boundaries":manifest.get("active_optional_boundaries"),
         "hec_result":str(results[0].relative_to(ROOT)),
         "station_results":station_rows,
@@ -141,7 +168,7 @@ def main() -> int:
         # Weighted by verification pairs via reconstruction from case aggregate:
         # use numerator-equivalent WAPE weights is not recoverable from aggregate
         # alone, so report median case WAPE and paired win counts transparently.
-        hv=[r["aggregate"][str(h)]["hec_wape"] for r in rows if r["aggregate"][str(h)]["hec_wape"] is not None]
+        all_hv=[r["aggregate"][str(h)]["hec_wape_all_available"] for r in rows if r["aggregate"][str(h)]["hec_wape_all_available"] is not None]\n        hv=[r["aggregate"][str(h)]["hec_wape"] for r in rows if r["aggregate"][str(h)]["hec_wape"] is not None]
         pv=[r["aggregate"][str(h)]["persistence_wape"] for r in rows if r["aggregate"][str(h)]["persistence_wape"] is not None]
         skills=[r["aggregate"][str(h)]["skill_vs_persistence_pct"] for r in rows if r["aggregate"][str(h)]["skill_vs_persistence_pct"] is not None]
         def median(v):
@@ -150,7 +177,7 @@ def main() -> int:
             return z[n//2] if n%2 else (z[n//2-1]+z[n//2])/2
         grand[str(h)]={
             "case_count":len(hv),
-            "median_case_hec_wape":median(hv),
+            "median_case_hec_wape_all_available":median(all_hv),\n            "median_case_hec_wape":median(hv),
             "median_case_persistence_wape":median(pv),
             "median_skill_vs_persistence_pct":median(skills),
             "hec_wins":sum(1 for r in rows if (r["aggregate"][str(h)]["skill_vs_persistence_pct"] or -1e9)>0),
@@ -164,14 +191,14 @@ def main() -> int:
         "configuration":str(CFG.relative_to(ROOT)),
         "no_leakage_confirmed":True,
         "future_weather_forcing":"exact archived ECMWF single run",
-        "future_source_boundary_flow":"persistence from last observation at t0",
+        "future_source_boundary_flow":"frozen causal upper-Antas rainfall-runoff forecast at 86472000; no future observed boundary flow",
         "model_parameters":"best calibration candidate; validation/holdout excluded from fitting",
         "metric":"WAPE = sum(|forecast-observed|)/sum(|observed|), evaluated only after t0",
         "grand_summary":grand,
         "cases":rows,
         "limitations":[
             "E1 remains an intermediate BHO6 branch model, not the final verified 145-subbasin HEC model",
-            "boundary discharge after t0 is persisted; a future upstream-flow forecast model may improve or worsen results",
+            "primary boundary 86472000 is forecast by the frozen upper-Antas rainfall-runoff model; its forecast error propagates downstream",
             "high-flow discharge verification remains sensitive to rating-curve limits; disaster-stage validation must also be performed in level",
             "three frozen cases are a first independent replay set, not sufficient for operational promotion"
         ],
@@ -189,7 +216,7 @@ def main() -> int:
                 w.writerow({
                     "case_id":r["case_id"],"event_id":r["event_id"],"split":r["split"],"horizon_h":h,
                     "hec_wape":a["hec_wape"],"persistence_wape":a["persistence_wape"],
-                    "skill_vs_persistence_pct":a["skill_vs_persistence_pct"],"pairs":a["pairs"],
+                    "skill_vs_persistence_pct":a["skill_vs_persistence_pct"],"pairs":a["comparable_pairs"],
                 })
     print(json.dumps({"status":payload["status"],"grand_summary":grand},ensure_ascii=False))
     return 0
