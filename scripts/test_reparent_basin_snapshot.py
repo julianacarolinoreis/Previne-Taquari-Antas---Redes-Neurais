@@ -193,8 +193,16 @@ python() {
 
 
 class WorkflowRetryContractTests(unittest.TestCase):
+    @staticmethod
+    def sparse_paths(yml):
+        block = yml.split("          sparse-checkout: |\n", 1)[1].split("\n      - name:", 1)[0]
+        return [line.strip() for line in block.splitlines() if line.strip().startswith("/")]
+
     def test_runtime_tests_and_single_pages_group(self):
         yml = (pub.ROOT / ".github/workflows/basin-station-forecast.yml").read_text(encoding="utf-8")
+        sparse = self.sparse_paths(yml)
+        for name in ("basin-station-forecast", "chuvas-horarias", "deploy-pages"):
+            self.assertIn("/.github/workflows/" + name + ".yml", sparse)
         for path in ("scripts/reparent_basin_snapshot.py", "scripts/test_reparent_basin_snapshot.py"):
             self.assertIn("      - '" + path + "'", yml)
         self.assertIn("scripts.test_reparent_basin_snapshot", yml)
@@ -207,6 +215,48 @@ class WorkflowRetryContractTests(unittest.TestCase):
         self.assertIsNone(re.search(exact_group, pages.replace("group: github-pages-site", "group: github-pages-site-${{ github.event_name }}"), re.MULTILINE))
         self.assertIn("cancel-in-progress: false", pages)
         self.assertIn("ref: main", pages)
+
+    @unittest.skipUnless(shutil.which("git") and pub.bash_path(), "Git and Bash required")
+    def test_actual_sparse_checkout_runs_contract_and_missing_pages_fails(self):
+        # Exercise the contract from the reduced checkout, not from this full
+        # developer tree. The child runs only the non-recursive contract test.
+        lab = pub.PublicationGitTests()
+        lab.setUp()
+        self.addCleanup(lab.doCleanups)
+        paths = ["scripts/test_reparent_basin_snapshot.py"] + [
+            ".github/workflows/" + name + ".yml"
+            for name in ("basin-station-forecast", "chuvas-horarias", "deploy-pages")
+        ]
+        for path in paths:
+            lab.write(lab.seed, path, (pub.ROOT / path).read_bytes())
+        lab.commit(lab.seed, "runtime contract files")
+        lab.git(lab.seed, "push", "origin", "main")
+        lab.git(lab.worker, "fetch", "--depth=1", "origin", "main")
+        lab.git(lab.worker, "reset", "--keep", "origin/main")
+        yml = (pub.ROOT / ".github/workflows/basin-station-forecast.yml").read_text(encoding="utf-8")
+        sparse = self.sparse_paths(yml)
+        pages = ".github/workflows/deploy-pages.yml"
+        command = [sys.executable, "-B", "-m", "unittest", "-v",
+                   "scripts.test_reparent_basin_snapshot.WorkflowRetryContractTests."
+                   "test_runtime_tests_and_single_pages_group"]
+        lab.git(lab.worker, "sparse-checkout", "set", "--no-cone", *sparse)
+        self.assertTrue((lab.worker / pages).is_file())
+        self.assertFalse((lab.worker / pub.ARCHIVE).exists())
+        self.assertEqual(lab.git(lab.worker, "rev-parse", "--is-shallow-repository").stdout.strip(), b"true")
+        self.assertEqual(lab.git(lab.worker, "config", "remote.origin.partialclonefilter").stdout.strip(), b"blob:none")
+        positive = lab.run_command(command, lab.worker, check=False)
+        output = (positive.stdout + positive.stderr).decode(errors="replace")
+        self.assertEqual(positive.returncode, 0, output)
+        # Reproduce the production failure: the YAML still promises the file,
+        # but the actual checkout omits it. This must fail, never skip the gate.
+        lab.git(lab.worker, "sparse-checkout", "set", "--no-cone",
+                *(path for path in sparse if path != "/" + pages))
+        self.assertFalse((lab.worker / pages).exists())
+        negative = lab.run_command(command, lab.worker, check=False)
+        output = (negative.stdout + negative.stderr).decode(errors="replace")
+        self.assertNotEqual(negative.returncode, 0, output)
+        self.assertIn("FileNotFoundError", output)
+        self.assertIn("deploy-pages.yml", output)
 
 
 if __name__ == "__main__":
