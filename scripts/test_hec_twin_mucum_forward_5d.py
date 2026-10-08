@@ -98,6 +98,65 @@ class Forward5dTests(unittest.TestCase):
         self.assertIn("Resposta:", html)
         self.assertIn(str(int(qs["primary"]["rise_cm"])), html.replace(".", "").replace(",", "") or html)
 
+    def test_forecast_only_rain_is_not_observed_wetness(self) -> None:
+        sys.path.insert(0, str(SCRIPTS))
+        import run_hec_twin_mucum_forward_5d as fwd
+
+        forecast = _synthetic_forcing(48)
+        forecast["area_weighted_mean_mm"]["past_mm"] = None
+        forecast["window"] = {"past_hours": 0}
+        state = fwd.infer_forcing_wetness(forecast, now_index=0)
+        self.assertIsNone(state["past_aw_mm"])
+        self.assertEqual(state["antecedent_status"], "dry_not_confirmed")
+
+        # A 72h observed window takes precedence over the forecast-only hourly array.
+        forecast["area_weighted_mean_mm"]["past_mm"] = 31.5
+        forecast["antecedent_rain"] = {
+            "status": "representative", "representative_hours": 72, "window_hours": 72,
+        }
+        state = fwd.infer_forcing_wetness(forecast, now_index=0)
+        self.assertEqual(state["past_aw_mm"], 31.5)
+        self.assertTrue(state["is_wet"])
+
+    def test_sparse_antecedent_does_not_become_dry_zeros(self) -> None:
+        import importlib.util
+        import tempfile
+        from unittest.mock import patch
+        from datetime import datetime, timedelta
+
+        path = SCRIPTS / "build_hec_twin_ifs_spatial_forcing_5d.py"
+        spec = importlib.util.spec_from_file_location("ifs_spatial_forcing_test", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        t0 = datetime(2026, 10, 8, 14, 0)
+        rows = []
+        for i in range(72, 0, -1):
+            t = t0 - timedelta(hours=i)
+            rows.append({
+                "time_local": t.isoformat(timespec="minutes"),
+                "valid_station_count": 4 if i == 8 else 45,
+                "basin_mean_mm": 0.25,
+            })
+        with tempfile.TemporaryDirectory() as tmp:
+            observed = Path(tmp) / "obs.json"
+            observed.write_text(
+                json.dumps({"generated_at_utc": "2026-10-08T16:00:00Z",
+                            "rain": {"hourly_areal": rows}}), encoding="utf-8"
+            )
+            with patch.object(module, "OBSERVED", observed), patch.object(module, "ROOT", Path(tmp)):
+                sparse = module.observed_antecedent_rain("2026-10-08T17:00:00Z")
+                self.assertEqual(sparse["representative_hours"], 71)
+                self.assertEqual(sparse["status"], "incomplete_observed_coverage")
+                self.assertIsNone(sparse["past_mm"])
+                self.assertAlmostEqual(sparse["partial_sum_mm"], 17.75)
+                rows[64]["valid_station_count"] = 45
+                observed.write_text(
+                    json.dumps({"rain": {"hourly_areal": rows}}), encoding="utf-8"
+                )
+                complete = module.observed_antecedent_rain("2026-10-08T17:00:00Z")
+                self.assertEqual(complete["representative_hours"], 72)
+                self.assertEqual(complete["past_mm"], 18.0)
+
     def test_decision_builder(self) -> None:
         subprocess.run(
             [sys.executable, str(SCRIPTS / "build_estudo_decisao_hec_5d_evacuacao.py")],
