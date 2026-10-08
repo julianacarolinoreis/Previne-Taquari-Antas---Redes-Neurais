@@ -1,6 +1,7 @@
 """Dados e avaliacao prospectiva de Santa Tereza, separados do feed principal."""
 from __future__ import annotations
 import datetime as dt
+import copy
 import hashlib
 import json
 import math
@@ -13,6 +14,7 @@ from . import gerar_previsao_ao_vivo as R
 ROOT = Path(__file__).resolve().parents[2]
 STZ = "86472600"
 STATIONS = (STZ, "86472000")
+DOWNLOAD_EVIDENCE = {}
 AVISO = "SOMBRA EXPERIMENTAL - acompanhamento comparativo; nao e alerta oficial."
 
 def stamp(t):
@@ -35,7 +37,7 @@ def parse_xml(xml):
     root = ET.fromstring(xml)
     if (root.text or "").strip().startswith("<"):
         root = ET.fromstring(root.text)
-    levels, rain, seen = {}, {}, set()
+    levels, rain, seen, conflicts, invalid_hours = {}, {}, {}, set(), set()
     for row in root.iter():
         fields = {R._local(c.tag): (c.text or "").strip() for c in row}
         t = R._parse_hora(fields.get("DataHora") or fields.get("Data_Hora") or "")
@@ -43,28 +45,51 @@ def parse_xml(xml):
             continue
         for field, dest in (("Nivel", levels), ("Chuva", rain)):
             value = fields.get(field)
-            if value in (None, "") or (t, field) in seen:
+            if value in (None, ""):
                 continue
-            seen.add((t, field))
+            h = t if R._eh_hora_cheia(t) else t.replace(minute=0,second=0,microsecond=0)+dt.timedelta(hours=1)
             try:
                 v = float(value.replace(",", "."))
             except ValueError:
+                if field == 'Chuva':invalid_hours.add(h)
+                else:conflicts.add((t,field))
                 continue
             if not math.isfinite(v):
+                if field == 'Chuva':invalid_hours.add(h)
+                else:conflicts.add((t,field))
                 continue
+            key = (t, field)
+            if key in seen:
+                if seen[key] != v:
+                    conflicts.add(key)
+                continue
+            seen[key] = v
             if field == "Nivel" and R._eh_hora_cheia(t):
                 dest[t] = v
-            elif field == "Chuva" and 0 <= v <= 100:
+            elif field == "Chuva":
                 # Contrato N5: hora H contem leituras em (H-1h, H].
                 h = t if R._eh_hora_cheia(t) else t.replace(minute=0, second=0, microsecond=0) + dt.timedelta(hours=1)
-                dest[h] = dest.get(h, 0.0) + v
+                if not 0 <= v <= 100:
+                    invalid_hours.add(h)
+                else:
+                    dest[h] = dest.get(h, 0.0) + v
+    for t, field in conflicts:
+        if field == "Nivel":
+            levels.pop(t, None)
+        else:
+            invalid_hours.add(t if R._eh_hora_cheia(t) else t.replace(minute=0,second=0,microsecond=0)+dt.timedelta(hours=1))
+    rain = {t:v for t,v in rain.items() if t not in invalid_hours and v <= 100}
     return levels, rain
 
 def download_station(cod):
     xml = R._obter_xml_ana(cod, 8, R.ANA_TIMEOUT_NIVEL_S, 2, R._serie_de_xml, "ANA sombra STZ")
+    raw = xml.encode('utf-8') if isinstance(xml,str) else xml
+    DOWNLOAD_EVIDENCE[cod] = {'disponivel':bool(raw),'xml_sha256':hashlib.sha256(raw).hexdigest().upper() if raw else None,
+                              'xml':raw.decode('utf-8-sig') if raw else None}
     return parse_xml(xml) if xml else ({}, {})
 
 def download():
+    DOWNLOAD_EVIDENCE.clear()
     with ThreadPoolExecutor(max_workers=2) as pool:
         data = dict(zip(STATIONS, pool.map(download_station, STATIONS)))
     return ({c: v[0] for c, v in data.items()}, {c: v[1] for c, v in data.items()})
@@ -73,14 +98,22 @@ def qc_levels(levels, limits):
     clean = {}
     for cod, serie in levels.items():
         lim = limits.get(cod, {})
-        result, anchor, anchor_t = {}, None, None
+        result, anchor, anchor_t, suspect = {}, None, None, False
+        repeated_value, repeated_since, previous_t = None, None, None
         for t, v in sorted(serie.items()):
+            if v != repeated_value or previous_t is None or t-previous_t != dt.timedelta(hours=1):
+                repeated_value, repeated_since = v, t
+            previous_t = t
+            if (t-repeated_since).total_seconds() > 72*3600:
+                continue
             if not (float(lim.get("min", -500)) <= v <= float(lim.get("max", 5000))) or v <= 0:
                 continue
             jump = lim.get("salto_max_1h")
-            if (anchor is not None and jump and t - anchor_t == dt.timedelta(hours=1)
+            if (anchor is not None and jump and (suspect or t - anchor_t == dt.timedelta(hours=1))
                     and abs(v - anchor) > jump):
+                suspect = True
                 continue
+            suspect = False
             result[t] = v
             anchor, anchor_t = v, t
         clean[cod] = result
@@ -130,8 +163,11 @@ def recent_base(specs, levels, rain, now, lookback=1):
             latest_missing = missing
     return None, None, latest_missing or ["sem base completa nas ultimas 3 horas"]
 
-def update_history(history, new, observed, now):
-    history = history or {"schema_version": "stz_shadow_history_v1", "shadow_only": True, "registros": []}
+def update_history(history, new, observed, now, limits=None):
+    history = copy.deepcopy(history) if history is not None else {"schema_version": "stz_shadow_history_v1", "shadow_only": True, "registros": []}
+    if limits is None:
+        limits = read(ROOT / 'assets/data/stz_n5_sombra_contrato.json')['limites_estacao_cm']
+    observed = qc_levels({STZ:observed},limits)[STZ]
     records = history["registros"]
     keys = {(p["modelo_id"], p["modelo_sha256"], p["hora_modelo"], p["horizonte_h"]) for p in records}
     for p in new:
