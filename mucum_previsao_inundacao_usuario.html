@@ -1237,9 +1237,9 @@ async function init(){
       if(hd==null&&elev==null) return;
       let html='<div class="pt-pop"><b>Neste ponto</b>';
       html+='<br><b>Altitude do terreno (MDT): '+(elev!=null?nf1.format(elev)+' m':'indisponível')+'</b>';
-      if(curS&&hd!=null){
-        const pointHand=hd/10, ev=EVENTS[curEv];
-        html+='<br>Altura acima do leito (HAND): '+nf1.format(pointHand)+' m';
+      const pointHand=hd==null?null:hd/10;
+      if(curS&&pointHand!=null){
+        const ev=EVENTS[curEv];
         if(pointHand<=0){
           html+='<br>Mancha: dentro do contorno-base do leito; não classificado como inundação.';
         }else{
@@ -1251,7 +1251,9 @@ async function init(){
         }
       }
       html+='<br><small>Coordenadas: '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5)+'</small>';
-      html+='<br><small>Mancha relativa ao HAND 0 e ao zero operacional da régua; não é uma cota absoluta de água validada.</small>';
+      html+='<br><small><b>Nível da régua para a água chegar aqui: '+
+        (pointHand==null?'indisponível':pointHand<=0?'não se aplica ao leito do rio':nf1.format(bankfull/100+pointHand)+' m (estimado)')+
+        '</b></small>';
       html+='</div>';
       L.popup({closeButton:true}).setLatLng(e.latlng).setContent(html).openOn(map);
     });
