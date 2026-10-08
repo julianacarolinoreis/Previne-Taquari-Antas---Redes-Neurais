@@ -111,6 +111,17 @@ AI_LAB_2H_FEATURE_NAMES = [
 # nÃ£o substituem a validaÃ§Ã£o offline nem alteram a previsÃ£o do MAT.
 LIVE_WARN_MAE_24H_CM = 30.0
 LIVE_WARN_MAX_24H_CM = 100.0
+# Suspensao preventiva da RNA 4h PRO (26 inputs).
+# A telemetria 86298000 saltou de 254 para 1475 cm entre 08h e 09h de
+# 2026-10-06 e apresentou valores negativos a partir de 2026-10-07.
+# A RNA 4h prio_12478 de cinco inputs permanece EXPERIMENTAL. Retorno da
+# PRO depende de auditoria da fonte, sem reativacao por simples completude.
+SUSPENSAO_STZ_4H_PRO_ATIVA = True
+SUSPENSAO_STZ_4H_PRO_MOTIVO = (
+    "4h PRO suspensa: serie 86298000 (Castro Alves) com saltos inconsistentes "
+    "desde 2026-10-06; verificacao da fonte e do contrato pendente"
+)
+
 
 # Bloqueio operacional temporario solicitado em 2026-10-07.
 # A telemetria usada pelo horizonte de 8 h esta sob suspeita e nao deve
@@ -2823,6 +2834,20 @@ def preservar_saida_valida_em_falha(motivo, aviso):
                 suspenso["ultima_tentativa_status"] = "falha"
                 suspenso["erro_robo_ultima_consulta"] = motivo
                 atual["horizontes"][cfg["horizonte"]] = suspenso
+        # Uma falha da ANA nao pode ressuscitar a PRO 4h do feed anterior.
+        if SUSPENSAO_STZ_4H_PRO_ATIVA:
+            four = (atual.get("horizontes") or {}).get("4h")
+            if isinstance(four, dict) and four.get("modelo") == MODELO_4H_PRO_ID:
+                four["previsao_stale_candidata_cm"] = four.get("nivel_previsto_cm")
+                four["nivel_previsto_cm"] = None
+                four["passos"] = []
+                four["disponivel"] = False
+                four["status"] = "indisponivel: 4h PRO suspensa; ultima consulta ANA falhou"
+                four["bloqueio_operacional_4h_pro"] = True
+                audit = dict(four.get("auditoria_inputs") or {})
+                audit["status"] = "ATENCAO"
+                audit["motivo_publicacao"] = SUSPENSAO_STZ_4H_PRO_MOTIVO
+                four["auditoria_inputs"] = audit
         with open(SAIDA, "w", encoding="utf-8") as f:
             json.dump(atual, f, ensure_ascii=False, indent=1)
         print("mantida ultima previsao valida:", motivo)
@@ -2853,7 +2878,10 @@ def _precisa_fallback(out):
 
 def aplicar_fallback_operacional(cfg, preferencial, series, horas, aviso, estacoes_status):
     fallback = FALLBACKS_HORIZONTE.get(cfg.get("horizonte"))
-    if not fallback or not _precisa_fallback(preferencial):
+    pro_bloqueada = bool(
+        cfg.get("horizonte") == "4h" and SUSPENSAO_STZ_4H_PRO_ATIVA
+    )
+    if not fallback or (not pro_bloqueada and not _precisa_fallback(preferencial)):
         return preferencial
     t_fb = escolher_hora_modelo(fallback, series, horas)
     alternativo = gerar_saida_modelo(fallback, series, t_fb, aviso, estacoes_status)
@@ -2870,13 +2898,27 @@ def aplicar_fallback_operacional(cfg, preferencial, series, horas, aviso, estaco
             "inputs_faltantes": (alternativo.get("inputs_faltantes") or [])[:8],
             "proxima_base_diagnostico": alternativo.get("proxima_base_diagnostico"),
         }
+        if pro_bloqueada:
+            # Nunca publicar a PRO como substituta do fallback indisponivel.
+            preferencial["previsao_stale_candidata_cm"] = preferencial.get("nivel_previsto_cm")
+            preferencial["nivel_previsto_cm"] = None
+            preferencial["passos"] = []
+            preferencial["disponivel"] = False
+            preferencial["status"] = "indisponivel: 4h PRO suspensa e alternativa 5 inputs sem alvo futuro"
+            preferencial["bloqueio_operacional_4h_pro"] = True
+            auditoria_inputs = dict(preferencial.get("auditoria_inputs") or {})
+            auditoria_inputs["status"] = "ATENCAO"
+            auditoria_inputs["motivo_publicacao"] = SUSPENSAO_STZ_4H_PRO_MOTIVO
+            preferencial["auditoria_inputs"] = auditoria_inputs
         return preferencial
     alternativo["fallback_ativo"] = True
     alternativo["modelo_preferencial"] = cfg.get("modelo")
+    alternativo["bloqueio_operacional_4h_pro"] = pro_bloqueada
     alternativo["motivo_fallback"] = (
-        "modelo preferencial sem alvo futuro/base recente; dependencia montante "
-        "ausente ou atrasada. Fallback usa somente entradas exatas e retorna "
-        "automaticamente ao preferencial quando a base normaliza."
+        SUSPENSAO_STZ_4H_PRO_MOTIVO if pro_bloqueada
+        else "modelo preferencial sem alvo futuro/base recente; dependencia montante "
+             "ausente ou atrasada. Fallback usa somente entradas exatas e retorna "
+             "automaticamente ao preferencial quando a base normaliza."
     )
     alternativo["modelo_preferencial_diagnostico"] = {
         "modelo": preferencial.get("modelo"),
@@ -2889,7 +2931,7 @@ def aplicar_fallback_operacional(cfg, preferencial, series, horas, aviso, estaco
 
 
 def main():
-    aviso = "EXPERIMENTAL - nao e alerta oficial. RNAs 2h/4h seguem em teste; 8h V001/V002 estao temporariamente suspensas por telemetria invalida de Santa Tereza. Em paralelo ao SGB/SACE."
+    aviso = "EXPERIMENTAL - nao e alerta oficial. RNA 4h PRO suspensa por telemetria 86298000 inconsistente; 4h alternativa (5 inputs) permanece experimental. RNA 2h em teste; 8h V001/V002 suspensas. Em paralelo ao SGB/SACE."
     try:
         CHUVA_ANA_CACHE.clear()
         ANA_XML_CACHE.clear()
