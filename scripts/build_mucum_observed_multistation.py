@@ -66,11 +66,11 @@ CSV_RAIN_COLUMNS = {
 EXTRA_RAIN_CODES = {"86510000", "86160000"}
 
 FAST_MODE = os.environ.get("OBS_FAST_MODE", "0").strip().lower() in {"1","true","yes"}
-ANA_TIMEOUT = int(os.environ.get("OBS_ANA_TIMEOUT", "7" if FAST_MODE else "12"))
-ANA_RETRIES = int(os.environ.get("OBS_ANA_RETRIES", "1" if FAST_MODE else "2"))
+ANA_TIMEOUT = int(os.environ.get("OBS_ANA_TIMEOUT", "10" if FAST_MODE else "12"))
+ANA_RETRIES = int(os.environ.get("OBS_ANA_RETRIES", "2" if FAST_MODE else "2"))
 GRID_STEP = 0.05
 ANA_CACHE: dict[str, dict[str, Any]] = {}
-MAX_FETCH_WORKERS = int(os.environ.get("OBS_FETCH_WORKERS", "12" if FAST_MODE else "8"))
+MAX_FETCH_WORKERS = int(os.environ.get("OBS_FETCH_WORKERS", "4" if FAST_MODE else "6"))
 MAX_FLOW_M3S = 50000.0
 MAX_RAIN_MM_H = 250.0
 FRESH_FLOW_MINUTES = 120.0
@@ -204,7 +204,9 @@ def fetch_ana(code: str, start: datetime, end: datetime) -> dict[str, Any]:
             except Exception as exc:
                 errors.append(f"{base}: {exc}")
         if attempt < ANA_RETRIES - 1:
-            time.sleep(3)
+            # ANA returns HTTP 429 under load. Back off instead of amplifying
+            # the rate limit with simultaneous retries from multiple workers.
+            time.sleep(min(15, 3 * (2 ** attempt)))
     result = {"ok": False, "rows": [], "source": "ANA/SGB", "error": " | ".join(errors[-4:])}
     ANA_CACHE[code] = result
     return result
