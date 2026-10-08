@@ -2,8 +2,11 @@ name: HEC bacia 145 - lote de calibração
 
 # Roda no GitHub (Linux) um lote de simulações HEC-HMS 4.13 do modelo de 145 sub-bacias / 105 trechos,
 # dividido em até 20 jobs em paralelo, e calcula as métricas. Pesquisa; nada aqui é alerta operacional.
-# - workflow_dispatch (depois de estar na branch padrão): candidatos_json = lista [{id, rota, p}], janelas, shards, rodada.
-# - push na branch de teste: roda o teste de fumaça (2 candidatos x 2 janelas) e confere com os resultados do PC.
+# Dois jeitos de pedir um lote:
+#  - push na branch de calibração, com calibracao_hec_bacia145/rodadas/PEDIDO.json
+#    {rodada, janelas, shards, papeis, candidatos}; sem PEDIDO.json roda o teste de fumaça (2 candidatos x 2 janelas,
+#    conferido contra os resultados do PC);
+#  - workflow_dispatch (exige o fluxo na branch padrão): candidatos_json, janelas, shards, rodada.
 
 on:
   workflow_dispatch:
@@ -37,12 +40,6 @@ concurrency:
   group: hec-bacia145-${{ github.event.inputs.rodada || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'push' }}
 
-env:
-  RODADA: ${{ github.event.inputs.rodada || 'smoke' }}
-  JANELAS: ${{ github.event.inputs.janelas || 'S2023_09,S2023_11' }}
-  SHARDS: ${{ github.event.inputs.shards || '2' }}
-  CANDS_INPUT: ${{ github.event.inputs.candidatos_json || '' }}
-
 jobs:
   preparar:
     runs-on: ubuntu-latest
@@ -50,13 +47,31 @@ jobs:
     outputs:
       matriz: ${{ steps.m.outputs.matriz }}
       n: ${{ steps.m.outputs.n }}
+      rodada: ${{ steps.m.outputs.rodada }}
+      janelas: ${{ steps.m.outputs.janelas }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: calibracao_hec_bacia145
       - id: m
+        env:
+          EVENT: ${{ github.event_name }}
+          RODADA_IN: ${{ github.event.inputs.rodada }}
+          JANELAS_IN: ${{ github.event.inputs.janelas }}
+          SHARDS_IN: ${{ github.event.inputs.shards }}
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
-          import json, os
-          n = max(1, min(20, int(os.environ["SHARDS"])))
+          import json, os, re
+          ped = {}
+          p = "calibracao_hec_bacia145/rodadas/PEDIDO.json"
+          if os.environ["EVENT"] == "push" and os.path.exists(p):
+              ped = json.load(open(p, encoding="utf-8"))
+          rodada = re.sub(r"[^A-Za-z0-9_-]", "-", str(ped.get("rodada") or os.environ.get("RODADA_IN") or "smoke"))[:40]
+          janelas = re.sub(r"[^A-Za-z0-9_,]", "", str(ped.get("janelas") or os.environ.get("JANELAS_IN") or "S2023_09,S2023_11"))
+          n = max(1, min(20, int(ped.get("shards") or os.environ.get("SHARDS_IN") or 2)))
           print("n=%d" % n)
+          print("rodada=" + rodada)
+          print("janelas=" + janelas)
           print("matriz=" + json.dumps({"shard": list(range(n))}))
           PY
 
@@ -67,6 +82,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.preparar.outputs.matriz) }}
+    env:
+      RODADA: ${{ needs.preparar.outputs.rodada }}
+      JANELAS: ${{ needs.preparar.outputs.janelas }}
+      EVENT: ${{ github.event_name }}
+      CANDS_INPUT: ${{ github.event.inputs.candidatos_json || '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -90,14 +110,30 @@ jobs:
           tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
       - name: Montar a pasta de trabalho
         run: |
-          W="$RUNNER_TEMP/w"
+          export W="$RUNNER_TEMP/w"
           mkdir -p "$W/dados_ana/csv" "$W/forcamento_v3"
           cp calibracao_hec_bacia145/codigo/*.py "$W/"
           cp calibracao_hec_bacia145/dados/catalogo_ampliado.json "$W/"
           for f in calibracao_hec_bacia145/dados/forcamento_v3/*.gz; do gunzip -c "$f" > "$W/forcamento_v3/$(basename "${f%.gz}")"; done
           for f in calibracao_hec_bacia145/dados/observados/*.gz; do gunzip -c "$f" > "$W/dados_ana/csv/$(basename "${f%.gz}")"; done
-          if [ -n "$CANDS_INPUT" ]; then printf '%s' "$CANDS_INPUT" > "$W/cands.json"; else cp calibracao_hec_bacia145/dados/smoke/cands.json "$W/cands.json"; fi
-          ls "$W" | head -20
+          python3 - <<'PY'
+          import json, os
+          W = os.environ["W"]
+          ped = {}
+          p = "calibracao_hec_bacia145/rodadas/PEDIDO.json"
+          if os.environ["EVENT"] == "push" and os.path.exists(p):
+              ped = json.load(open(p, encoding="utf-8"))
+          if os.environ.get("CANDS_INPUT"):
+              cands = json.loads(os.environ["CANDS_INPUT"])
+          elif ped.get("candidatos"):
+              cands = ped["candidatos"]
+          else:
+              cands = json.load(open("calibracao_hec_bacia145/dados/smoke/cands.json", encoding="utf-8"))
+          json.dump(cands, open(W + "/cands.json", "w"))
+          if ped.get("papeis"):
+              json.dump(ped["papeis"], open(W + "/papeis.json", "w"))
+          print(len(cands), "candidatos;", "papeis:", ped.get("papeis"))
+          PY
       - name: Rodar o pedaço da rodada
         run: |
           W="$RUNNER_TEMP/w"
@@ -108,12 +144,13 @@ jobs:
           export HEC_BASIN_BASE="$PWD/calibracao_hec_bacia145/dados/basin/a00_E27.basin"
           export HEC_MDT_CSV="$PWD/calibracao_hec_bacia145/dados/mdt_trechos_atributos.csv"
           export HEC_CATALOGO=catalogo_ampliado.json HEC_FORC=forcamento_v3 HEC_RUNS="$RUNNER_TEMP/runs"
+          [ -f "$W/papeis.json" ] && export HEC_PAPEIS=papeis.json
           cd "$W"
           python -B nuvem_lote.py --candidatos cands.json --janelas "$JANELAS" --shard ${{ matrix.shard }} --shards ${{ needs.preparar.outputs.n }} --saida "$RUNNER_TEMP/saida" --paralelo 4
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: lote-${{ env.RODADA }}-${{ matrix.shard }}
+          name: lote-${{ needs.preparar.outputs.rodada }}-${{ matrix.shard }}
           path: ${{ runner.temp }}/saida
           retention-days: 3
           if-no-files-found: warn
@@ -123,6 +160,11 @@ jobs:
     if: always() && needs.preparar.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      RODADA: ${{ needs.preparar.outputs.rodada }}
+      JANELAS: ${{ needs.preparar.outputs.janelas }}
+      EVENT: ${{ github.event_name }}
+      CANDS_INPUT: ${{ github.event.inputs.candidatos_json || '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -133,23 +175,40 @@ jobs:
       - run: pip install --disable-pip-version-check numpy scipy
       - uses: actions/download-artifact@v4
         with:
-          pattern: lote-${{ env.RODADA }}-*
+          pattern: lote-${{ needs.preparar.outputs.rodada }}-*
           path: shards
       - name: Calcular métricas
         run: |
-          W="$RUNNER_TEMP/w"
+          export W="$RUNNER_TEMP/w"
           mkdir -p "$W/dados_ana/csv" "$W/forcamento_v3"
           cp calibracao_hec_bacia145/codigo/*.py "$W/"
           cp calibracao_hec_bacia145/dados/catalogo_ampliado.json "$W/"
           for f in calibracao_hec_bacia145/dados/observados/*.gz; do gunzip -c "$f" > "$W/dados_ana/csv/$(basename "${f%.gz}")"; done
-          if [ -n "$CANDS_INPUT" ]; then printf '%s' "$CANDS_INPUT" > "$W/cands.json"; else cp calibracao_hec_bacia145/dados/smoke/cands.json "$W/cands.json"; fi
+          python3 - <<'PY'
+          import json, os
+          W = os.environ["W"]
+          ped = {}
+          p = "calibracao_hec_bacia145/rodadas/PEDIDO.json"
+          if os.environ["EVENT"] == "push" and os.path.exists(p):
+              ped = json.load(open(p, encoding="utf-8"))
+          if os.environ.get("CANDS_INPUT"):
+              cands = json.loads(os.environ["CANDS_INPUT"])
+          elif ped.get("candidatos"):
+              cands = ped["candidatos"]
+          else:
+              cands = json.load(open("calibracao_hec_bacia145/dados/smoke/cands.json", encoding="utf-8"))
+          json.dump(cands, open(W + "/cands.json", "w"))
+          if ped.get("papeis"):
+              json.dump(ped["papeis"], open(W + "/papeis.json", "w"))
+          PY
           export HEC_BASIN_BASE="$PWD/calibracao_hec_bacia145/dados/basin/a00_E27.basin"
           export HEC_MDT_CSV="$PWD/calibracao_hec_bacia145/dados/mdt_trechos_atributos.csv"
           export HEC_CATALOGO=catalogo_ampliado.json HEC_FORC=forcamento_v3
+          [ -f "$W/papeis.json" ] && export HEC_PAPEIS=papeis.json
           cd "$W"
           python -B nuvem_agregar.py --candidatos cands.json --dir "$GITHUB_WORKSPACE/shards" --saida "$GITHUB_WORKSPACE/resultado.json" --janelas "$JANELAS"
       - name: Conferir com o PC (só no teste de fumaça)
-        if: env.CANDS_INPUT == ''
+        if: needs.preparar.outputs.rodada == 'smoke'
         run: |
           python3 - <<'PY'
           import json, sys
@@ -170,7 +229,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: resultado-${{ env.RODADA }}
+          name: resultado-${{ needs.preparar.outputs.rodada }}
           path: resultado.json
           retention-days: 7
           if-no-files-found: warn

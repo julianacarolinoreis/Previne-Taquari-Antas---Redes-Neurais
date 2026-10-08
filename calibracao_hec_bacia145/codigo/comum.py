@@ -114,3 +114,13 @@ if os.environ.get("HEC_CATALOGO"):
     for _k, _p in _c.get("papeis_antigos", {}).items():
         if _k in EVENTOS:
             EVENTOS[_k]["papel"] = _p
+
+# Troca de papéis por experimento (validação cruzada, "deixar de fora"): HEC_PAPEIS aponta para um JSON {evento: papel}.
+# Só vale para eventos que existem; o teste (papel "teste") não pode ser alterado por aqui.
+if os.environ.get("HEC_PAPEIS"):
+    import json as _json2
+    _pp = Path(os.environ["HEC_PAPEIS"])
+    _pp = _pp if _pp.is_absolute() else AQUI / _pp
+    for _k, _p in _json2.loads(_pp.read_text(encoding="utf-8")).items():
+        if _k in EVENTOS and EVENTOS[_k]["papel"] != "teste" and _p != "teste":
+            EVENTOS[_k]["papel"] = _p
