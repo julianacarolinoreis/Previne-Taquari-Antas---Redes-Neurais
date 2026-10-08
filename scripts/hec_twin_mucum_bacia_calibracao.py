@@ -560,18 +560,35 @@ def compute_blend_weights(
 
 
 def blend_series_with_weights(
-    series_list: list[list[float]],
+    series_list: list[list[float | None]],
     weights: list[float],
-) -> list[float]:
+) -> list[float | None]:
+    """Blend valid members without treating an unavailable stage as zero.
+
+    Stage can be None when a member is outside the frozen rating-curve domain.
+    At each hour, renormalize only the valid members' weights; if none is
+    available, retain None (never extrapolate the rating curve). Discharge
+    ensembles with complete series preserve their original weighted mean.
+    """
     if not series_list:
         return []
+    if len(weights) != len(series_list):
+        raise ValueError("One weight is required per ensemble member")
+    n = len(series_list[0])
+    if any(len(series) != n for series in series_list):
+        raise ValueError("Ensemble members must share a common time axis")
     if len(series_list) == 1:
         return list(series_list[0])
-    n = len(series_list[0])
-    return [
-        sum(float(weights[j]) * float(series_list[j][i]) for j in range(len(series_list)))
-        for i in range(n)
-    ]
+    result: list[float | None] = []
+    for i in range(n):
+        valid = [
+            (float(w), float(series[i]))
+            for series, w in zip(series_list, weights)
+            if series[i] is not None and float(w) > 0
+        ]
+        total = sum(w for w, _ in valid)
+        result.append(sum(w * value for w, value in valid) / total if total > 0 else None)
+    return result
 
 
 
