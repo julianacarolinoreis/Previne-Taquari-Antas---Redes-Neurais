@@ -184,7 +184,7 @@ class PublicationGitTests(unittest.TestCase):
         self.write_feed(self.seed, "00")
         self.write(self.seed, "app.txt", "base\n")
         self.write(self.seed, ".gitattributes", (ROOT / ".gitattributes").read_bytes())
-        for relative in (GATE, "scripts/archive_basin_station_forecast.py"):
+        for relative in (GATE, "scripts/archive_basin_station_forecast.py", "scripts/reparent_basin_snapshot.py"):
             self.write(self.seed, relative, (ROOT / relative).read_bytes())
         self.commit(self.seed, "base")
         self.git(self.seed, "remote", "add", "origin", self.remote.as_uri())
