@@ -500,10 +500,40 @@ def main() -> int:
     fetched: dict[str, dict[str, Any]] = {}
     all_query_meta = dict(active_flow_meta)
     all_query_meta.update(rain_query_meta)
+
+    # G040 already retrieves the entire observed station network. For ten-minute
+    # cycles with a fresh archive, rotate direct ANA queries rather than flood
+    # its API; keep *all* stations in modeling via full archived observations.
+    request_meta = dict(all_query_meta)
+    refresh_audit = {
+        "mode": "full_inventory", "eligible_count": len(all_query_meta),
+        "requested_count": len(all_query_meta), "archive_age_hours": None,
+    }
+    if FAST_MODE and G040_OBS.exists() and previous:
+        try:
+            archive = load(G040_OBS)
+            archived_at = datetime.fromisoformat(str(archive.get("generated_at_utc")).replace("Z", "+00:00"))
+            age_h = (datetime.now(UTC) - archived_at.astimezone(UTC)).total_seconds() / 3600
+            ready = archive.get("status") == "OBSERVED_RAIN_READY" and -0.25 <= age_h <= 3.0 and len(archive.get("stations") or []) >= 20
+            if ready and all_query_meta:
+                keys = sorted(all_query_meta)
+                batch = max(8, int(os.environ.get("OBS_RECENT_REFRESH_BATCH", "32")))
+                offset = (int(time.time() // 600) * batch) % len(keys)
+                rotating = {keys[(offset+i) % len(keys)] for i in range(min(batch, len(keys)))}
+                rotating.update(code for code in ("86472000","86472600","86500000","86510000") if code in all_query_meta)
+                request_meta = {code: all_query_meta[code] for code in sorted(rotating)}
+                refresh_audit.update({
+                    "mode": "rotating_recent_fetch_plus_full_g040_archive",
+                    "requested_count": len(request_meta), "rotation_batch": batch,
+                    "archive_age_hours": round(age_h,2),
+                    "not_fetched_in_this_cycle":len(all_query_meta)-len(request_meta),
+                })
+        except (TypeError, ValueError, OSError):
+            refresh_audit["mode"] = "full_inventory_archive_check_failed"
     with ThreadPoolExecutor(max_workers=MAX_FETCH_WORKERS) as pool:
         futures = {
             pool.submit(fetch_network, st, query_start, end): code
-            for code, st in all_query_meta.items()
+            for code, st in request_meta.items()
         }
         for fut in as_completed(futures):
             code = futures[fut]
@@ -840,7 +870,7 @@ def main() -> int:
 
     failures = [
         {"code": code, "network": st.get("network"), "error": (fetched.get(code) or {}).get("error")}
-        for code, st in all_query_meta.items()
+        for code, st in request_meta.items()
         if not (fetched.get(code) or {}).get("ok")
     ]
 
@@ -857,7 +887,9 @@ def main() -> int:
             reason = "used_valid_rain"
         elif not eligible:
             reason = "inventory_inactive_or_inoperable"
-        elif code in all_query_meta and not (fetched.get(code) or {}).get("ok"):
+        elif code in all_query_meta and code not in request_meta:
+            reason = "not_refetched_this_cycle_uses_archive_if_available"
+        elif code in request_meta and not (fetched.get(code) or {}).get("ok"):
             reason = "source_query_failed"
         else:
             reason = "no_valid_rain_returned"
@@ -890,7 +922,9 @@ def main() -> int:
             reason = "used_valid_hydrometry"
         elif not eligible:
             reason = "inventory_inactive_or_inoperable"
-        elif code in all_query_meta and not (fetched.get(code) or {}).get("ok"):
+        elif code in all_query_meta and code not in request_meta:
+            reason = "not_refetched_this_cycle_uses_archive_if_available"
+        elif code in request_meta and not (fetched.get(code) or {}).get("ok"):
             reason = "source_query_failed"
         else:
             reason = "no_valid_flow_or_level_returned"
@@ -1003,7 +1037,9 @@ def main() -> int:
             "inventory_audit": flow_inventory_audit,
         },
         "fetch_audit": {
-            "queried_station_count": len(all_query_meta),
+            "queried_station_count": len(request_meta),
+            "eligible_station_count": len(all_query_meta),
+            "refresh_strategy": refresh_audit,
             "failed_count": len(failures),
             "failures": failures,
             "policy": "inventário completo da bacia; consultas concorrentes limitadas; ANA primário+espelho; CSV operacional e histórico publicado usados apenas como persistência; ausência não vira zero; vazão > 50000 m3/s e chuva > 250 mm/h são rejeitadas por QC",
