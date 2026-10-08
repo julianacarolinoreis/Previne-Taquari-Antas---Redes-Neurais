@@ -151,7 +151,7 @@ def bacia_v3(p, sim, rota="mc"):
         tc = float(re.search(r"(?m)^\s*Time of Concentration: ([^\n]+)", corpo)[1])
         r = float(re.search(r"(?m)^\s*Storage Coefficient: ([^\n]+)", corpo)[1])
         if scs:
-            S = p["s0"] * math.exp(-qloc / p["qstar"])
+            S = max(5.3, p["s0"] * math.exp(-qloc / p["qstar"]))   # piso: o HEC-HMS recusa CN >= 99 (testado: todas as falhas tinham CN >= 99)
             CN = 25400.0 / (S + 254.0)
             corpo, n1 = re.subn(r"(?m)^(\s*)LossRate: Initial\+Constant\n", lambda mm: mm[1] + "LossRate: SCS\n", corpo)
             corpo, n2 = re.subn(r"(?m)^\s*Initial Loss: [^\n]+\n", "", corpo)
