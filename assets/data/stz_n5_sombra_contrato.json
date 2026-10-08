@@ -1,0 +1,218 @@
+{
+  "versao": "stz_n5_sombra_publica_20261008",
+  "gerado_por": "redes_neurais/mucum/RNA_MUCUM_4H_8H_MONTANTE_20261005/15_CONTRATO_SOMBRA/gerar_contrato_sombra.py",
+  "aviso": "SOMBRA EXPERIMENTAL - acompanhamento comparativo publico; nao e alerta oficial.",
+  "alvo": "86472600",
+  "saida_json": "previsao_sombra_santa_tereza.json",
+  "historico_jsonl": "historico_previsao_sombra_santa_tereza.jsonl",
+  "regras": {
+    "grade": "hora cheia exata (somente leituras HH:00 da ANA)",
+    "nivel": "Nivel = N(t); vel_nivel k = N(t) - N(t-k); acel_nivel k = [N(t) - N(t-1)] - [N(t-k) - N(t-k-1)]",
+    "saida": "RNA = N(t+H) - N(t); previsão = N(t) + RNA",
+    "chuva": "hora H = leituras em (H-1h, H]; acumulado por posto só com as k horas; média dos postos com valor; dif = média por posto de acum(t) - acum(t-k)",
+    "hierarquia": "usa o menor nivel_hierarquia >= 1 com todas as entradas e antecedência suficiente; nível 0 = controle (só registro)",
+    "dados": "só estações vivas: sem 86306000 (travada em -332 cm desde 21/09/2026), sem 86505500 e sem 86298000"
+  },
+  "limites_estacao_cm": {
+    "86125130": {
+      "nome": "Ituim",
+      "min": 1,
+      "max": 645,
+      "salto_max_1h": 144,
+      "historico_min_cm": 3,
+      "historico_max_cm": 445,
+      "cota_absoluta": false
+    },
+    "86305000": {
+      "nome": "86305000 (cota de usina)",
+      "min": 1,
+      "max": 27164,
+      "salto_max_1h": 280,
+      "historico_min_cm": 239,
+      "historico_max_cm": 24716,
+      "cota_absoluta": true
+    },
+    "86448000": {
+      "nome": "Veranópolis (cota)",
+      "min": 14142,
+      "max": 15756,
+      "salto_max_1h": 440,
+      "historico_min_cm": 14276,
+      "historico_max_cm": 15621,
+      "cota_absoluta": true
+    },
+    "86470800": {
+      "nome": "86470800 (cota de usina)",
+      "min": 1,
+      "max": 12044,
+      "salto_max_1h": 344,
+      "historico_min_cm": 103,
+      "historico_max_cm": 10958,
+      "cota_absoluta": true
+    },
+    "86472000": {
+      "nome": "Linha José Júlio",
+      "min": 61,
+      "max": 3493,
+      "salto_max_1h": 848,
+      "historico_min_cm": 111,
+      "historico_max_cm": 2761,
+      "cota_absoluta": false
+    },
+    "86472600": {
+      "nome": "Santa Tereza",
+      "min": 55,
+      "max": 2823,
+      "salto_max_1h": 742,
+      "historico_min_cm": 105,
+      "historico_max_cm": 2232,
+      "cota_absoluta": false
+    }
+  },
+  "horizontes": {
+    "4h": {
+      "horizonte_h": 4,
+      "modelos": [
+        {
+          "modelo_id": "RNAPREV__SANTA_TEREZA__04h__ALT__STZ_4H_N5__11inputs_22hiddens_20261006",
+          "id_rodada": "STZ_4H_N5",
+          "nivel_hierarquia": 5,
+          "papel": "reserva",
+          "descricao": "só Santa Tereza + chuva local (último nível)",
+          "mat": "assets/mat/sombra_santa_tereza_v2/RNAPREV__SANTA_TEREZA__04h__ALT__STZ_4H_N5__11inputs_22hiddens_20261006.mat",
+          "modelo_sha256": "90D3D32C3BD25BD22C57191E0D5A4CB0F3972B26ED4DA9746A5FC6F7A2ADA49B",
+          "n_inputs": 11,
+          "n_hidden": 22,
+          "inputs": [
+            {
+              "ordem": 1,
+              "nome": "Nivel_86472600",
+              "tipo": "nivel",
+              "estacao": "86472600",
+              "defasagem_h": 0
+            },
+            {
+              "ordem": 2,
+              "nome": "DifN-1h_86472600",
+              "tipo": "vel_nivel",
+              "estacao": "86472600",
+              "defasagem_h": 1
+            },
+            {
+              "ordem": 3,
+              "nome": "DifN-2h_86472600",
+              "tipo": "vel_nivel",
+              "estacao": "86472600",
+              "defasagem_h": 2
+            },
+            {
+              "ordem": 4,
+              "nome": "DifN-4h_86472600",
+              "tipo": "vel_nivel",
+              "estacao": "86472600",
+              "defasagem_h": 4
+            },
+            {
+              "ordem": 5,
+              "nome": "Acel-1h_86472600",
+              "tipo": "acel_nivel",
+              "estacao": "86472600",
+              "defasagem_h": 1
+            },
+            {
+              "ordem": 6,
+              "nome": "Acel-2h_86472600",
+              "tipo": "acel_nivel",
+              "estacao": "86472600",
+              "defasagem_h": 2
+            },
+            {
+              "ordem": 7,
+              "nome": "Acel-4h_86472600",
+              "tipo": "acel_nivel",
+              "estacao": "86472600",
+              "defasagem_h": 4
+            },
+            {
+              "ordem": 8,
+              "nome": "Acel-8h_86472600",
+              "tipo": "acel_nivel",
+              "estacao": "86472600",
+              "defasagem_h": 8
+            },
+            {
+              "ordem": 9,
+              "nome": "Acel-12h_86472600",
+              "tipo": "acel_nivel",
+              "estacao": "86472600",
+              "defasagem_h": 12
+            },
+            {
+              "ordem": 10,
+              "nome": "chuvaG_LOCAL_acum_6h",
+              "tipo": "chuva_acum",
+              "grupo": "LOCAL",
+              "janela_h": 6,
+              "estacoes": [
+                "86472600",
+                "86472000"
+              ]
+            },
+            {
+              "ordem": 11,
+              "nome": "chuvaG_LOCAL_acum_18h",
+              "tipo": "chuva_acum",
+              "grupo": "LOCAL",
+              "janela_h": 18,
+              "estacoes": [
+                "86472600",
+                "86472000"
+              ]
+            }
+          ],
+          "estacoes_nivel": [
+            "86472600"
+          ],
+          "estacoes_chuva": [
+            "86472000",
+            "86472600"
+          ],
+          "faixa_e95_cm": {
+            "geral": 94.3,
+            "subida": 146.6,
+            "acima_1500": 168.8
+          },
+          "faixa_e95_origem": {
+            "validacao_matlab": {
+              "geral": 94.30565111488227,
+              "subida": 146.56876496254472,
+              "acima_1500": 168.79914799390698,
+              "n": {
+                "geral": 1261,
+                "subida": 461,
+                "acima_1500": 62
+              }
+            },
+            "oof_validacao_cruzada": {
+              "geral": 80.95251400220553,
+              "subida": 119.85039995917303,
+              "acima_1500": 155.7138186160813,
+              "n": {
+                "geral": 4319,
+                "subida": 1523,
+                "acima_1500": 147
+              }
+            }
+          },
+          "maximo_treino_nivel_cm": 2365.0,
+          "pers_validacao": 0.679,
+          "linhas_treino_validacao_teste": [
+            3058,
+            1261,
+            687
+          ]
+        }
+      ]
+    }
+  }
+}
