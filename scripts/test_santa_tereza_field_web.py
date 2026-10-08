@@ -66,6 +66,69 @@ class FieldWebTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
 
+    def test_actual_feed_preparation_never_promotes_residual_or_shadow_forecasts(self):
+        """Include preparation and empty-state logic, not just readiness in isolation."""
+        for page in (PAGES[0], PAGES[2]):
+            with self.subTest(page=page):
+                text = (ROOT / page).read_text(encoding="utf-8")
+                functions = "\n".join(function_code(text, name) for name in (
+                    "parseLocalWhen", "horizonHasForecast", "liveHorizonReady",
+                    "liveFromEvent", "prepareLiveData", "temPrevisao", "liveSemDado"))
+                public = ((ROOT / "assets/js/previsao_publica.js").read_text(encoding="utf-8")
+                          if "window.PREVINE_PUBLIC.isReady(key,D)" in text else "")
+                code = """
+const vm=require('node:vm'),fmt=require(FORMATTER);
+const clock=Date.parse('2026-10-07T15:00:00-03:00');
+class FixedDate extends Date{static now(){return clock;}}
+const valid={modo:'ao_vivo',horizonte:'2h',disponivel:true,nivel_previsto_cm:500,
+ hora_modelo:'2026-10-07T14:00:00-03:00',hora_alvo:'2026-10-07T16:00:00-03:00'};
+const absent=()=>({'2h':{disponivel:false},'4h':{disponivel:false},'8h':{disponivel:false}});
+const context={Date:FixedDate,window:{PrevineFmtQuando:fmt},PrevineFmtQuando:fmt,
+ HAND_ZERO_DEFAULT_CM:160,liveHz:'2h',liveData:null,updateLiveHzButtons:()=>{},
+ EVENTS:{mai24_2h:{horizonte:'2h',combo:'historical-fixture',series:[['2024-05-01',400,500,600]]}}};
+vm.createContext(context);vm.runInContext(PUBLIC,context);vm.runInContext(FUNCTIONS,context);
+function inspect(data,initial='2h'){
+ context.liveData=data;context.liveHz=initial;context.prepareLiveData(data);
+ return {selected:context.liveHz,missing:context.liveSemDado(),
+  ready:['2h','4h','8h'].map(key=>context.liveHorizonReady(key,data.horizontes[key])),
+  primaryAvailable:data.horizontes['2h']?.disponivel??null};
+}
+const residual=inspect({...valid,passos:[['fixture',400,500]],horizontes:absent()});
+const shadow=inspect({...valid,horizontes:{...absent(),
+ '2h':{...valid,shadow_only:true},'2h_versao_b':{...valid,shadow_only:true},
+ '8h_v002':{...valid,shadow_only:true}}},'2h_versao_b');
+const comparative=inspect({...valid,horizonte:'2h_versao_b',
+ horizontes:{...absent(),'2h_versao_b':valid}},'2h_versao_b');
+const empty=inspect({...valid,passos:[['fixture',400,500]],horizontes:{}});
+const nullPrimary=inspect({...valid,horizontes:{...absent(),'2h':null}});
+const inactive=inspect({...valid,horizontes:{...absent(),'2h':{...valid,ativo_ao_vivo:false}}});
+const replay=inspect({...valid,modo:'replay',passos:[['fixture',400,500]],horizontes:absent()});
+const missingMode=inspect({...valid,modo:undefined,passos:[['fixture',400,500]],horizontes:absent()});
+const invalidNumber=inspect({...valid,horizontes:{...absent(),'2h':{...valid,nivel_previsto_cm:'invalid'}}});
+const booleanNumber=inspect({...valid,horizontes:{...absent(),'2h':{...valid,nivel_previsto_cm:false}}});
+const observationOnly=inspect({...valid,horizontes:{...absent(),
+ '2h':{...valid,nivel_previsto_cm:null,passos:[['fixture',400,500,null]]}}});
+const fallback=inspect({...valid,horizontes:{...absent(),'4h':{...valid,horizonte:'4h'}}});
+const zero=inspect({...valid,horizontes:{...absent(),'2h':{...valid,nivel_previsto_cm:0}}});
+const legacyRoot=inspect({...valid});
+const stepZero=inspect({...valid,horizontes:{...absent(),
+ '2h':{...valid,nivel_previsto_cm:null,passos:[['fixture',400,500,0]]}}});
+console.log(JSON.stringify({residual,shadow,comparative,empty,nullPrimary,inactive,replay,missingMode,invalidNumber,booleanNumber,observationOnly,fallback,zero,legacyRoot,stepZero}));
+""".replace("FORMATTER", json.dumps(str(ROOT / "assets/js/fmt_quando.js")))
+                code = code.replace("PUBLIC", json.dumps(public)).replace("FUNCTIONS", json.dumps(functions))
+                result = self.node(code)
+                for name in ("residual", "shadow", "comparative", "empty", "nullPrimary", "inactive", "replay", "missingMode", "invalidNumber", "booleanNumber", "observationOnly"):
+                    self.assertIsNone(result[name]["selected"], name)
+                    self.assertTrue(result[name]["missing"], name)
+                    self.assertEqual(result[name]["ready"], [False, False, False], name)
+                self.assertIs(result["residual"]["primaryAvailable"], False)
+                self.assertEqual(result["fallback"]["selected"], "4h")
+                for name in ("fallback", "zero", "legacyRoot", "stepZero"):
+                    self.assertFalse(result[name]["missing"], name)
+                self.assertEqual(result["zero"]["selected"], "2h")
+                self.assertEqual(result["legacyRoot"]["selected"], "2h")
+                self.assertEqual(result["stepZero"]["selected"], "2h")
+
     def test_real_forecast_readiness_keeps_three_independent_point_comparisons(self):
         """Exercise the actual readiness/point chain, including the public UI delegate."""
         for page in (PAGES[0], PAGES[2]):

@@ -907,15 +907,15 @@ function liveFromEvent(key, tipo){
 }
 function horizonHasForecast(D){
   if(!D) return false;
-  if(D.nivel_previsto_cm!==null && D.nivel_previsto_cm!==undefined && D.nivel_previsto_cm!=='') return true;
-  return Array.isArray(D.passos) && D.passos.some(P=>Array.isArray(P)&&P.length>=3&&P[2]!==null&&P[2]!==undefined&&P[2]!=='');
+  const hasValue=v=>v!==null&&v!==undefined&&v!==''&&typeof v!=='boolean'&&Number.isFinite(Number(v));
+  if(hasValue(D.nivel_previsto_cm)) return true;
+  return Array.isArray(D.passos) && D.passos.some(P=>Array.isArray(P)&&P.length>=3&&hasValue(P.length>3?P[3]:P[2]));
 }
 function liveHorizonReady(key,D){
+  if(!['2h','4h','8h'].includes(key) || !D || D.shadow_only || D.ativo_ao_vivo===false || String(D.modo||'').toLowerCase()==='replay') return false;
   if(!D || D.disponivel===false || !horizonHasForecast(D)) return false;
   const status=String(D.status||'').toLowerCase();
   if(/sem hora valida|sem hora válida|sem previsao|sem previsão|inputs incompletos|indisponivel|indisponível/.test(status)) return false;
-  // Replays têm passos próprios e não precisam de hora-alvo no objeto-raiz.
-  if(String(D.modo||'').toLowerCase()==='replay') return true;
   const base=parseLocalWhen(D.hora_modelo), alvo=parseLocalWhen(D.hora_alvo);
   if(!(base&&alvo)) return false;
   // Horizonte "ao vivo" precisa ter alvo realmente futuro. Saídas cujo
@@ -968,13 +968,15 @@ function updateLiveHzButtons(){
 }
 function prepareLiveData(d){
   const hs=Object.assign({},d.horizontes||{});
-  if(Array.isArray(d.passos)) hs[d.horizonte||'2h']=d;
-  if((d.modo||'replay')==='replay'){
+  // A estrutura explícita é autoritativa, inclusive null/vazia/indisponível.
+  // Compatibilidade com feed antigo só quando o campo horizontes não existe.
+  if(!Object.prototype.hasOwnProperty.call(d,'horizontes') && horizonHasForecast(d)) hs[d.horizonte||'2h']=d;
+  if(String(d.modo||'').toLowerCase()==='replay'){
     const h2=liveFromEvent('mai24_2h','ALT');
     if(h2) hs['2h']=h2;
   }
   d.horizontes=hs;
-  const preferidos=[liveHz,d.horizonte,'2h',...Object.keys(hs)];
+  const preferidos=[liveHz,d.horizonte,'2h','4h','8h'];
   liveHz=preferidos.find(key=>key&&liveHorizonReady(key,hs[key]))||null;
   updateLiveHzButtons();
 }
@@ -1193,13 +1195,12 @@ function temPrevisao(x){
   if(x.nivel_previsto_cm!==null && x.nivel_previsto_cm!==undefined && x.nivel_previsto_cm!=='') return true;
   return Array.isArray(x.passos) && x.passos.some(P=>Array.isArray(P)&&P.length>=3&&P[2]!==null&&P[2]!==undefined&&P[2]!=='');
 }
-// falha momentânea de telemetria: NENHUM horizonte tem previsão de verdade.
-// Ancorado na previsão (e não em 'horizontes'), que o prepareLiveData pode
-// sintetizar vazio a partir de 'passos' — vale igual na 1ª carga e no refresh de 60 s.
+// Só um horizonte principal admissível pode abastecer a previsão atual.
+// Valores residuais, replay e comparativas não substituem indisponibilidade.
 function liveSemDado(){
-  if(!liveData || liveData.modo==='replay') return false;
+  if(!liveData) return false;
   const hs=liveData.horizontes||{};
-  const algum = Object.keys(hs).length ? Object.entries(hs).some(([key,D])=>liveHorizonReady(key,D)) : temPrevisao(liveData);
+  const algum = ['2h','4h','8h'].some(key=>liveHorizonReady(key,hs[key]));
   return !algum;
 }
 function renderLiveStep(){
