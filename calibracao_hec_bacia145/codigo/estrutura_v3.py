@@ -12,12 +12,21 @@ import math
 import re
 from datetime import timedelta
 
-from comum import EVENTOS, MDT_TRECHOS, SIMULACOES
+from comum import EVENTOS, MDT_SUBBACIAS, MDT_TRECHOS, SIMULACOES
 import bacia_inteira as bi
 import hec
 
 MDT = MDT_TRECHOS
 ATT = {r["reach_id"]: r for r in csv.DictReader(open(MDT, encoding="utf-8"))}
+# declividade do caminho de escoamento de cada sub-bacia (MDT SRTM 30 m): relevo p90-p10 / comprimento de Hack (L = 1,4 A^0,6 km)
+SUB_MDT = {}
+for _r in csv.DictReader(open(MDT_SUBBACIAS, encoding="utf-8")):
+    _A = float(_r["area_km2"])
+    _rel = float(_r["elev_p90_m"]) - float(_r["elev_p10_m"])
+    SUB_MDT[_r["sub_id"]] = dict(area=_A, S=min(0.15, max(0.003, _rel / (1.4 * _A ** 0.6 * 1000))))
+S_REF = sorted(v["S"] for v in SUB_MDT.values())[len(SUB_MDT) // 2]
+A_GRANDE = 400.0   # km²: sub-bacias que tratamos à parte (uma UH só para > 400 km² é pouco crível)
+NEUTRO = {"v_grandes": 1.0, "ks": 0.0}   # valores que reproduzem exatamente a estrutura anterior
 CTRL_NOS = [("TAINHAS", "J_106"), ("CASTRO_ALVES", "J_211"), ("MONTE_CLARO", "J_236"), ("LJJ", "J_208"),
             ("MUCUM", "J_201"), ("ENCANTADO", "J_258")]
 GRUPO_ALTO = {"tainhas", "alto", "medio"}
@@ -31,6 +40,9 @@ PARAMS = {
     "ia_max": (0.0, 90.0, "lin"), "qstar": (0.002, 0.05, "log"), "f": (0.5, 20.0, "log"), "imp": (0.0, 0.6, "lin"),
     "mr": (0.4, 5.0, "log"), "v_alto": (0.3, 2.5, "log"), "v_resto": (0.3, 2.5, "log"),
     "mn": (0.4, 1.8, "log"), "mk": (0.4, 2.5, "log"), "rec": (0.70, 0.98, "lin"), "thr": (0.01, 0.40, "lin"),
+    # 08/10 noite: uso do MDT na resposta das sub-bacias
+    "v_grandes": (0.25, 2.0, "log"),   # multiplicador extra de Tc e R das sub-bacias com mais de A_GRANDE km²
+    "ks": (0.0, 0.8, "lin"),           # Tc e R proporcionais a (S/S_ref)^-ks, com S a declividade do caminho (MDT)
 }
 
 
@@ -114,6 +126,10 @@ def bacia_v3(p, sim, rota="mc"):
         nome, corpo = m[1].strip(), m[2]
         reg = bi.REG[nome]
         v = p["v_alto"] if reg in GRUPO_ALTO else p["v_resto"]
+        md = SUB_MDT[nome]
+        if md["area"] > A_GRANDE:
+            v *= p.get("v_grandes", 1.0)
+        v *= min(4.0, max(0.25, (md["S"] / S_REF) ** (-p.get("ks", 0.0))))
         qloc = q0[CTRL_DE[nome]]
         ia = p["ia_max"] * math.exp(-qloc / p["qstar"])
 

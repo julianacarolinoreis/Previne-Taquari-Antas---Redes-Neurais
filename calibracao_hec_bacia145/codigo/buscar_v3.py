@@ -24,7 +24,8 @@ SIMS_CAL = sorted({EVENTOS[e]["sim"] for e in CAL})
 
 
 def to_unit(p):
-    return {k: (math.log(p[k] / a) / math.log(b / a)) if s == "log" else (p[k] - a) / (b - a)
+    q = {**e3.NEUTRO, **p}
+    return {k: (math.log(q[k] / a) / math.log(b / a)) if s == "log" else (q[k] - a) / (b - a)
             for k, (a, b, s) in e3.PARAMS.items()}
 
 

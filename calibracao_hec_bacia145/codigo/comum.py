@@ -17,6 +17,8 @@ HEC_CMD = Path(os.environ.get("HEC_HMS_CMD", r"D:\PREVINE\tools\hec-hms-4.13\por
 BASIN_BASE = Path(os.environ.get("HEC_BASIN_BASE", str(CODEX / "calibracao_chuva_ampliada_20260930" / "a00_E27.basin")))
 MDT_TRECHOS = Path(os.environ.get("HEC_MDT_CSV", str(
     CODEX / "modelo_bacia_taquari_antas_reconstruido_20260920" / "atributos_mdt_bacia_full_20260920" / "mdt_trechos_atributos.csv")))
+MDT_SUBBACIAS = Path(os.environ.get("HEC_MDT_SUB", str(
+    CODEX / "modelo_bacia_taquari_antas_reconstruido_20260920" / "atributos_mdt_bacia_full_20260920" / "mdt_subbacias_atributos.csv")))
 DADOS = AQUI / "dados_ana"
 FORC = AQUI / os.environ.get("HEC_FORC", "forcamento")          # forcamento_v3 = todos os pluviômetros
 RESULT = AQUI / os.environ.get("HEC_RESULT", "resultados")    # pasta de saída das avaliações
