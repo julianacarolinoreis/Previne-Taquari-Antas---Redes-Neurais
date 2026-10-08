@@ -97,6 +97,7 @@ class ShadowTest(unittest.TestCase):
             self.assertEqual(C.sha(C.ROOT/p['path']),p['sha256'])
             self.assertLess(p['export_max_error_cm'],0.002)
         self.assertEqual(C.sha(C.ROOT/'assets/data/stz_user_models/training_n5.csv'),m['source_sha256'])
+        self.assertEqual(C.sha(C.ROOT/'assets/data/stz_user_models/training_n5_meta.csv'),m['source_meta_sha256'])
 
     def test_public_and_user_interfaces_have_separate_panels(self):
         public=(C.ROOT/'santa_tereza_previsao_inundacao.html').read_text(encoding='utf-8')
