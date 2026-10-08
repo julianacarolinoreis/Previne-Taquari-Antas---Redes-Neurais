@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'previne/robo/stz_shadow_common.py'
+      - 'previne/robo/stz_shadow_storage.py'
+      - 'previne/robo/executar_sombra_stz.py'
       - 'previne/robo/stz_model_architectures.py'
       - 'previne/robo/gerar_sombra_stz_*.py'
       - 'assets/models/stz_user_shadow/**'
@@ -12,6 +14,9 @@ on:
       - 'assets/data/stz_user_models/**'
       - 'assets/data/stz_n5_sombra_contrato.json'
       - '.github/workflows/stz-shadow.yml'
+      - 'scripts/test_stz_shadow*.py'
+      - 'scripts/validate_stz_shadow_storage.py'
+      - 'scripts/test_stz_shadow_ui.js'
   schedule:
     - cron: '17,47 * * * *'
   workflow_dispatch:
@@ -38,6 +43,7 @@ jobs:
             assets/models/stz_user_shadow
             assets/mat/sombra_santa_tereza_v2
             assets/data/stz_user_models
+            assets/data/stz_shadow_archive
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -46,24 +52,34 @@ jobs:
           pip install numpy==2.4.6 scipy==1.17.1 scikit-learn==1.9.0 xgboost==3.4.1 joblib==1.5.3
           pip install torch==2.10.0 --index-url https://download.pytorch.org/whl/cpu
       - name: Verificar contratos e historico prospectivo
-        run: python -B -m unittest scripts.test_stz_shadow
-      - name: Executar N5 de 4 h em sombra publica
-        run: timeout --signal=TERM --kill-after=20s 240s python -B -m previne.robo.gerar_sombra_stz_n5
-      - name: Executar arquiteturas da versao de usuario
-        run: timeout --signal=TERM --kill-after=20s 240s python -B -m previne.robo.gerar_sombra_stz_usuario
+        run: |
+          python -B -m unittest scripts.test_stz_shadow scripts.test_stz_shadow_storage
+          node scripts/test_stz_shadow_ui.js
+      - name: Executar N5 publica e modelos do usuario com uma coleta ANA
+        id: inferencia
+        continue-on-error: true
+        run: timeout --signal=TERM --kill-after=20s 480s python -B -m previne.robo.executar_sombra_stz
+      - name: Validar conservacao dos registros e integridade do arquivo
+        id: validar
+        if: always() && steps.inferencia.outcome != 'skipped'
+        run: python -B -m scripts.validate_stz_shadow_storage
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: stz-sombra-${{ github.run_id }}
+          retention-days: 90
           path: |
             previsao_sombra_stz_n5.json
             historico_sombra_stz_n5.json
             previsao_sombra_stz_usuario.json
             historico_sombra_stz_usuario.json
+            assets/data/stz_shadow_archive/
       - name: Publicar somente feeds e historicos de sombra
+        if: always() && steps.validar.outcome == 'success' && steps.inferencia.outcome != 'skipped'
         run: |
           git config user.name 'previne-robo'
           git config user.email 'previne-robo@users.noreply.github.com'
-          git add previsao_sombra_stz_n5.json historico_sombra_stz_n5.json previsao_sombra_stz_usuario.json historico_sombra_stz_usuario.json
+          git add previsao_sombra_stz_n5.json historico_sombra_stz_n5.json previsao_sombra_stz_usuario.json historico_sombra_stz_usuario.json assets/data/stz_shadow_archive
           if git diff --staged --quiet; then exit 0; fi
           git commit -m 'bot: atualiza acompanhamento STZ em sombra [skip ci]'
           for tentativa in 1 2 3 4 5; do
@@ -71,3 +87,6 @@ jobs:
             sleep 3
           done
           exit 1
+      - name: Sinalizar falha parcial apos preservar os resultados validos
+        if: always() && steps.inferencia.outcome == 'failure'
+        run: exit 1

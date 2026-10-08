@@ -2,6 +2,7 @@
 import datetime as dt
 from . import stz_shadow_common as C
 from . import gerar_previsao_ao_vivo as R
+from . import stz_shadow_storage as S
 
 CONTRACT = C.ROOT / "assets/data/stz_n5_sombra_contrato.json"
 OUT = C.ROOT / "previsao_sombra_stz_n5.json"
@@ -34,17 +35,20 @@ def forecast(levels, rain, now, contract):
              antecedencia_efetiva_h=(t+dt.timedelta(hours=4)-now).total_seconds()/3600)
     return p
 
-def main():
+def main(data=None, issued_at=None):
     contract = C.read(CONTRACT)
-    levels, rain = C.download()
-    now = R.agora_brt()
+    before = S.load(HISTORY)
+    levels, rain = data if data is not None else C.download()
+    now = issued_at or R.agora_brt()
     p = forecast(levels, rain, now, contract)
-    hist = C.update_history(C.read(HISTORY), [p], levels.get(C.STZ, {}), now)
+    hist = C.update_history(before, [p], levels.get(C.STZ, {}), now,contract['limites_estacao_cm'])
+    archive = S.archive('n5',now,[p],levels,rain,before,hist)
     feed = {"schema_version": "stz_n5_shadow_v1", "gerado_em": C.stamp(now), "timezone": "America/Sao_Paulo",
             "shadow_only": True, "official_alert": False, "promotion_allowed": False, "aviso": C.AVISO,
             "previsao": p, "avaliacao": C.evaluate(hist["registros"], now),
-            "serie_recente": hist["registros"][-240:]}
-    C.write(HISTORY, hist)
+            "serie_recente": hist["registros"][-240:], "arquivo_emissao":archive,
+            "historico_registros_n":len(hist['registros'])}
+    S.save(HISTORY,before,hist)
     C.write(OUT, feed)
     print(p["status"], p["hora_modelo"], p["hora_alvo"], p["nivel_previsto_cm"])
     return 0
