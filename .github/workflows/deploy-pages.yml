@@ -91,9 +91,10 @@ permissions:
   id-token: write
 
 concurrency:
-  # Separar push de workflow_run evita que a fila frequente dos robôs cancele
-  # uma publicação manual de interface antes mesmo de o job começar.
-  group: github-pages-site-${{ github.event_name }}
+  # Todos os eventos publicam o MESMO site: um único deploy por vez.
+  # A fila mantém a rodada pendente mais recente; o checkout lê main atual,
+  # inclusive mudanças manuais anteriores, sem criar um backlog de builds.
+  group: github-pages-site
   cancel-in-progress: false
 
 jobs:
