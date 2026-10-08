@@ -157,6 +157,66 @@ class LiveFeedContractTests(unittest.TestCase):
         }
         self.assertTrue(live._precisa_fallback(expired))
 
+    def test_4h_pro_suspension_forces_five_inputs_even_when_primary_is_fresh(self) -> None:
+        from previne.robo import gerar_previsao_ao_vivo as live
+
+        self.assertTrue(live.SUSPENSAO_STZ_4H_PRO_ATIVA)
+        cfg = next(c for c in live.MODELOS if c["horizonte"] == "4h")
+        target = (live.agora_brt() + live.dt.timedelta(hours=4)).isoformat(timespec="seconds")
+        primary = {
+            "modelo": cfg["modelo"], "hora_modelo": "2026-10-06T12:00:00",
+            "hora_alvo": target, "nivel_previsto_cm": 999, "disponivel": True,
+            "status": "ok", "auditoria_inputs": {"status": "NORMAL"},
+            "passos": [], "inputs_faltantes_n": 0,
+        }
+        alternative = {
+            "modelo": "4H_ALT_PRIO_12478", "hora_modelo": "2026-10-06T12:00:00",
+            "hora_alvo": target, "nivel_previsto_cm": 450, "disponivel": True,
+            "status": "ok", "auditoria_inputs": {"status": "NORMAL"},
+            "passos": [], "inputs_faltantes_n": 0,
+        }
+        with (
+            patch.object(live, "_precisa_fallback", return_value=False) as freshness,
+            patch.object(live, "escolher_hora_modelo", return_value=live.agora_brt()),
+            patch.object(live, "gerar_saida_modelo", return_value=copy.deepcopy(alternative)),
+            patch.object(live, "diagnosticar_proxima_base", return_value=None),
+        ):
+            out = live.aplicar_fallback_operacional(cfg, primary, {}, [], "", [])
+        freshness.assert_not_called()
+        self.assertEqual(out["modelo"], "4H_ALT_PRIO_12478")
+        self.assertEqual(out["nivel_previsto_cm"], 450)
+        self.assertTrue(out["fallback_ativo"])
+        self.assertTrue(out["bloqueio_operacional_4h_pro"])
+        self.assertIn("86298000", out["motivo_fallback"])
+
+    def test_4h_pro_suspension_never_revives_primary_when_fallback_unavailable(self) -> None:
+        from previne.robo import gerar_previsao_ao_vivo as live
+
+        cfg = next(c for c in live.MODELOS if c["horizonte"] == "4h")
+        target = (live.agora_brt() + live.dt.timedelta(hours=4)).isoformat(timespec="seconds")
+        primary = {
+            "modelo": cfg["modelo"], "hora_modelo": "2026-10-06T12:00:00",
+            "hora_alvo": target, "nivel_previsto_cm": 999, "disponivel": True,
+            "status": "ok", "auditoria_inputs": {"status": "NORMAL"},
+            "passos": [["2026-10-06T12:00:00", 400, 999]],
+        }
+        unavailable = {
+            "modelo": "4H_ALT_PRIO_12478", "hora_modelo": None,
+            "hora_alvo": None, "nivel_previsto_cm": None,
+            "status": "inputs incompletos", "auditoria_inputs": {"status": "INVALIDO"},
+        }
+        with (
+            patch.object(live, "escolher_hora_modelo", return_value=None),
+            patch.object(live, "gerar_saida_modelo", return_value=copy.deepcopy(unavailable)),
+            patch.object(live, "diagnosticar_proxima_base", return_value=None),
+        ):
+            out = live.aplicar_fallback_operacional(cfg, primary, {}, [], "", [])
+        self.assertIsNone(out["nivel_previsto_cm"])
+        self.assertFalse(out["disponivel"])
+        self.assertEqual(out["passos"], [])
+        self.assertEqual(out["auditoria_inputs"]["status"], "ATENCAO")
+        self.assertTrue(out["bloqueio_operacional_4h_pro"])
+
     def test_ana_reuses_one_xml_for_level_and_rain(self) -> None:
         from previne.robo import gerar_previsao_ao_vivo as live
 
