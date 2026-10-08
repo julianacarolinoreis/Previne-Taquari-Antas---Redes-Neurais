@@ -112,6 +112,17 @@ def main():
     html = html.replace('liveFromEvent("mai24_2h","ALT")', 'liveFromEvent("ev27_2h","ALT")')
     html = html.replace("mai24_2h", "ev27_2h")
 
+    # Preservar o texto amigável do popup ao regenerar Muçum a partir
+    # do template de Santa Tereza: o HAND permanece apenas no cálculo.
+    html = html.replace(
+        "      html+='<div><b>HAND:</b> '+handTxt+'</div>';\\n",
+        "",
+    )
+    html = html.replace(
+        "Régua para a água chegar aqui:</b>",
+        "Nível da régua para a água chegar aqui:</b>",
+    )
+
     html = html.replace('      <button data-live-hz="8h">8h</button>\n', "")
     html = html.replace('      <button data-live-hz="12h">12h</button>\n', "")
 
