@@ -926,6 +926,8 @@ function liveHorizonReady(key,D){
 function horizonUnavailableReason(D){
   if(!D) return 'sem registro';
   if(D.disponivel===false) return 'marcado como indisponível';
+  if(D.shadow_only || D.ativo_ao_vivo===false) return 'não integra a previsão principal ao vivo';
+  if(String(D.modo||'').toLowerCase()==='replay') return 'replay histórico, não previsão atual';
   const falt=[];
   if(!horizonHasForecast(D)) falt.push('previsão ausente');
   const base=parseLocalWhen(D.hora_modelo);
@@ -958,9 +960,13 @@ function updateLiveHzButtons(){
   });
   const status=document.getElementById('live-horizon-status');
   if(status){
-    const missing=Object.entries(hs).filter(([key,D])=>!liveHorizonReady(key,D)).map(([key,D])=>{
-      const falt=D&&D.inputs_faltantes_n!=null?` · faltam ${D.inputs_faltantes_n}/${D.inputs_total||15} inputs`:'';
-      return `${String(key).match(/\d+/)?.[0]||key} h indisponível · ${horizonUnavailableReason(D)}${falt}`;
+    // O aviso é dos três horizontes principais, assim como o popup e o gráfico.
+    // Comparativas em sombra não podem parecer uma falha da previsão principal.
+    const missing=['2h','4h','8h'].filter(key=>!liveHorizonReady(key,hs[key])).map(key=>{
+      const D=hs[key];
+      const count=D&&Number(D.inputs_faltantes_n);
+      const falt=Number.isFinite(count)&&count>0?` · faltam ${count}/${D.inputs_total||15} inputs`:'';
+      return `${LIVE_HZ_LABELS[key]} indisponível · ${horizonUnavailableReason(D)}${falt}`;
     });
     status.textContent=missing.length?missing.join(' · '):'';
     status.style.display=missing.length?'':'none';

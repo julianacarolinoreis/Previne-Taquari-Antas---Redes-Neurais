@@ -129,6 +129,50 @@ console.log(JSON.stringify({residual,shadow,comparative,empty,nullPrimary,inacti
                 self.assertEqual(result["legacyRoot"]["selected"], "2h")
                 self.assertEqual(result["stepZero"]["selected"], "2h")
 
+    def test_user_horizon_warning_only_describes_primary_forecasts(self):
+        text = (ROOT / PAGES[2]).read_text(encoding="utf-8")
+        functions = "\n".join(function_code(text, name) for name in (
+            "parseLocalWhen", "horizonHasForecast", "liveHorizonReady",
+            "horizonUnavailableReason", "updateLiveHzButtons"))
+        code = """
+const vm=require('node:vm'),fmt=require(FORMATTER);
+const clock=Date.parse('2026-10-08T13:54:53-03:00');
+class FixedDate extends Date{static now(){return clock;}}
+const valid={modo:'ao_vivo',disponivel:true,nivel_previsto_cm:297,
+ hora_modelo:'2026-10-08T12:00:00-03:00',hora_alvo:'2026-10-08T14:00:00-03:00',
+ inputs_faltantes_n:0,inputs_total:15};
+const status={style:{},textContent:''};
+const context={Date:FixedDate,window:{PrevineFmtQuando:fmt},PrevineFmtQuando:fmt,
+ liveHz:'2h',liveData:null,fmtWhen:fmt.fmtClockDate,
+ LIVE_HZ_LABELS:{'2h':'2 h','4h':'4 h','8h':'8 h V1'},
+ document:{querySelectorAll:()=>[],getElementById:()=>status}};
+vm.createContext(context);vm.runInContext(FUNCTIONS,context);
+function inspect(horizontes){context.liveData={horizontes};context.updateLiveHzButtons();
+ return {text:status.textContent,display:status.style.display};}
+const main={'2h':valid,'4h':{...valid,hora_alvo:'2026-10-08T15:00:00-03:00'},
+ '8h':{disponivel:false,inputs_faltantes_n:0,inputs_total:31},
+ '2h_versao_b':{...valid,shadow_only:true},
+ '8h_v002':{disponivel:false,shadow_only:true,inputs_faltantes_n:0,inputs_total:28}};
+const distinct=inspect(main);
+const expired=inspect({...main,'2h':{...valid,hora_alvo:'2026-10-08T13:54:53-03:00',
+ inputs_faltantes_n:2}});
+const empty=inspect({});
+const allReady=inspect({...main,'8h':{...valid,hora_alvo:'2026-10-08T20:00:00-03:00'}});
+const inactive=inspect({...main,'2h':{...valid,ativo_ao_vivo:false}});
+const replay=inspect({...main,'2h':{...valid,modo:'replay'}});
+console.log(JSON.stringify({distinct,expired,empty,allReady,inactive,replay}));
+""".replace("FORMATTER", json.dumps(str(ROOT / "assets/js/fmt_quando.js")))
+        result = self.node(code.replace("FUNCTIONS", json.dumps(functions)))
+        self.assertEqual(result["distinct"]["text"], "8 h V1 indisponível · marcado como indisponível")
+        self.assertNotIn("faltam 0/", result["distinct"]["text"])
+        self.assertIn("2 h indisponível", result["expired"]["text"])
+        self.assertIn("já passou", result["expired"]["text"])
+        self.assertIn("faltam 2/15 inputs", result["expired"]["text"])
+        self.assertEqual(result["empty"]["text"].count("sem registro"), 3)
+        self.assertEqual(result["allReady"], {"text": "", "display": "none"})
+        self.assertIn("não integra a previsão principal ao vivo", result["inactive"]["text"])
+        self.assertIn("replay histórico, não previsão atual", result["replay"]["text"])
+
     def test_real_forecast_readiness_keeps_three_independent_point_comparisons(self):
         """Exercise the actual readiness/point chain, including the public UI delegate."""
         for page in (PAGES[0], PAGES[2]):
