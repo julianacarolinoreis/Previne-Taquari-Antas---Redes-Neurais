@@ -115,7 +115,7 @@ def main():
     # Preservar o texto amigável do popup ao regenerar Muçum a partir
     # do template de Santa Tereza: o HAND permanece apenas no cálculo.
     html = html.replace(
-        "      html+='<div><b>HAND:</b> '+handTxt+'</div>';\\n",
+        "      html+='<div><b>HAND:</b> '+handTxt+'</div>';",
         "",
     )
     html = html.replace(
