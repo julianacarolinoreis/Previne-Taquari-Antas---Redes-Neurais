@@ -8,7 +8,7 @@ The resulting JSON is API-compatible with run_hec_twin_mucum_forward_5d.py.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from pyproj import Transformer
@@ -22,6 +22,8 @@ CELLS_GEO=OUT/"spatial_ifs_mucum/spatial_ifs_mucum_cells_120h.geojson"
 ZONES=OUT/"mucum_twin_subbasin_zones.geojson"
 STRUCT=OUT/"estrutura_stz_mucum_latest.json"
 OUTPUT=OUT/"hec_twin_ifs_spatial_forcing_5d_latest.json"
+OBSERVED=OUT/"mucum_observed_multistation_latest.json"
+BRT=timezone(timedelta(hours=-3))
 PROJ=Transformer.from_crs("EPSG:4326","EPSG:31982",always_xy=True).transform
 SUBBASINS=[
  "SB_PRATA_7868","SB_ANTAS_RESIDUAL","SB_CARREIRO_7866","SB_STZ_RESIDUAL","SB_INC_MUCUM"
@@ -29,6 +31,59 @@ SUBBASINS=[
 
 def load_json(p):
  return json.loads(p.read_text(encoding="utf-8"))
+
+def observed_antecedent_rain(start_utc, *, minimum_gauges=20, hours=72):
+ """Build the pre-forecast 72h areal rainfall from observed stations.
+
+ Do not substitute zero for absent or spatially unrepresentative hours.
+ A sparse history is diagnostic only, NOT evidence that the basin is dry.
+ """
+ report={
+  "source":str(OBSERVED.relative_to(ROOT)),
+  "window_hours":hours,
+  "min_representative_gauges_per_hour":minimum_gauges,
+  "required_representative_hours":hours,
+  "status":"unavailable",
+  "representative":False,
+  "past_mm":None,
+  "partial_sum_mm":None,
+  "representative_hours":0,
+  "missing_or_sparse_hours":hours,
+  "observation_generated_at_utc":None,
+ }
+ if not OBSERVED.exists():
+  report["reason"]="observed_station_package_missing"
+  return report
+ obs=load_json(OBSERVED)
+ rain=obs.get("rain") or {}
+ rows={}
+ for row in rain.get("hourly_areal") or []:
+  try: t=datetime.fromisoformat(str(row["time_local"]))
+  except (KeyError,ValueError,TypeError): continue
+  rows[t]=row
+ first=datetime.fromisoformat(start_utc.replace("Z","+00:00")).astimezone(BRT).replace(tzinfo=None)
+ valid=[]
+ gaps=[]
+ for i in range(hours,0,-1):
+  t=first-timedelta(hours=i)
+  x=rows.get(t)
+  n=int((x or {}).get("valid_station_count") or 0)
+  mm=(x or {}).get("basin_mean_mm")
+  if n>=minimum_gauges and mm is not None and float(mm)>=0:
+   valid.append(float(mm))
+  else:
+   gaps.append({"hour_local":t.isoformat(timespec="minutes"),"gauges":n})
+ report["observation_generated_at_utc"]=obs.get("generated_at_utc")
+ report["representative_hours"]=len(valid)
+ report["missing_or_sparse_hours"]=len(gaps)
+ report["sparse_hour_examples"]=gaps[:16]
+ report["partial_sum_mm"]=round(sum(valid),3)
+ report["past_mm"]=round(sum(valid),3) if len(valid)==hours else None
+ report["representative"]=len(valid)==hours
+ report["status"]="representative" if len(valid)==hours else "incomplete_observed_coverage"
+ report["reason"]=None if len(valid)==hours else "Some antecedent hours lack representative upstream rain gauges; dry state cannot be inferred"
+ return report
+
 
 def main():
  if not SPATIAL.exists(): raise SystemExit(f"missing {SPATIAL}")
@@ -63,6 +118,7 @@ def main():
   times=[(t0+timedelta(hours=i)).isoformat().replace("+00:00","Z") for i in range(hours)]
 
  n=len(times)
+ antecedent=observed_antecedent_rain(times[0])
  precip={}
  audit={}
  for sid,zg in zones.items():
@@ -110,10 +166,11 @@ def main():
   "area_weighted_mean_mm":{
     "hourly":[round(v,4) for v in aw_hourly],
     "total_mm":round(sum(aw_hourly),3),
-    "past_mm":0.0,
+    "past_mm":antecedent["past_mm"],
     "note":"audit summary only; model forcing remains distinct by subbasin",
   },
   "window":{"start_utc":times[0],"end_utc":times[-1],"hours":n,"past_hours":0},
+  "antecedent_rain":antecedent,
   "point_proxy_not_areal_mask":False,
   "spatial_field_full":True,
   "all_ifs_cells_preserved_before_subbasin_integration":True,
