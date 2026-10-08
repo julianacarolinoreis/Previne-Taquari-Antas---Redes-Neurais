@@ -4,13 +4,13 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const source = fs.readFileSync('assets/js/stz_shadow.js', 'utf8');
-async function panel(feed) {
+async function panel(feed, alternate=null) {
   const listeners = {};
   const el = {dataset: {}, innerHTML: '', querySelector: id => ({addEventListener: (_, fn) => {listeners[id] = fn;}})};
   vm.runInNewContext(source, {
     document: {getElementById: id => id === 'stz-shadow-user' ? el : null},
-    location: {hostname: 'localhost', hash: ''},
-    fetch: async () => ({ok: true, json: async () => feed}),
+    location: {hostname: alternate ? 'example.org' : 'localhost', hash: ''},
+    fetch: async url => ({ok: true, json: async () => alternate && !url.startsWith('https://') ? alternate : feed}),
     Intl, Date, setInterval: () => {}, setTimeout: () => {}
   });
   await new Promise(resolve => setImmediate(resolve));
@@ -44,5 +44,10 @@ async function panel(feed) {
     assert.match(live.el.innerHTML, /<circle /);
     assert.equal((live.el.innerHTML.match(/<tr class=/g) || []).length, 13);
   }
-  console.log('8 cenarios de interface aprovados: 2/4/8/12 h com dados e aguardando dados.');
+  const stale = {...feed, gerado_em: '2020-01-01T02:00:00', modelos: []};
+  const newerPage = await panel(stale, feed);
+  assert.match(newerPage.el.innerHTML, /13\/13 modelos com previsão futura disponível/);
+  const newerRaw = await panel(feed, stale);
+  assert.match(newerRaw.el.innerHTML, /13\/13 modelos com previsão futura disponível/);
+  console.log('10 cenarios de interface aprovados: quatro horizontes com dados e espera; fonte mais recente entre Raw e Pages.');
 })().catch(error => {console.error(error); process.exitCode = 1;});

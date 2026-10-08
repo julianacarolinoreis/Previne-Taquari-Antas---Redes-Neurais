@@ -12,7 +12,10 @@
   const current=(feed,p)=>p&&p.disponivel&&date(p.hora_alvo)>new Date()&&Date.now()-date(feed.gerado_em)<90*60000;
   async function fetchFeed(file){
     const urls=location.hostname==='127.0.0.1'||location.hostname==='localhost'?[file]:[raw+file,file];
-    for(const url of urls){try{const r=await fetch(url+'?v='+Math.floor(Date.now()/60000),{cache:'no-store'});if(r.ok)return await r.json();}catch(e){}}
+    const candidates=await Promise.all(urls.map(async url=>{try{const r=await fetch(url+'?v='+Math.floor(Date.now()/60000),{cache:'no-store'});if(r.ok)return await r.json();}catch(e){}return null;}));
+    const valid=candidates.filter(v=>v&&Number.isFinite(+date(v.gerado_em)));
+    valid.sort((a,b)=>date(b.gerado_em)-date(a.gerado_em));
+    if(valid.length)return valid[0];
     throw new Error('Feed comparativo indisponível');
   }
   function chart(rows,latest){
