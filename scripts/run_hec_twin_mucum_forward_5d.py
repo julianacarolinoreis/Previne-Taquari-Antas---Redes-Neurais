@@ -124,20 +124,30 @@ def infer_forcing_wetness(
     aw = forcing.get("area_weighted_mean_mm") or {}
     hourly = list(aw.get("hourly") or [])
     past_mm = aw.get("past_mm")
-    if past_mm is None and hourly:
+    win = forcing.get("window") or {}
+    past_hours = int(win.get("past_hours") or 0)
+    if past_mm is None and hourly and past_hours > 0:
         if now_index is None:
-            # Heuristic: if window metadata exists use it, else assume first half is past.
-            win = forcing.get("window") or {}
-            past_h = int(win.get("past_hours") or max(1, len(hourly) // 2))
-            now_index = min(max(past_h - 1, 0), len(hourly) - 1)
-        past_mm = float(sum(hourly[: now_index + 1]))
+            now_index = min(past_hours - 1, len(hourly) - 1)
+        # Only pre-forecast hours count. Do not recast first future hour as rain already observed.
+        past_mm = float(sum(hourly[:min(now_index + 1, past_hours)]))
     total = float(aw.get("total_mm") or sum(hourly) or 0.0)
-    return bacia.infer_wetness_state(
+    wet = bacia.infer_wetness_state(
         forecast_aw_mm=total,
         past_aw_mm=None if past_mm is None else float(past_mm),
         stage_cm=stage_cm,
         stage_rising=stage_rising,
     )
+    ante = forcing.get("antecedent_rain") or {}
+    wet["antecedent_quality"] = ante.get("status", "not_provided")
+    wet["antecedent_representative_hours"] = ante.get("representative_hours")
+    wet["antecedent_expected_hours"] = ante.get("window_hours")
+    wet["antecedent_status"] = (
+        "wet_supported_by_rain_or_stage" if wet["is_wet"]
+        else "dry_not_confirmed" if past_mm is None
+        else "limited_evidence_of_wetness"
+    )
+    return wet
 
 
 def scale_params_to_observed_q0(
@@ -834,7 +844,13 @@ def build_package(
     return {
         "schema_version": "hec_twin_mucum_forward_5d_v5",
         "generated_at_utc": utc_now(),
-        "status": "research_forward_5d_ready",
+        "status": (
+            "research_forward_5d_antecedent_incomplete"
+            if (forcing.get("antecedent_rain") or {}).get("status") not in (None, "representative")
+            else "research_forward_5d_ready"
+        ),
+        "publishable": False,
+        "research_only": True,
         "label": (
             "PESQUISA — com a chuva prevista, quanto sobe Muçum (~5 dias, gêmeo HEC + IFS). "
             "NÃO é alerta oficial."
@@ -866,6 +882,12 @@ def build_package(
             "spatial_field_full": bool(forcing.get("spatial_field_full", False)),
             "zone_artifact": forcing.get("zone_artifact"),
             "subbasin_overlap_audit": forcing.get("subbasin_overlap_audit"),
+            "antecedent_rain": forcing.get("antecedent_rain"),
+            "warning": (
+                "Antecedent rainfall is not complete enough to classify basin wetness or validate this simulation."
+                if (forcing.get("antecedent_rain") or {}).get("status") not in (None, "representative")
+                else None
+            ),
         },
         "param_selection": {
             "method": "analog_basin_calibrated_aw_fingerprint_wetness_blend_v4" if event_id is None else "forced_event_id",
