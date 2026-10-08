@@ -193,7 +193,7 @@ def validar_deploy_pages() -> None:
     assert "Previsao ao vivo - Mucum" not in yml, "Pages ainda dispara no robô de 5 min de Muçum"
     assert "Chuvas horarias (ANA + INMET + CEMADEN)" not in yml, "Pages ainda dispara no robô horário de chuvas"
     assert "cancel-in-progress: false" in yml, "Pages deve deixar o deploy em curso terminar e conservar a rodada mais recente na fila"
-    assert "group: github-pages-site" in yml, "Pages precisa manter um unico grupo de publicacao"
+    assert re.search(r"^  group: github-pages-site\s*$", yml, re.MULTILINE), "Pages precisa manter um unico grupo de publicacao para todos os eventos"
     assert "github.ref == 'refs/heads/main'" in yml, "Pages ainda publica fora do main"
     assert "previsao_ao_vivo.json|previsao_ao_vivo_mucum.json" in yml, "Pages ainda copia o JSON do robô para o artefato"
     assert '"assets/previsao_panorama.js"' in yml, "Pages não redeploya quando o panorama JS muda"
