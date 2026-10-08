@@ -1,0 +1,66 @@
+name: Muçum rain archive recovery QA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/mucum-rain-recovery-qa.yml"
+      - "scripts/build_mucum_observed_multistation.py"
+      - "scripts/build_hec_twin_ifs_spatial_forcing_5d.py"
+      - "scripts/run_hec_twin_mucum_forward_5d.py"
+      - "scripts/test_hec_twin_mucum_forward_5d.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mucum-rain-recovery-qa
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install --disable-pip-version-check shapely pyproj matplotlib numpy
+      - name: Test no future rain treated as antecedent
+        run: |
+          python -B -m unittest \
+            scripts.test_hec_twin_mucum_forward_5d.Forward5dTests.test_forecast_only_rain_is_not_observed_wetness \
+            scripts.test_hec_twin_mucum_forward_5d.Forward5dTests.test_sparse_antecedent_does_not_become_dry_zeros -v
+      - name: Audit observed archive hourly recovery upstream Muçum only
+        run: |
+          python - <<'PY'
+          import json
+          from datetime import datetime,timedelta,timezone
+          from pathlib import Path
+          out=Path("assets/data/estudo_bacia_taquari_antas")
+          other=Path("assets/data/hec_hms_g040_full_basin")
+          m=json.loads((out/"mucum_observed_multistation_latest.json").read_text())
+          g=json.loads((other/"whole_basin_observed_rain_latest.json").read_text())
+          assert g["status"]=="OBSERVED_RAIN_READY"
+          stations={str(s["code"]):{z["time_local"]:z["mm"] for z in s["series"]} for s in m["rain"]["stations"]}
+          allowed=set(stations)
+          added=0
+          for st in g["stations"]:
+              code=str(st["code"])
+              if code not in allowed: continue
+              for z in st.get("series") or []:
+                  if z.get("mm") is None: continue
+                  bucket=stations[code]
+                  if z["time_local"] not in bucket:
+                      bucket[z["time_local"]]=z["mm"]
+                      added+=1
+          end=datetime(2026,10,8,14,0)
+          minimum=10000
+          for h in range(72,0,-1):
+              key=(end-timedelta(hours=h)).isoformat(timespec="minutes")
+              minimum=min(minimum,sum(key in series for series in stations.values()))
+          print(json.dumps({"shared_upstream_gauges":len(stations),"additional_station_hours":added,"minimum_gauges_per_hour_72h":minimum},ensure_ascii=False))
+          assert minimum>=20, "72h source recovery still inadequate; do not mark as representative"
+          PY
