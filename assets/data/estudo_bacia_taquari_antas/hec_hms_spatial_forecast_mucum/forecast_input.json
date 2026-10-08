@@ -1,16 +1,16 @@
 {
   "schema_version": "hec_hms_spatial_forecast_mucum_input_v2_warmup",
-  "generated_at_utc": "2026-10-08T17:30:45.648200Z",
+  "generated_at_utc": "2026-10-08T19:08:11.845290Z",
   "model": "HEC-HMS 4.13 two-zone spatial pilot",
   "parameter_source": {
     "source_event": "E28_LIVE_EVENT_CAL",
-    "initial_loss_mm": 25.0,
-    "constant_loss_mm_h": 2.0,
-    "tc_h": 15.0,
-    "storage_h": 15.0,
+    "initial_loss_mm": 10.0,
+    "constant_loss_mm_h": 3.0,
+    "tc_h": 28.0,
+    "storage_h": 24.0,
     "recession_constant_daily": 0.9,
     "threshold_ratio_to_peak": 0.1,
-    "initial_flow_multiplier": 0.35,
+    "initial_flow_multiplier": 0.95,
     "live_event_calibration": true
   },
   "rain_source": "26/09->t0 all valid upstream gauges (ANA+INMET+CEMADEN; IDW^2 by HEC zone) + ECMWF IFS 0.25 degree full field forecast",
@@ -438,10 +438,10 @@
     "2026-10-13T13:00:00Z",
     "2026-10-13T14:00:00Z",
     "2026-10-13T15:00:00Z",
-    "2026-10-13T16:00:00Z"
+    "2026-10-13T16:00:00Z",
+    "2026-10-13T17:00:00Z"
   ],
   "forecast_times_utc": [
-    "2026-10-08T17:00:00Z",
     "2026-10-08T18:00:00Z",
     "2026-10-08T19:00:00Z",
     "2026-10-08T20:00:00Z",
@@ -560,9 +560,10 @@
     "2026-10-13T13:00:00Z",
     "2026-10-13T14:00:00Z",
     "2026-10-13T15:00:00Z",
-    "2026-10-13T16:00:00Z"
+    "2026-10-13T16:00:00Z",
+    "2026-10-13T17:00:00Z"
   ],
-  "forecast_start_utc": "2026-10-08T17:00:00Z",
+  "forecast_start_utc": "2026-10-08T18:30:00Z",
   "zones": {
     "86472000": {
       "name": "Linha José Júlio",
@@ -570,10 +571,9 @@
       "area_declared_km2": 8550.193672,
       "coverage_ratio": 0.999986,
       "n_cells_touching": 28,
-      "total_mm": 75.370002,
+      "total_mm": 75.426514,
       "hourly_mm": [
         0.378798,
-        0.378798,
         0.009765,
         0.009765,
         0.009765,
@@ -691,6 +691,7 @@
         0.220732,
         0.220732,
         0.220732,
+        0.43531,
         0.43531
       ]
     },
@@ -700,10 +701,9 @@
       "area_declared_km2": 7140.528728,
       "coverage_ratio": 0.999957,
       "n_cells_touching": 21,
-      "total_mm": 116.678056,
+      "total_mm": 117.086829,
       "hourly_mm": [
         0.632604,
-        0.632604,
         0.134718,
         0.134718,
         0.134718,
@@ -821,17 +821,18 @@
         0.374879,
         0.374879,
         0.374879,
+        1.041377,
         1.041377
       ]
     }
   },
-  "basin_equivalent_forecast_mm_for_audit": 94.168457,
+  "basin_equivalent_forecast_mm_for_audit": 94.385276,
   "warmup": {
-    "hours": 302,
+    "hours": 303,
     "start_local": "2026-09-26T00:00",
-    "end_at_current_hour_local": "2026-10-08T14:00",
-    "current_observation_local": "2026-10-08T14:00",
-    "current_hour_elapsed_fraction": 0.0,
+    "end_at_current_hour_local": "2026-10-08T15:00",
+    "current_observation_local": "2026-10-08T15:30",
+    "current_hour_elapsed_fraction": 0.5,
     "missing_hours": {
       "86472000": 0,
       "02851072": 0
@@ -839,8 +840,8 @@
     "complete": true,
     "method": "26/09->t0 observed all-station rainfall (ANA+INMET+CEMADEN, valid gauges inside Muçum watershed, IDW^2 by HEC zone); current partial hour blended with remaining ECMWF/IFS fraction; future = ECMWF/IFS spatial field",
     "observed_totals_mm": {
-      "86472000": 157.597,
-      "02851072": 174.97
+      "86472000": 165.269,
+      "02851072": 186.029
     },
     "observed_network": {
       "source": "assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_latest.json",
@@ -854,62 +855,62 @@
       "spatial_method": "IDW^2 por hora em grade 0.05° sobre a bacia e zonas HEC; usa todos os postos com observação válida; ausência permanece ausente, nunca zero",
       "min_hourly_station_count": 4,
       "max_hourly_station_count": 60,
-      "reference_recent_station_count": 48,
-      "min_representative_station_count": 29,
+      "reference_recent_station_count": 56,
+      "min_representative_station_count": 34,
       "coverage_by_hour": {
-        "2026-10-08T03:00": 46,
         "2026-10-08T04:00": 42,
         "2026-10-08T05:00": 45,
         "2026-10-08T06:00": 58,
         "2026-10-08T07:00": 52,
         "2026-10-08T08:00": 53,
-        "2026-10-08T09:00": 58,
-        "2026-10-08T10:00": 56,
-        "2026-10-08T11:00": 56,
-        "2026-10-08T12:00": 52,
-        "2026-10-08T13:00": 51,
-        "2026-10-08T14:00": 15
+        "2026-10-08T09:00": 59,
+        "2026-10-08T10:00": 58,
+        "2026-10-08T11:00": 59,
+        "2026-10-08T12:00": 57,
+        "2026-10-08T13:00": 57,
+        "2026-10-08T14:00": 54,
+        "2026-10-08T15:00": 53
       },
       "rolling_accumulations_basin": {
         "1": {
           "hours_requested": 1,
           "hours_used": 1,
-          "start_local": "2026-10-08T13:00",
-          "end_local": "2026-10-08T13:00",
-          "accum_mm": 5.069,
-          "mean_rate_mm_h": 5.069
+          "start_local": "2026-10-08T15:00",
+          "end_local": "2026-10-08T15:00",
+          "accum_mm": 3.779,
+          "mean_rate_mm_h": 3.779
         },
         "3": {
           "hours_requested": 3,
           "hours_used": 3,
-          "start_local": "2026-10-08T11:00",
-          "end_local": "2026-10-08T13:00",
-          "accum_mm": 8.421,
-          "mean_rate_mm_h": 2.807
+          "start_local": "2026-10-08T13:00",
+          "end_local": "2026-10-08T15:00",
+          "accum_mm": 14.439,
+          "mean_rate_mm_h": 4.813
         },
         "6": {
           "hours_requested": 6,
           "hours_used": 6,
-          "start_local": "2026-10-08T08:00",
-          "end_local": "2026-10-08T13:00",
-          "accum_mm": 9.042,
-          "mean_rate_mm_h": 1.507
+          "start_local": "2026-10-08T10:00",
+          "end_local": "2026-10-08T15:00",
+          "accum_mm": 17.896,
+          "mean_rate_mm_h": 2.983
         },
         "12": {
           "hours_requested": 12,
           "hours_used": 12,
-          "start_local": "2026-10-08T02:00",
-          "end_local": "2026-10-08T13:00",
-          "accum_mm": 9.057,
-          "mean_rate_mm_h": 0.755
+          "start_local": "2026-10-08T04:00",
+          "end_local": "2026-10-08T15:00",
+          "accum_mm": 18.267,
+          "mean_rate_mm_h": 1.522
         },
         "24": {
           "hours_requested": 24,
           "hours_used": 24,
-          "start_local": "2026-10-07T07:00",
-          "end_local": "2026-10-08T13:00",
-          "accum_mm": 9.06,
-          "mean_rate_mm_h": 0.377
+          "start_local": "2026-10-07T08:00",
+          "end_local": "2026-10-08T15:00",
+          "accum_mm": 18.27,
+          "mean_rate_mm_h": 0.761
         }
       },
       "rolling_accumulations_by_zone": {
@@ -917,117 +918,117 @@
           "1": {
             "hours_requested": 1,
             "hours_used": 1,
-            "start_local": "2026-10-08T13:00",
-            "end_local": "2026-10-08T13:00",
-            "accum_mm": 5.221,
-            "mean_rate_mm_h": 5.221
+            "start_local": "2026-10-08T15:00",
+            "end_local": "2026-10-08T15:00",
+            "accum_mm": 3.406,
+            "mean_rate_mm_h": 3.406
           },
           "3": {
             "hours_requested": 3,
             "hours_used": 3,
-            "start_local": "2026-10-08T11:00",
-            "end_local": "2026-10-08T13:00",
-            "accum_mm": 9.257,
-            "mean_rate_mm_h": 3.086
+            "start_local": "2026-10-08T13:00",
+            "end_local": "2026-10-08T15:00",
+            "accum_mm": 13.156,
+            "mean_rate_mm_h": 4.385
           },
           "6": {
             "hours_requested": 6,
             "hours_used": 6,
-            "start_local": "2026-10-08T08:00",
-            "end_local": "2026-10-08T13:00",
-            "accum_mm": 10.027,
-            "mean_rate_mm_h": 1.671
+            "start_local": "2026-10-08T10:00",
+            "end_local": "2026-10-08T15:00",
+            "accum_mm": 17.299,
+            "mean_rate_mm_h": 2.883
           },
           "12": {
             "hours_requested": 12,
             "hours_used": 12,
-            "start_local": "2026-10-08T02:00",
-            "end_local": "2026-10-08T13:00",
-            "accum_mm": 10.044,
-            "mean_rate_mm_h": 0.837
+            "start_local": "2026-10-08T04:00",
+            "end_local": "2026-10-08T15:00",
+            "accum_mm": 17.715,
+            "mean_rate_mm_h": 1.476
           },
           "24": {
             "hours_requested": 24,
             "hours_used": 24,
-            "start_local": "2026-10-07T07:00",
-            "end_local": "2026-10-08T13:00",
-            "accum_mm": 10.046,
-            "mean_rate_mm_h": 0.419
+            "start_local": "2026-10-07T08:00",
+            "end_local": "2026-10-08T15:00",
+            "accum_mm": 17.717,
+            "mean_rate_mm_h": 0.738
           }
         },
         "02851072": {
           "1": {
             "hours_requested": 1,
             "hours_used": 1,
-            "start_local": "2026-10-08T13:00",
-            "end_local": "2026-10-08T13:00",
-            "accum_mm": 4.886,
-            "mean_rate_mm_h": 4.886
+            "start_local": "2026-10-08T15:00",
+            "end_local": "2026-10-08T15:00",
+            "accum_mm": 4.226,
+            "mean_rate_mm_h": 4.226
           },
           "3": {
             "hours_requested": 3,
             "hours_used": 3,
-            "start_local": "2026-10-08T11:00",
-            "end_local": "2026-10-08T13:00",
-            "accum_mm": 7.415,
-            "mean_rate_mm_h": 2.472
+            "start_local": "2026-10-08T13:00",
+            "end_local": "2026-10-08T15:00",
+            "accum_mm": 15.98,
+            "mean_rate_mm_h": 5.327
           },
           "6": {
             "hours_requested": 6,
             "hours_used": 6,
-            "start_local": "2026-10-08T08:00",
-            "end_local": "2026-10-08T13:00",
-            "accum_mm": 7.859,
-            "mean_rate_mm_h": 1.31
+            "start_local": "2026-10-08T10:00",
+            "end_local": "2026-10-08T15:00",
+            "accum_mm": 18.613,
+            "mean_rate_mm_h": 3.102
           },
           "12": {
             "hours_requested": 12,
             "hours_used": 12,
-            "start_local": "2026-10-08T02:00",
-            "end_local": "2026-10-08T13:00",
-            "accum_mm": 7.872,
-            "mean_rate_mm_h": 0.656
+            "start_local": "2026-10-08T04:00",
+            "end_local": "2026-10-08T15:00",
+            "accum_mm": 18.931,
+            "mean_rate_mm_h": 1.578
           },
           "24": {
             "hours_requested": 24,
             "hours_used": 24,
-            "start_local": "2026-10-07T07:00",
-            "end_local": "2026-10-08T13:00",
-            "accum_mm": 7.875,
-            "mean_rate_mm_h": 0.328
+            "start_local": "2026-10-07T08:00",
+            "end_local": "2026-10-08T15:00",
+            "accum_mm": 18.934,
+            "mean_rate_mm_h": 0.789
           }
         }
       },
       "event_window": {
         "start_local": "2026-09-26T00:00",
-        "end_local": "2026-10-08T14:25",
+        "end_local": "2026-10-08T16:07",
         "timezone": "America/Sao_Paulo"
       }
     },
     "current_hour": {
       "86472000": {
-        "observed_partial_mm": 3.292,
+        "observed_partial_mm": 3.406,
         "ifs_full_hour_mm": 0.379,
-        "combined_hour_mm": 0.379,
-        "source": "ifs_full_hour_fallback_no_representative_observed_partial",
-        "degraded": true,
-        "current_station_count": 15,
-        "min_representative_station_count": 29,
-        "current_hour_representative": false,
+        "combined_hour_mm": 3.595,
+        "source": "all_station_observed_partial_plus_remaining_ifs",
+        "degraded": false,
+        "current_station_count": 53,
+        "min_representative_station_count": 34,
+        "current_hour_representative": true,
         "rain_scenario": "baseline",
         "recent_3h_mean_rate_mm_h": null,
         "recent_6h_mean_rate_mm_h": null,
         "conservative_persistence_rate_mm_h": null
       },
       "02851072": {
-        "observed_partial_mm": 3.416,
+        "observed_partial_mm": 4.226,
         "ifs_full_hour_mm": 0.633,
-        "combined_hour_mm": 0.633,
-        "source": "ifs_full_hour_fallback_no_representative_observed_partial",
-        "degraded": true,
-        "current_station_count": 15,
-        "min_representative_station_count": 29,
-        "current_hour_representative": false,
+        "combined_hour_mm": 4.543,
+        "source": "all_station_observed_partial_plus_remaining_ifs",
+        "degraded": false,
+        "current_station_count": 53,
+        "min_representative_station_count": 34,
+        "current_hour_representative": true,
         "rain_scenario": "baseline",
         "recent_3h_mean_rate_mm_h": null,
         "recent_6h_mean_rate_mm_h": null,
@@ -1042,24 +1043,24 @@
     }
   },
   "initial_state": {
-    "stage_cm": 721.0,
-    "q_m3s": 2028.8976576371795,
-    "rating_segment": 3,
-    "observed_at_utc": "2026-10-01T17:00:00Z",
-    "source": "ANA/SGB first available observed stage after requested warm-up start (requested 2026-09-26T00:00:00, gap_h=134.00)",
+    "stage_cm": 715.0,
+    "q_m3s": 2003.9082434322163,
+    "rating_segment": 2,
+    "observed_at_utc": "2026-10-01T18:30:00Z",
+    "source": "ANA/SGB first available observed stage after requested warm-up start (requested 2026-09-26T00:00:00, gap_h=135.50)",
     "method": "observed Muçum Q at 26/09 event start as HEC-HMS Recession initial flow/area ratio, internally calibrated by multiplier",
-    "initial_flow_multiplier": 0.35,
-    "initial_flow_area_ratio_raw_m3s_per_km2": 0.129305561,
-    "initial_flow_area_ratio_m3s_per_km2": 0.045256946
+    "initial_flow_multiplier": 0.95,
+    "initial_flow_area_ratio_raw_m3s_per_km2": 0.127712937,
+    "initial_flow_area_ratio_m3s_per_km2": 0.12132729
   },
   "current_state": {
-    "stage_cm": 328.0,
-    "q_m3s": 466.48198578467736,
+    "stage_cm": 315.0,
+    "q_m3s": 429.9496457729945,
     "rating_segment": 2,
-    "observed_at_utc": "2026-10-08T17:00:00Z",
+    "observed_at_utc": "2026-10-08T18:30:00Z",
     "source": "ANA/SGB Hidrotelemetria via previsao_ao_vivo_mucum.json",
-    "trend_1h_cm": -19.0,
-    "trend_reference_utc": "2026-10-08T16:00:00Z",
+    "trend_1h_cm": -6.0,
+    "trend_reference_utc": "2026-10-08T17:30:00Z",
     "state_handling": "exact observed timestamp retained for validation; HEC state interpolated within the hourly step for comparison only; no stage bias correction and no internal HEC-HMS state assimilation is claimed"
   },
   "runtime": {
