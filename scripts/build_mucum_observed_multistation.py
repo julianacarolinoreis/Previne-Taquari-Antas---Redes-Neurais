@@ -42,6 +42,7 @@ LIVE_MUC = ROOT / "previsao_ao_vivo_mucum.json"
 JSON_OUT = OUT / "mucum_observed_multistation_latest.json"
 RAIN_CSV = OUT / "mucum_observed_multistation_rain_hourly.csv"
 FLOW_CSV = OUT / "mucum_observed_multistation_flow_hourly.csv"
+G040_OBS = ROOT / "assets/data/hec_hms_g040_full_basin/whole_basin_observed_rain_latest.json"
 
 BRT = timezone(timedelta(hours=-3))
 UTC = timezone.utc
@@ -571,6 +572,79 @@ def main() -> int:
             rain_meta.setdefault(code, dict(st))
             rain_sources.setdefault(code, "última observação válida publicada + fontes atuais")
 
+    # Reconcile the other independently collected G040 station archive.
+    # G040 contains stations *downstream* of Muçum. Never import one merely
+    # because it appears in G040: intersect station ID with the Muçum basin
+    # inventory, eligibility, and watershed point geometry.
+    # Keep fresh current/CVS data on overlap; only fill missing genuine hours.
+    g040_fallback = {
+        "source": str(G040_OBS.relative_to(ROOT)),
+        "status": "unavailable",
+        "gauges_considered_upstream": 0,
+        "stations_filled": 0,
+        "hours_filled": 0,
+        "conflicts_preserved": 0,
+        "excluded_downstream_or_ineligible": 0,
+        "generated_at_utc": None,
+    }
+    if G040_OBS.exists():
+        try:
+            g040 = load(G040_OBS)
+            if g040.get("status") != "OBSERVED_RAIN_READY":
+                raise ValueError("G040 observed package is not ready")
+            ts_raw = g040.get("generated_at_utc")
+            ts = datetime.fromisoformat(str(ts_raw).replace("Z", "+00:00"))
+            age_h = (datetime.now(UTC) - ts.astimezone(UTC)).total_seconds() / 3600
+            if not (-0.25 <= age_h <= 12):
+                raise ValueError("G040 observed archive is stale or future-dated")
+            g040_fallback["generated_at_utc"] = ts_raw
+            g040_fallback["age_hours"] = round(age_h, 2)
+            for archived in g040.get("stations") or []:
+                code = str(archived.get("code") or "").strip()
+                st = rain_query_meta.get(code)
+                if st is None or not inventory_operational(st):
+                    g040_fallback["excluded_downstream_or_ineligible"] += 1
+                    continue
+                try:
+                    inside = basin.covers(Point(float(st["lon"]), float(st["lat"])))
+                except (TypeError, ValueError, KeyError):
+                    inside = False
+                if not inside:
+                    g040_fallback["excluded_downstream_or_ineligible"] += 1
+                    continue
+                # Preserve station identity and coordinate from Muçum catalog,
+                # not the broader G040 catalog.
+                g040_fallback["gauges_considered_upstream"] += 1
+                target = rain_series.setdefault(code, {})
+                added = 0
+                for row in archived.get("series") or []:
+                    try:
+                        t = datetime.fromisoformat(str(row["time_local"]))
+                    except (TypeError, ValueError, KeyError):
+                        continue
+                    if not start <= t <= end:
+                        continue
+                    v = qc_rain(row.get("mm"))
+                    if v is None:
+                        continue
+                    t = t.replace(minute=0, second=0, microsecond=0)
+                    if t not in target:
+                        target[t] = v
+                        added += 1
+                    elif abs(float(target[t]) - v) > 0.01:
+                        # Disagreements are preserved for independent audit,
+                        # rather than silently rewriting station measurements.
+                        g040_fallback["conflicts_preserved"] += 1
+                if added:
+                    g040_fallback["stations_filled"] += 1
+                    g040_fallback["hours_filled"] += added
+                    rain_meta.setdefault(code, dict(st))
+                    rain_sources.setdefault(code, "G040 ANA/CEMADEN observed archive")
+            g040_fallback["status"] = "reconciled"
+        except (ValueError, OSError, TypeError, KeyError) as exc:
+            g040_fallback["status"] = "unavailable_or_invalid"
+            g040_fallback["reason"] = str(exc)
+
     # Keep only gauges with at least one real observed value since 26/09.
     rain_series = {code: series for code, series in rain_series.items() if series}
     rain_stations = []
@@ -936,6 +1010,7 @@ def main() -> int:
             "fast_mode": FAST_MODE,
             "query_start_local": iso(query_start),
             "rain_fallback_station_codes": sorted(set(rain_fallback_codes)),
+            "g040_upstream_archive_reconciliation": g040_fallback,
             "flow_fallback_station_codes": sorted(set(flow_fallback_codes)),
         },
         "artifacts": {
