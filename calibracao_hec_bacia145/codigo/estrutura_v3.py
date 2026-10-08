@@ -9,6 +9,7 @@
 import csv
 import json
 import math
+import os
 import re
 from datetime import timedelta
 
@@ -44,6 +45,15 @@ PARAMS = {
     "v_grandes": (0.25, 2.0, "log"),   # multiplicador extra de Tc e R das sub-bacias com mais de A_GRANDE km²
     "ks": (0.0, 0.8, "lin"),           # Tc e R proporcionais a (S/S_ref)^-ks, com S a declividade do caminho (MDT)
 }
+# Perda SCS (Curve Number), 08/10 noite: a fração de escoamento CRESCE com a chuva acumulada (perda que depende do tamanho da cheia).
+# HEC_PERDA=scs troca (ia_max, f) por s0 (retenção máxima S em mm, estado seco); qstar passa a controlar a umidade:
+#   S = s0 * exp(-q0/q*)  (q0 = vazão específica local no início da janela);  CN = 25400/(S+254);  Ia = 0,2 S (padrão do HEC-HMS).
+# Só o lado local da busca lê esta variável: na nuvem, basta o candidato trazer "s0".
+if os.environ.get("HEC_PERDA") == "scs":
+    PARAMS.pop("ia_max")
+    PARAMS.pop("f")
+    PARAMS["qstar"] = (0.01, 0.30, "log")
+    PARAMS["s0"] = (15.0, 500.0, "log")
 
 
 def _topologia():
@@ -131,7 +141,8 @@ def bacia_v3(p, sim, rota="mc"):
             v *= p.get("v_grandes", 1.0)
         v *= min(4.0, max(0.25, (md["S"] / S_REF) ** (-p.get("ks", 0.0))))
         qloc = q0[CTRL_DE[nome]]
-        ia = p["ia_max"] * math.exp(-qloc / p["qstar"])
+        scs = "s0" in p
+        ia = 0.0 if scs else p["ia_max"] * math.exp(-qloc / p["qstar"])
 
         def rep(label, val):
             nonlocal corpo
@@ -139,8 +150,16 @@ def bacia_v3(p, sim, rota="mc"):
             assert n == 1, (nome, label)
         tc = float(re.search(r"(?m)^\s*Time of Concentration: ([^\n]+)", corpo)[1])
         r = float(re.search(r"(?m)^\s*Storage Coefficient: ([^\n]+)", corpo)[1])
-        rep("Initial Loss", f"{ia:.4f}")
-        rep("Constant Loss Rate", f"{p['f']:.4f}")
+        if scs:
+            S = p["s0"] * math.exp(-qloc / p["qstar"])
+            CN = 25400.0 / (S + 254.0)
+            corpo, n1 = re.subn(r"(?m)^(\s*)LossRate: Initial\+Constant\n", lambda mm: mm[1] + "LossRate: SCS\n", corpo)
+            corpo, n2 = re.subn(r"(?m)^\s*Initial Loss: [^\n]+\n", "", corpo)
+            corpo, n3 = re.subn(r"(?m)^(\s*)Constant Loss Rate: [^\n]+", lambda mm: mm[1] + f"Curve Number: {CN:.4f}", corpo)
+            assert (n1, n2, n3) == (1, 1, 1), (nome, n1, n2, n3)
+        else:
+            rep("Initial Loss", f"{ia:.4f}")
+            rep("Constant Loss Rate", f"{p['f']:.4f}")
         rep("Percent Impervious Area", f"{100 * p['imp']:.3f}")
         rep("Time of Concentration", f"{tc * v:.5f}")
         rep("Storage Coefficient", f"{r * v * p['mr']:.5f}")
