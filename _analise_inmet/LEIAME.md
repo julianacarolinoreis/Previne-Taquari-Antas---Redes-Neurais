@@ -63,7 +63,7 @@ Com a hora corrigida, a melhor defasagem continua sendo 0, ou seja, `DESLOC_INME
   Troca só `chuva_fontes.cemaden` (zip) e, no modo corrigido, `chuva_fontes.inmet` (`inmet.py`, `int(hora)//100`).
   No modo `bug`, o `inmet()` original é usado sem alteração.
 - **(a) isolar o peso IDW do INMET**: descartada. Com o bug, as lacunas do INMET mudam o denominador do IDW hora a hora,
-  e o QC muda os postos usados em 7 janelas. Uma correção aditiva não seria exata, e (c) dá a prova completa.
+  e o QC muda os postos usados em 8 janelas. Uma correção aditiva não seria exata, e (c) dá a prova completa.
 
 **Prova de equivalência (`provar_equivalencia.py` → `equivalencia.json`): 33/33 janelas idênticas.** O modo `bug`
 reproduz o `forcamento_v3` commitado com diferença 0,0 em todas as 145 sub-bacias × horas. Também são iguais a média da
