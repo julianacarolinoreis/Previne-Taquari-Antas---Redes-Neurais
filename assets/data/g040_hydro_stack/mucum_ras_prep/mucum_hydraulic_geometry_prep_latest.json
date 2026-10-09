@@ -1,6 +1,6 @@
 {
   "schema_version": "mucum_ras_geometry_prep_v1",
-  "generated_at_utc": "2026-10-09T19:45:00.162857Z",
+  "generated_at_utc": "2026-10-09T23:30:56.313913Z",
   "research_only": true,
   "official_alert": false,
   "status": "TERRAIN_SECTIONS_PREPARED_HYDRAULIC_COMPUTE_BLOCKED",
@@ -377,13 +377,13 @@
     "available": true,
     "path": "assets/data/g040_hydro_stack/mucum_ras_prep/stz_to_mucum_hydrograph_candidate.csv",
     "status": "DIAGNOSTIC_ONLY_NOT_HYDRAULIC_BOUNDARY_VALIDATED",
-    "source_generated_at_utc": "2026-10-09T19:44:58Z",
+    "source_generated_at_utc": "2026-10-09T23:30:55Z",
     "forcing": {
       "artifact": "hec_twin_ifs_spatial_forcing_5d_latest.json",
       "model": "ecmwf_ifs025_full_field",
       "horizon_hours": 120,
-      "area_weighted_total_mm": 64.718,
-      "generated_at_utc": "2026-10-09T19:44:56.443810Z",
+      "area_weighted_total_mm": 61.013,
+      "generated_at_utc": "2026-10-09T23:30:53.241870Z",
       "point_proxy_not_areal_mask": false,
       "spatial_field_full": true,
       "zone_artifact": "assets/data/estudo_bacia_taquari_antas/mucum_twin_subbasin_zones.geojson",
@@ -392,7 +392,7 @@
           "zone_geometry_km2": 3769.174,
           "ifs_overlap_km2": 3769.174,
           "ifs_cells_used": 13,
-          "total_mm": 73.519,
+          "total_mm": 71.477,
           "min_hourly_mm": 0.0,
           "max_hourly_mm": 2.9803
         },
@@ -400,7 +400,7 @@
           "zone_geometry_km2": 8979.495,
           "ifs_overlap_km2": 8979.495,
           "ifs_cells_used": 33,
-          "total_mm": 62.524,
+          "total_mm": 58.184,
           "min_hourly_mm": 0.0,
           "max_hourly_mm": 1.9831
         },
@@ -408,7 +408,7 @@
           "zone_geometry_km2": 2420.199,
           "ifs_overlap_km2": 2420.199,
           "ifs_cells_used": 12,
-          "total_mm": 66.073,
+          "total_mm": 62.285,
           "min_hourly_mm": 0.0,
           "max_hourly_mm": 3.7629
         },
@@ -416,7 +416,7 @@
           "zone_geometry_km2": 327.597,
           "ifs_overlap_km2": 327.597,
           "ifs_cells_used": 14,
-          "total_mm": 29.231,
+          "total_mm": 24.882,
           "min_hourly_mm": 0.0,
           "max_hourly_mm": 2.7776
         },
@@ -424,7 +424,7 @@
           "zone_geometry_km2": 194.141,
           "ifs_overlap_km2": 194.141,
           "ifs_cells_used": 4,
-          "total_mm": 31.709,
+          "total_mm": 27.585,
           "min_hourly_mm": 0.0,
           "max_hourly_mm": 3.0152
         }
@@ -434,28 +434,37 @@
         "window_hours": 72,
         "min_representative_gauges_per_hour": 20,
         "required_representative_hours": 72,
-        "status": "representative",
-        "representative": true,
-        "past_mm": 22.567,
-        "partial_sum_mm": 22.567,
-        "representative_hours": 72,
-        "missing_or_sparse_hours": 0,
-        "observation_generated_at_utc": "2026-10-09T19:44:52.308456Z",
-        "sparse_hour_examples": [],
-        "reason": null
+        "status": "incomplete_observed_coverage",
+        "representative": false,
+        "past_mm": null,
+        "partial_sum_mm": 24.367,
+        "representative_hours": 70,
+        "missing_or_sparse_hours": 2,
+        "observation_generated_at_utc": "2026-10-09T23:30:48.585886Z",
+        "sparse_hour_examples": [
+          {
+            "hour_local": "2026-10-09T18:00",
+            "gauges": 16
+          },
+          {
+            "hour_local": "2026-10-09T19:00",
+            "gauges": 16
+          }
+        ],
+        "reason": "Some antecedent hours lack representative upstream rain gauges; dry state cannot be inferred"
       },
-      "warning": null
+      "warning": "Antecedent rainfall is not complete enough to classify basin wetness or validate this simulation."
     },
     "wetness": {
       "is_wet": true,
-      "past_aw_mm": 22.567,
-      "stage_cm": 383.0,
+      "past_aw_mm": null,
+      "stage_cm": 506.0,
       "stage_rising": true,
-      "wet_by_rain": true,
+      "wet_by_rain": false,
       "wet_by_stage": true,
-      "forecast_aw_mm": 64.718,
-      "antecedent_quality": "representative",
-      "antecedent_representative_hours": 72,
+      "forecast_aw_mm": 61.013,
+      "antecedent_quality": "incomplete_observed_coverage",
+      "antecedent_representative_hours": 70,
       "antecedent_expected_hours": 72,
       "antecedent_status": "wet_supported_by_rain_or_stage"
     },
