@@ -114,7 +114,11 @@ jobs:
           mkdir -p "$W/dados_ana/csv" "$W/forcamento_v3" "$W/forcamento_prevista"
           cp calibracao_hec_bacia145/codigo/*.py "$W/"
           cp calibracao_hec_bacia145/dados/catalogo_ampliado.json "$W/"
-          for f in calibracao_hec_bacia145/dados/forcamento_v3/*.gz; do gunzip -c "$f" > "$W/forcamento_v3/$(basename "${f%.gz}")"; done
+          # "forcamento" no PEDIDO.json escolhe a pasta de chuva (padrão forcamento_v3; ex.: forcamento_v3b = INMET com a hora corrigida)
+          FORC_DIR=$(python3 -c "import json,os;p='calibracao_hec_bacia145/rodadas/PEDIDO.json';print((json.load(open(p,encoding='utf-8')).get('forcamento') if os.environ['EVENT']=='push' and os.path.exists(p) else None) or 'forcamento_v3')")
+          echo "forcamento: $FORC_DIR"
+          [[ "$FORC_DIR" =~ ^forcamento_v3[a-z0-9_]*$ ]] && [ -d "calibracao_hec_bacia145/dados/$FORC_DIR" ] || { echo "forcamento invalido: $FORC_DIR"; exit 1; }
+          for f in calibracao_hec_bacia145/dados/$FORC_DIR/*.gz; do gunzip -c "$f" > "$W/forcamento_v3/$(basename "${f%.gz}")"; done
           # chuva prevista das janelas derivadas <mãe>__<t0>__<modelo> (comum.janela); a pasta pode não existir
           for f in calibracao_hec_bacia145/dados/forcamento_prevista/*.gz; do [ -e "$f" ] || continue; gunzip -c "$f" > "$W/forcamento_prevista/$(basename "${f%.gz}")"; done
           for f in calibracao_hec_bacia145/dados/observados/*.gz; do gunzip -c "$f" > "$W/dados_ana/csv/$(basename "${f%.gz}")"; done

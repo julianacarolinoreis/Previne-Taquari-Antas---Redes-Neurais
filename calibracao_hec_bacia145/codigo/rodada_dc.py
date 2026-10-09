@@ -20,6 +20,8 @@ Uso:
 --rota mc|mc8st|mc8 (calha trapezoidal ou seções de 8 pontos); es/top só leem resultados da mesma rota.
 --objetivo J|J_pico: chave de ordenação de es/top (J_pico = J ponderado pelo tamanho da cheia observada; o J padrão
 continua no resultado para comparar).
+--forcamento forcamento_v3b: grava "forcamento" no PEDIDO (o lote usa dados/<pasta>; sem a opção, forcamento_v3).
+Atenção: es/top não sabem com que chuva cada resultado foi feito; passe em --resultados só rodadas da mesma chuva.
 """
 import argparse
 import json
@@ -127,9 +129,12 @@ def main():
     ap.add_argument("--centro", default="", help="resultado.json:id (modo viz)")
     ap.add_argument("--raio", type=float, default=0.15)
     ap.add_argument("--saida", default="")
+    ap.add_argument("--forcamento", default="", help="pasta de dados/ com a chuva (padrão do lote: forcamento_v3)")
     a = ap.parse_args()
     janelas = "S2023_09,S2023_11" if a.modo == "teste" else a.janelas
     cands, extra = [], {"familias": {}}
+    if a.forcamento:
+        extra["forcamento"] = a.forcamento
     for i, fam in enumerate(a.familia.split(",")):
         c, x = gerar(a, fam, a.semente + i)
         extra["familias"][fam] = {"de": len(cands), "ate": len(cands) + len(c) - 1, **x}
