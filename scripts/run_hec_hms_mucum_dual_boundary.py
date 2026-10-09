@@ -567,7 +567,7 @@ def main():
     # Observado multirrede por zona (até o último horário observado); a partir
     # daí, NÃO repetir uma única chuva média em três sub-bacias distintas.
     # Carreiro, STZ e incremento Muçum recebem as respectivas séries espaciais IFS.
-    rain_obs=[float(r["rain_02851072_mm"]) for r in rows]
+    obs_areal={str(r["time_local"])[:16]:r for r in (obs.get("rain") or {}).get("hourly_areal") or []}
     future_hour=obs_t.replace(minute=0,second=0,microsecond=0)
     ifs_times=[dt_local(t).replace(minute=0,second=0,microsecond=0) for t in forcing["times_utc"]]
     if len(ifs_times)!=len(set(ifs_times)):
@@ -580,7 +580,17 @@ def main():
         by_hour=dict(zip(ifs_times,[float(v) for v in vals]))
         if any(t>future_hour and t not in by_hour for t in times):
             raise RuntimeError(f"IFS incompleto em {zone} após condição observada")
-        return [rain_obs[i] if t<=future_hour else by_hour[t] for i,t in enumerate(times)]
+        out=[]
+        for t in times:
+            if t>future_hour:
+                out.append(by_hour[t])
+                continue
+            r=obs_areal.get(t.isoformat(timespec="minutes"))
+            p=None if r is None else r.get(f"subbasin_{zone}_mm")
+            if p is None:
+                raise RuntimeError(f"Missing observed multistation rainfall for {zone} at {t}; no basin-average substitution permitted")
+            out.append(float(p))
+        return out
     rain_carr=residual_rain("SB_CARREIRO_7866")
     rain_stz=residual_rain("SB_STZ_RESIDUAL")
     rain_muc=residual_rain("SB_INC_MUCUM")
@@ -763,7 +773,8 @@ def main():
         "rain_valid_station_count":(obs.get("rain") or {}).get("valid_station_count"),
         "rain_future_by_residual_subbasin":True,
         "rain_future_source":"ECMWF IFS full spatial field, 3 independent residual zones",
-        "rain_observed_residual_proxy":"Observed IDW^2 zone 02851072 until current hour; no fabricated local observations",
+        "rain_observed_residual_proxy":None,
+        "rain_observed_residual_method":"Observed all-station IDW^2 spatial precipitation by each nested residual subbasin, no missing-to-zero",
         "rain_spatial_method":(obs.get("rain") or {}).get("spatial_method"),
         "rain_event_basin_areal_mm":((obs.get("rain") or {}).get("accumulations") or {}).get("event_basin_areal_mm"),
         "rain_event_by_zone_mm":((obs.get("rain") or {}).get("accumulations") or {}).get("event_by_zone_mm"),
