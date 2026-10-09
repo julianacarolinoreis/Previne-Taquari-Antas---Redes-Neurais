@@ -100,7 +100,10 @@ jobs:
               cp /tmp/hec_dual_diagnostic_candidate_latest.json "$BASE/diagnostic_candidate_latest.json"
               cp /tmp/hec_dual_diagnostic_series.csv "$BASE/diagnostic_series.csv"
             fi
-            git add -- "$BASE/run.log" "$BASE/exit_code.txt" "$BASE/diagnostic_candidate_latest.json" "$BASE/diagnostic_series.csv"
+            git add -- "$BASE/run.log" "$BASE/exit_code.txt"
+            if [ -f "$BASE/diagnostic_candidate_latest.json" ]; then
+              git add -- "$BASE/diagnostic_candidate_latest.json" "$BASE/diagnostic_series.csv"
+            fi
             if git diff --cached --quiet; then exit 0; fi
             git commit -m "bot: HEC Muçum dual-boundary diagnostic [skip ci]"
             if git push origin HEAD:main; then exit 0; fi
