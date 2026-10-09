@@ -6,11 +6,24 @@ from pathlib import Path
 import subprocess
 from previne.robo import stz_shadow_storage as S
 from previne.robo import stz_shadow_common as C
+from previne.robo import gerar_sombra_stz_n5 as N
+from previne.robo import gerar_sombra_stz_usuario as U
+
+def git_json(path):
+    path=str(Path(path).relative_to(C.ROOT)).replace('\\','/')
+    done=subprocess.run(['git','show','HEAD:'+path],cwd=C.ROOT,capture_output=True)
+    return json.loads(done.stdout) if done.returncode==0 else None
+
+def git_history(directory,legacy):
+    rel=str(Path(directory).relative_to(C.ROOT)).replace('\\','/')
+    names=subprocess.check_output(['git','ls-tree','--name-only','HEAD',rel+'/'],cwd=C.ROOT,text=True).split()
+    parts=[(Path(n).stem,git_json(C.ROOT/n)) for n in names if n.endswith('.json')]
+    return S.combine(git_json(legacy),parts)
 
 def main():
-    for filename in ('historico_sombra_stz_n5.json','historico_sombra_stz_usuario.json'):
-        before=json.loads(subprocess.check_output(['git','show','HEAD:'+filename],cwd=C.ROOT))
-        after=S.load(C.ROOT/filename);S.preserve(before,after)
+    for directory,legacy in ((N.HISTORY,N.LEGACY),(U.HISTORY,U.LEGACY)):
+        before=git_history(directory,legacy)
+        after=S.load(directory,legacy);S.preserve(before,after)
     path=S.ARCHIVE/'index.json'
     index=C.read(path,{'arquivos':[]})
     old_path='assets/data/stz_shadow_archive/index.json'

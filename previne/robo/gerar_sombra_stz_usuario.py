@@ -10,14 +10,15 @@ from . import stz_shadow_storage as S
 
 MANIFEST = C.ROOT / "assets/data/stz_user_models/manifest.json"
 OUT = C.ROOT / "previsao_sombra_stz_usuario.json"
-HISTORY = C.ROOT / "historico_sombra_stz_usuario.json"
+HISTORY = S.HISTORY_ROOT / "usuario"
+LEGACY = C.ROOT / "historico_sombra_stz_usuario.json"
 
 def main(data=None,issued_at=None):
     torch.set_num_threads(2)
     contract = C.read(C.ROOT / "assets/data/stz_n5_sombra_contrato.json")
     specs = contract["horizontes"]["4h"]["modelos"][0]["inputs"]
     manifest = C.read(MANIFEST)
-    before=S.load(HISTORY)
+    before=S.load(HISTORY,LEGACY)
     levels, rain = data if data is not None else C.download()
     now = issued_at or R.agora_brt()
     clean = C.qc_levels(levels, contract["limites_estacao_cm"])
@@ -57,17 +58,25 @@ def main(data=None,issued_at=None):
         predictions.append(p)
     hist = C.update_history(before,predictions,levels.get(C.STZ,{}),now,contract['limites_estacao_cm'])
     archive=S.archive('usuario',now,predictions,levels,rain,before,hist)
+    tests={m["id"]:dict(m["test"],persistencia_mae_cm=manifest["datasets"][str(m["horizon_h"])]["persistence_test"]["mae_cm"])
+           for m in manifest["models"]}
     for p in predictions:
         rows=[r for r in hist["registros"] if r["modelo_id"]==p["modelo_id"] and r["modelo_sha256"]==p["modelo_sha256"]]
         p["avaliacao"] = C.evaluate(rows,now)
+        p["teste_historico"] = tests[p["modelo_id"]]
+    current={(p["modelo_id"],p["modelo_sha256"]) for p in predictions}
+    files=S.save(HISTORY,before,hist,LEGACY)
     feed={"schema_version":"stz_user_shadow_v1","gerado_em":C.stamp(now),"timezone":"America/Sao_Paulo",
           "shadow_only":True,"official_alert":False,"promotion_allowed":False,"aviso":C.AVISO,
           "proveniencia":manifest["provenance"],"versao":manifest["version"],
           "modelos":predictions,"arquiteturas_pendentes":manifest["unavailable_architectures"],
+          "referencia_n5_teste":manifest.get("reference_n5_test"),
           "arquivo_emissao":archive,"historico_registros_n":len(hist['registros']),
+          "historico_arquivos":C.history_paths(files),
           "historico_legado_sem_inputs_n":sum('inputs' not in p for p in hist['registros']),
-          "serie_recente":[p for p in hist["registros"] if (now-dt.datetime.fromisoformat(p["hora_modelo"])).total_seconds()<=8*86400]}
-    S.save(HISTORY,before,hist);C.write(OUT,feed)
+          "serie_recente":[C.chart_point(p) for p in hist["registros"] if (p["modelo_id"],p["modelo_sha256"]) in current
+                           and (now-dt.datetime.fromisoformat(p["hora_modelo"])).total_seconds()<=8*86400]}
+    C.write(OUT,feed,compact=True)
     print('Usuario sombra:',len(predictions),'modelos;',sum(p['disponivel'] for p in predictions),'disponiveis')
     return 0
 

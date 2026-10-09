@@ -12,7 +12,7 @@ permanecem com seus contratos atuais. Nao existe promocao automatica.
 - Nove sinais de nivel de Santa Tereza e dois acumulados de chuva local (6 e 18 h).
 - Nivel somente da estacao 86472600. Chuva: 86472600 e 86472000.
 - Inferencia direta de delta de 4 h, reconstruida como nivel-base + delta.
-- Feed `previsao_sombra_stz_n5.json`, historico permanente `historico_sombra_stz_n5.json`.
+- Feed `previsao_sombra_stz_n5.json`, historico permanente em `assets/data/stz_shadow_history/n5/`.
 
 ## Arquiteturas da versao de usuario
 
@@ -35,7 +35,33 @@ consecutivas dentro do mesmo evento e da mesma particao. Alvos de 2/8/12 h sao
 observacoes historicas na hora exata, dentro do mesmo evento; sem interpolacao.
 
 O workflow executa os pesos congelados, sem retreino com telemetria recente.
-Feed `previsao_sombra_stz_usuario.json`, historico `historico_sombra_stz_usuario.json`.
+Feed `previsao_sombra_stz_usuario.json`, historico em `assets/data/stz_shadow_history/usuario/`.
+
+### Revisao r2 (calibracao)
+
+- Redes temporais: na rodada r1 (90 passos em lote completo) sete das 24 redes
+  pararam no teto ainda melhorando. A r2 treina um candidato com mini-lotes de
+  64, Adam 1e-3, ate 300 epocas e parada apos 25 epocas sem melhora na
+  particao 2. Cada rede publica o artefato (r1 ou r2) com menor MSE de
+  validacao; o teste nunca decide. Em 8 e 12 h o mini-lote atinge o otimo da
+  validacao em poucas epocas e varias redes r1 continuam melhores: o limite de
+  passos funcionava como regularizacao. Um estudo de regularizacao (weight
+  decay, dropout, validacao cruzada por evento) fica como proximo passo; com
+  6 eventos de validacao e 4 de teste, diferencas de poucos cm sao ruido.
+- SVR: alvo padronizado (`TransformedTargetRegressor`). Com o delta em cm, C=10
+  limitava a amplitude e achatava as subidas grandes.
+- Modelos estaticos que dao exatamente a mesma saida em todas as linhas mantem
+  arquivo e hash; a serie ao vivo deles continua. Modelos com hash novo comecam
+  uma serie nova; os registros antigos ficam no historico com o hash anterior.
+- `reference_n5_test`: N5 nas mesmas linhas de teste de 4 h, para comparar.
+
+### Limites conhecidos
+
+- Os nomes seguem o comparativo de 15/09. Seq2Seq tem um unico passo de
+  decodificador; o Transformer nao tem codificacao posicional; o TCN nao e
+  dilatado nem estritamente causal. Detalhes em `architecture_notes` do manifesto.
+- Chuva: uma hora com parte das leituras de 15 min entra como completa. Falta
+  confirmar se o CSV de treino usou a mesma regra antes de endurecer o filtro.
 
 ## Dados e avaliacao ao vivo
 
@@ -52,7 +78,14 @@ Feed `previsao_sombra_stz_usuario.json`, historico `historico_sombra_stz_usuario
 - MAE, RMSE, vies, maior erro e persistencia sao calculados por modelo, sem
   misturar as metricas historicas de teste com os erros ao vivo.
 - As janelas da interface sao 24 h, 72 h, 168 h e desde a ativacao; o feed de
-  visualizacao conserva ate oito dias de pontos, e os historicos sao permanentes.
+  visualizacao conserva ate oito dias de pontos (so modelo, alvo, previsto e
+  observado, da versao atual de cada modelo), e os historicos sao permanentes.
+- Historicos em particoes mensais pelo mes de emissao (`AAAA-MM.json`, um
+  registro por linha), para ficar abaixo do limite de 100 MB por arquivo do
+  GitHub. Na primeira execucao o robo migra os JSON da raiz e so remove o
+  legado depois de reler as particoes e conferir todos os registros.
+- A pagina busca os feeds a cada 5 min (o robo publica a cada 30 min) e
+  redesenha a cada minuto.
 - Ausencia de dados e alvo vencido ficam explicitos. Zero pares nao e erro zero.
 
 Agendamento: workflow `stz-shadow.yml`, minutos 17 e 47 de cada hora (horario UTC

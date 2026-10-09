@@ -6,7 +6,8 @@ from . import stz_shadow_storage as S
 
 CONTRACT = C.ROOT / "assets/data/stz_n5_sombra_contrato.json"
 OUT = C.ROOT / "previsao_sombra_stz_n5.json"
-HISTORY = C.ROOT / "historico_sombra_stz_n5.json"
+HISTORY = S.HISTORY_ROOT / "n5"
+LEGACY = C.ROOT / "historico_sombra_stz_n5.json"
 
 def forecast(levels, rain, now, contract):
     m = contract["horizontes"]["4h"]["modelos"][0]
@@ -37,19 +38,20 @@ def forecast(levels, rain, now, contract):
 
 def main(data=None, issued_at=None):
     contract = C.read(CONTRACT)
-    before = S.load(HISTORY)
+    before = S.load(HISTORY, LEGACY)
     levels, rain = data if data is not None else C.download()
     now = issued_at or R.agora_brt()
     p = forecast(levels, rain, now, contract)
     hist = C.update_history(before, [p], levels.get(C.STZ, {}), now,contract['limites_estacao_cm'])
     archive = S.archive('n5',now,[p],levels,rain,before,hist)
+    rows = [r for r in hist["registros"] if r["modelo_sha256"] == p["modelo_sha256"]]
+    files = S.save(HISTORY,before,hist,LEGACY)
     feed = {"schema_version": "stz_n5_shadow_v1", "gerado_em": C.stamp(now), "timezone": "America/Sao_Paulo",
             "shadow_only": True, "official_alert": False, "promotion_allowed": False, "aviso": C.AVISO,
-            "previsao": p, "avaliacao": C.evaluate(hist["registros"], now),
-            "serie_recente": hist["registros"][-240:], "arquivo_emissao":archive,
-            "historico_registros_n":len(hist['registros'])}
-    S.save(HISTORY,before,hist)
-    C.write(OUT, feed)
+            "previsao": p, "avaliacao": C.evaluate(rows, now),
+            "serie_recente": [C.chart_point(r) for r in rows[-240:]], "arquivo_emissao":archive,
+            "historico_registros_n":len(hist['registros']), "historico_arquivos":C.history_paths(files)}
+    C.write(OUT, feed, compact=True)
     print(p["status"], p["hora_modelo"], p["hora_alvo"], p["nivel_previsto_cm"])
     return 0
 
