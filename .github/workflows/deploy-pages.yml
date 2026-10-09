@@ -24,6 +24,7 @@ on:
       - "inventario/**"
       - "assets/css/**"
       - "assets/js/**"
+      - "assets/logos/**"
       - "assets/previsao_panorama.js"
       - "assets/previsao_panorama.css"
       - "assets/previsao_panorama_usuario.js"
@@ -39,6 +40,7 @@ on:
       - "assets/data/basin_station_forecast_latest.json"
       - "assets/data/agenda_pesquisas.json"
       - "scripts/validate_osm_tiles.py"
+      - "scripts/apply_institutional_logos.py"
       - "scripts/validar_panorama_site.py"
       - "scripts/validate_santa_tereza_lidar_contract.py"
       - "codigo_python/02_mdt_hand_mancha/refinar_mdt_santa_tereza.py"
@@ -132,6 +134,7 @@ jobs:
             !*.yml
             !*.yaml
             scripts/validate_osm_tiles.py
+            scripts/apply_institutional_logos.py
             scripts/validar_panorama_site.py
             scripts/validate_santa_tereza_lidar_contract.py
             codigo_python/02_mdt_hand_mancha/gerar_mosaico_mdt.py
@@ -207,6 +210,9 @@ jobs:
           done < <(git ls-files -z)
 
           touch _site/.nojekyll
+
+      - name: Aplicar logos PREVINE, UFRGS e LAGAM nas páginas públicas
+        run: python -B scripts/apply_institutional_logos.py --site-dir _site
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
