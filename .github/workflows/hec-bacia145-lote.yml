@@ -28,7 +28,7 @@ on:
         default: manual
         type: string
   push:
-    branches: [claude/hec-bacia145-nuvem]
+    branches: [claude/hec-bacia145-nuvem, "cursor/hec-bacia145-**"]
     paths:
       - "calibracao_hec_bacia145/**"
       - ".github/workflows/hec-bacia145-lote.yml"
@@ -201,6 +201,10 @@ jobs:
           json.dump(cands, open(W + "/cands.json", "w"))
           if ped.get("papeis"):
               json.dump(ped["papeis"], open(W + "/papeis.json", "w"))
+          # eventos de teste só entram no resultado quando o pedido diz explicitamente que o teste foi aberto
+          if ped.get("abrir_teste") is True:
+              open(W + "/abrir_teste", "w").write("1")
+              print("TESTE ABERTO: as métricas dos eventos de teste vão para o resultado")
           PY
           export HEC_BASIN_BASE="$PWD/calibracao_hec_bacia145/dados/basin/a00_E27.basin"
           export HEC_MDT_CSV="$PWD/calibracao_hec_bacia145/dados/mdt_trechos_atributos.csv"
@@ -208,7 +212,8 @@ jobs:
           export HEC_CATALOGO=catalogo_ampliado.json HEC_FORC=forcamento_v3
           [ -f "$W/papeis.json" ] && export HEC_PAPEIS=papeis.json
           cd "$W"
-          python -B nuvem_agregar.py --candidatos cands.json --dir "$GITHUB_WORKSPACE/shards" --saida "$GITHUB_WORKSPACE/resultado.json" --janelas "$JANELAS"
+          TESTE=""; [ -f abrir_teste ] && TESTE="--teste"
+          python -B nuvem_agregar.py --candidatos cands.json --dir "$GITHUB_WORKSPACE/shards" --saida "$GITHUB_WORKSPACE/resultado.json" --janelas "$JANELAS" $TESTE
       - name: Conferir com o PC (só no teste de fumaça)
         if: needs.preparar.outputs.rodada == 'smoke'
         run: |

@@ -55,6 +55,30 @@ if os.environ.get("HEC_PERDA") == "scs":
     PARAMS["qstar"] = (0.01, 0.30, "log")
     PARAMS["s0"] = (15.0, 500.0, "log")
 
+# Perda Deficit and Constant (09/10): o candidato traz "dmax" em vez de (ia_max, f) ou s0.
+# O solo tem capacidade dmax; a chuva só escoa quando o déficit zera (saturação) ou acima da taxa de percolação,
+# e o déficit se recupera pela evapotranspiração mensal do dossel (o modelo meteorológico passa a ter ET).
+# Déficit inicial = dmax * exp(-q0/q*), mesma leitura de umidade das outras perdas. Impermeável limitado a 5%:
+# I+C e SCS só fechavam o volume com ~40% de área impermeável, o que não existe na bacia.
+PARAMS_DC = {k: v for k, v in PARAMS.items() if k not in ("ia_max", "f", "s0", "imp")}
+PARAMS_DC.update({
+    "dmax": (20.0, 300.0, "log"), "perc": (0.2, 12.0, "log"), "imp": (0.0, 0.05, "lin"),
+    "qstar": (0.002, 0.10, "log"), "mr": (0.4, 8.0, "log"),
+})
+CANOPY_MM, SUPERFICIE_MM = 3.0, 5.0
+
+
+def bloco_dc(p, qloc, imp_pct):
+    d0 = p["dmax"] * math.exp(-qloc / p["qstar"])
+    return ("     Canopy: Simple\n     Allow Simultaneous Precip Et: No\n     Plant Uptake Method: Simple\n"
+            f"     Initial Canopy Storage Percent: 0\n     Canopy Storage Capacity: {CANOPY_MM}\n"
+            "     Crop Coefficient: 1.0\n     End Canopy:\n\n"
+            f"     Surface: Simple\n     Initial Surface Storage Percent: 0\n     Surface Storage Capacity: {SUPERFICIE_MM}\n"
+            "     Surface Albedo: 0.20\n     End Surface:\n\n"
+            f"     LossRate: Deficit Constant\n     Percent Impervious Area: {imp_pct}\n"
+            f"     Initial Deficit: {d0:.4f}\n     Maximum Deficit: {p['dmax']:.4f}\n"
+            f"     Percolation Rate: {p['perc']:.4f}\n     Recovery Factor: 1.0\n")
+
 
 def _topologia():
     txt = hec.base_text()
@@ -142,7 +166,8 @@ def bacia_v3(p, sim, rota="mc"):
         v *= min(4.0, max(0.25, (md["S"] / S_REF) ** (-p.get("ks", 0.0))))
         qloc = q0[CTRL_DE[nome]]
         scs = "s0" in p
-        ia = 0.0 if scs else p["ia_max"] * math.exp(-qloc / p["qstar"])
+        dc = "dmax" in p
+        ia = 0.0 if (scs or dc) else p["ia_max"] * math.exp(-qloc / p["qstar"])
 
         def rep(label, val):
             nonlocal corpo
@@ -150,7 +175,11 @@ def bacia_v3(p, sim, rota="mc"):
             assert n == 1, (nome, label)
         tc = float(re.search(r"(?m)^\s*Time of Concentration: ([^\n]+)", corpo)[1])
         r = float(re.search(r"(?m)^\s*Storage Coefficient: ([^\n]+)", corpo)[1])
-        if scs:
+        if dc:
+            corpo, n = re.subn(r"(?ms)^\s*Canopy: None\n.*?^\s*Constant Loss Rate: [^\n]+\n",
+                               lambda mm: bloco_dc(p, qloc, f"{100 * p['imp']:.3f}"), corpo, count=1)
+            assert n == 1, (nome, "bloco de perda")
+        elif scs:
             S = max(5.3, p["s0"] * math.exp(-qloc / p["qstar"]))   # piso: o HEC-HMS recusa CN >= 99 (testado: todas as falhas tinham CN >= 99)
             CN = 25400.0 / (S + 254.0)
             corpo, n1 = re.subn(r"(?m)^(\s*)LossRate: Initial\+Constant\n", lambda mm: mm[1] + "LossRate: SCS\n", corpo)

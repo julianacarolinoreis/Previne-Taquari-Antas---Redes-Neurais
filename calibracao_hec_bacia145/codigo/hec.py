@@ -23,6 +23,9 @@ PASSO_MIN = 10
 NOS_EXTRA = []  # nós adicionais a extrair (diagnóstico)
 SAIDA = "Save Minimum"  # "Save All" grava ~55 MB/rodada
 BASIN_NAME = "Taquari-Antas 145 SB 105 R"
+# ET de referência mensal (mm/mês, jan..dez) aproximada para a Serra Gaúcha; só entra com a perda Deficit Constant,
+# que precisa secar o solo entre as chuvas das janelas de 2-3 semanas.
+ET_MENSAL_MM = [130, 105, 95, 65, 45, 35, 40, 55, 70, 100, 120, 135]
 
 
 def lbl(t):
@@ -213,15 +216,21 @@ def escrever_projeto(d: Path, sim: str, basin_text: str):
               "     Variant: Variant-1", f"       Start Time: {data_longa(ini)}, {ini:%H:%M}",
               f"       End Time: {data_longa(fim)}, {fim:%H:%M}", "     End Variant: Variant-1", "End:", ""]
     (d / "proj.gage").write_text("\n".join(g), encoding="utf-8")
+    com_et = "LossRate: Deficit Constant" in basin_text
     m = ["Meteorology: Chuva ANA", "     Version: 4.13", "     Unit System: Metric",
          "     Set Missing Data to Default: No", "     Precipitation Method: Specified Average",
          "     Air Temperature Method: None", "     Atmospheric Pressure Method: None",
          "     Dew Point Method: None", "     Wind Speed Method: None", "     Shortwave Radiation Method: None",
          "     Longwave Radiation Method: None", "     Snowmelt Method: None",
-         "     Evapotranspiration Method: No Evapotranspiration", f"     Use Basin Model: {BASIN_NAME}", "End:", "",
+         "     Evapotranspiration Method: " + ("Monthly Evaporation" if com_et else "No Evapotranspiration"),
+         f"     Use Basin Model: {BASIN_NAME}", "End:", "",
          "Precip Method Parameters: Specified Average", "     Allow Depth Override: Yes", "End:", ""]
+    if com_et:
+        m += ["Evapotranspiration Method Parameters: Monthly Evaporation", "End:", ""]
+    et = (["", "     Begin Et: Monthly Evaporation"] + [f"     Pan Evaporation: {v}" for v in ET_MENSAL_MM]
+          + ["     Evapotranspiration Coefficient: 1.0"] * 12 + ["     End Et:"]) if com_et else []
     for s in subs:
-        m += [f"Subbasin: {s}", f"     Gage: G_{s}", "End:", ""]
+        m += [f"Subbasin: {s}", f"     Gage: G_{s}"] + et + ["End:", ""]
     (d / "chuva.met").write_text("\n".join(m), encoding="utf-8")
     (d / "controle.control").write_text(
         f"Control: Controle\n     Version: 4.13\n     Start Date: {data_longa(ini)}\n     Start Time: {ini:%H:%M}\n"
