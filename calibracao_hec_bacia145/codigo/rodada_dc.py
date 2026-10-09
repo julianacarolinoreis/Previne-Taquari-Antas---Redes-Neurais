@@ -6,7 +6,8 @@
 Mesmas janelas e papéis das famílias g1/g2/g4/g6 (todos os eventos de calibração), para o J ser comparável com
 lib-A (Initial+Constant) e scs-A (SCS).
 Uso:
-  python rodada_dc.py lhs  --familia lric --rodada lric-g0 --n 32 --semente 7 --saida ../rodadas/PEDIDO.json
+  python rodada_dc.py lhs  --familia lric,lrdc --rodada lr-g0 --n 32 --semente 11 --saida ../rodadas/PEDIDO.json
+  (várias famílias num pedido só: os candidatos vêm em sequência e "familias" no pedido diz a faixa de cada uma)
   python rodada_dc.py es   --rodada dc-g1 --resultados pasta [pasta ...] --lam 24 --mu 6 --sigma 0.15 --saida ...
   python rodada_dc.py top  --rodada dc-av --resultados pasta [pasta ...] --n 3 --janelas todas --saida ...
   python rodada_dc.py teste --rodada dc-teste --semente 1 --saida ...   (2 candidatos x 2 janelas: confere a sintaxe)
@@ -59,10 +60,34 @@ def pedido(rodada, cands, janelas=JANELAS_CAL, **extra):
             "candidatos": [{"id": f"{rodada}-c{i:03d}", "rota": "mc", "p": p} for i, p in enumerate(cands)], **extra}
 
 
+def gerar(a, fam, semente):
+    """Candidatos de uma família; devolve (lista de parâmetros, informação para o pedido)."""
+    global P
+    P = e3.FAMILIAS[fam]
+    chaves = list(P)
+    if a.modo in ("lhs", "teste"):
+        n = 2 if a.modo == "teste" else a.n
+        amostras = qmc.LatinHypercube(d=len(chaves), seed=semente).random(n)
+        return [from_unit(dict(zip(chaves, x))) for x in amostras], {}
+    todos = sorted(ler_resultados(a.resultados), key=lambda c: c["J"])
+    if not todos:
+        sys.exit(f"{fam}: nenhum resultado com J finito nas pastas indicadas")
+    if a.modo == "top":
+        return [c["p"] for c in todos[:a.n]], {"origem": [{"id": c["id"], "J": c["J"]} for c in todos[:a.n]]}
+    elite = todos[:a.mu]
+    w = [math.log(a.mu + 0.5) - math.log(i + 1) for i in range(len(elite))]
+    us = [to_unit(c["p"]) for c in elite]
+    med = {k: sum(wi * u[k] for wi, u in zip(w, us)) / sum(w) for k in chaves}
+    rnd = random.Random(semente)
+    filhos = [from_unit({k: med[k] + rnd.gauss(0, a.sigma) for k in chaves}) for _ in range(a.lam)]
+    return filhos, {"melhor_ate_aqui": {"id": elite[0]["id"], "J": elite[0]["J"]}, "sigma": a.sigma,
+                    "n_avaliados": len(todos)}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("modo", choices=("lhs", "es", "top", "teste"))
-    ap.add_argument("--familia", choices=tuple(e3.FAMILIAS), default="dc")
+    ap.add_argument("--familia", default="dc", help="uma ou mais de " + ",".join(e3.FAMILIAS) + ", separadas por vírgula")
     ap.add_argument("--rodada", required=True)
     ap.add_argument("--n", type=int, default=32)
     ap.add_argument("--semente", type=int, default=7)
@@ -73,31 +98,13 @@ def main():
     ap.add_argument("--janelas", default=JANELAS_CAL)
     ap.add_argument("--saida", default="")
     a = ap.parse_args()
-    global P
-    P = e3.FAMILIAS[a.familia]
-    chaves = list(P)
-    if a.modo in ("lhs", "teste"):
-        n = 2 if a.modo == "teste" else a.n
-        amostras = qmc.LatinHypercube(d=len(chaves), seed=a.semente).random(n)
-        cands = [from_unit(dict(zip(chaves, x))) for x in amostras]
-        janelas = "S2023_09,S2023_11" if a.modo == "teste" else a.janelas
-        out = pedido(a.rodada, cands, janelas)
-    else:
-        todos = sorted(ler_resultados(a.resultados), key=lambda c: c["J"])
-        if not todos:
-            sys.exit("nenhum resultado com J finito nas pastas indicadas")
-        if a.modo == "top":
-            out = pedido(a.rodada, [c["p"] for c in todos[:a.n]], a.janelas,
-                         origem=[{"id": c["id"], "J": c["J"]} for c in todos[:a.n]])
-        else:
-            elite = todos[:a.mu]
-            w = [math.log(a.mu + 0.5) - math.log(i + 1) for i in range(len(elite))]
-            us = [to_unit(c["p"]) for c in elite]
-            med = {k: sum(wi * u[k] for wi, u in zip(w, us)) / sum(w) for k in chaves}
-            rnd = random.Random(a.semente)
-            filhos = [from_unit({k: med[k] + rnd.gauss(0, a.sigma) for k in chaves}) for _ in range(a.lam)]
-            out = pedido(a.rodada, filhos, a.janelas, melhor_ate_aqui={"id": elite[0]["id"], "J": elite[0]["J"]},
-                         sigma=a.sigma, n_avaliados=len(todos))
+    janelas = "S2023_09,S2023_11" if a.modo == "teste" else a.janelas
+    cands, extra = [], {"familias": {}}
+    for i, fam in enumerate(a.familia.split(",")):
+        c, x = gerar(a, fam, a.semente + i)
+        extra["familias"][fam] = {"de": len(cands), "ate": len(cands) + len(c) - 1, **x}
+        cands += c
+    out = pedido(a.rodada, cands, janelas, **extra)
     txt = json.dumps(out, indent=1, default=float)
     if a.saida:
         Path(a.saida).write_text(txt, encoding="utf-8")
