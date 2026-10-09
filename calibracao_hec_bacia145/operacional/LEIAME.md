@@ -55,8 +55,8 @@ $py = "D:\PREVINE\repo_hec_calib\_analise_bacia145\chuva_prevista\.venv312\Scrip
 Opções úteis do `ciclo.py`: `--horizonte` (48–120 h), `--cenarios`, `--pos-chuva fator:1.2`, `--parametros`,
 `--fonte-obs rede|ana|arquivo` (padrão `rede`), `--cemaden DIR` (histórico do coletor; padrão `$HEC_CEMADEN_DIR` ou
 `~\hec_aovivo_estado\cemaden`), `--estado DIR` (loja de estados; padrão `$HEC_ESTADO_DIR` ou desligado),
-`--assimilar nao|previsao` (padrão `nao`),
-`--passo-estado-h 6`, `--inicio-fixo`, `--trabalho` (rodadas; padrão `~\hec_aovivo_trabalho`, com `cache_prev\`).
+`--assimilar nao|previsao` (padrão `nao`), `--sombra auto|nao|ARQUIVO` (híbrido em sombra; padrão `$HEC_SOMBRA`
+ou `auto`), `--passo-estado-h 6`, `--inicio-fixo`, `--trabalho` (rodadas; padrão `~\hec_aovivo_trabalho`, com `cache_prev\`).
 
 Retroativas que encostam na janela de teste (`X20260918`, 18/09–04/10/2026) são recusadas; ao vivo, a janela nunca
 começa dentro dela. Nenhuma métrica é calculada nesses eventos.
@@ -85,7 +85,8 @@ O fluxo de lote (`hec-bacia145-lote.yml`) não dispara nesta branch.
 | `inmet.py` | cliente do apitempo do INMET (só com `INMET_TOKEN`) |
 | `chuva_prevista.py` | `FonteChuvaPrevista` → `[Cenario]`; ECMWF/GFS por byte-range, `SemChuva`, `ArquivoPrevista`; pós-processadores |
 | `vazao_observada.py` | `FonteObservados` dos postos de controle (estado inicial e correção) |
-| `posproc.py` | correção aditiva, curva nível × vazão, cotas de Muçum, resumo de conjunto |
+| `posproc.py` | correção aditiva, curva nível × vazão, cotas de Muçum, resumo de conjunto; híbrido `d_piv` em sombra |
+| `teste_posproc.py` | testes da fórmula do `d_piv` e da ligação parâmetros ↔ modelo (`python -B teste_posproc.py`) |
 | `telemetria_ana.py`, `geo.py` | cliente do HidroTelemetria (com espera em HTTP 429); sub-bacias, UTM 22S, pesos de grade |
 | `validar_parametros.py` | roda um `parametros/*.json` numa janela e compara com a `vazao.csv` de uma rodada da nuvem |
 | `experimento_estado.py` | experimento retroativo do estado entre ciclos (V0–V3) |
@@ -93,6 +94,7 @@ O fluxo de lote (`hec-bacia145-lote.yml`) não dispara nesta branch.
 | `preparar_dados.py` | gera `dados/` e `parametros/` a partir das fontes do PC (`c002`, `rede`; só quando elas mudarem) |
 | `dados/` | sub-bacias, 130 postos ANA (fase 1), `postos_rede.json` (rede ao vivo), curvas da telemetria, τ(h) do c038 |
 | `parametros/*.json` | `md-val2-c002` (padrão, com o τ(h) próprio em `correcao`) e `lr-g8-c038` |
+| `parametros/hibrido_<id>.json` | parâmetros do híbrido em sombra do conjunto `<id>` (hoje só `vo-val-c008`) |
 | `exemplos/` | JSON da fase 1 (ao vivo 09/10/2026 13h, retroativa 10/05/2024 14h) |
 
 ### Ponto de encaixe dos parâmetros
@@ -137,11 +139,47 @@ conferir com `validar_parametros.py` e mudar o padrão de `--parametros` no `cic
 6. **Pós-processamento** (LJJ, Muçum, Encantado; Estrela só simulado e observado): Q = S + e(tv)·exp(−(t − tv)/τ(h)),
    τ(h) do conjunto de parâmetros; com assimilação, sem correção aditiva (ela dobraria o ajuste). Nível pela curva da
    telemetria; cotas de Muçum 5/10/15/18 m.
+7. **Híbrido em sombra** (só se houver `parametros/hibrido_<id>.json`; ver abaixo): série extra, não publicada.
+
+## Híbrido `d_piv` em sombra
+
+Corrige o viés de porte do HEC (subestima mais as cheias maiores) sobre a saída do HEC rodado com chuva; roda ao lado
+da correção aditiva e **não muda nada do que é publicado** (`corrigido`, `nivel_previsto_cm`, `cotas_previstas`,
+`conjunto`, `avisos`). Estudo: `_analise_hibrido/LEIAME.md` (branch `cursor/hec-bacia145-hibrido`, rodada hb-r1).
+
+    F(S) = S·(min(S, qmax)/q0)^(b−1) se S > q0, senão S       (F/S limitado a [1/3; 3])
+    Q(t) = F(S(t)) + (O(tv) − F(S(tv)))·exp(−(t − tv)/τd),  Q ≥ 1 m³/s   (mesmo tv da correção aditiva)
+
+- Abaixo de q0 (mediana dos picos simulados da calibração) é a correção aditiva com τd constante; acima de qmax (maior
+  pico simulado da amostra de ajuste) o fator fica congelado. Sem observado válido em 72 h: só F(S).
+- Só LJJ, Muçum e Encantado, ligado ao `vo-val-c008` (o arquivo confere `modelo` e `sha256_p`; outro conjunto, como o
+  c002 padrão, não gera sombra). Desligado com `--assimilar previsao` (avaliado sem assimilação).
+- Duas variantes: `todos_picos` (b com todos os picos de calibração; Muçum b 1,20, fator máx. 1,28; Encantado 1,41 /
+  1,63; LJJ 1,47 / 1,90) e `so_curva` (só picos com nível dentro da curva: Muçum ≤ 15 m, LJJ ≤ 18 m, Encantado
+  ≤ 19,2 m; Muçum b 1,04 / 1,02; Encantado 1,35 / 1,22; LJJ 1,47 / 1,32).
+- Validação com ECMWF (médias+grandes, erro de pico 1–12 h / 13–24 h; aditiva do estudo com τ constante): Muçum
+  HEC −24/−23 %, aditiva −7/−19 %, `d_piv` −2/−12 %; Encantado HEC −31/−29 %,
+  aditiva −6/−23 %, `d_piv` −3/−8 %. Avaliado até 47 h; de 25 a 47 h nenhum método melhora (falta chuva na previsão).
+- Ligar/desligar: `--sombra auto` (padrão) / `--sombra nao` (ou `HEC_SOMBRA=nao`); `--sombra ARQUIVO` usa outro
+  arquivo de parâmetros. Para outro modelo: gravar `parametros/hibrido_<id>.json` com o `sha256_p` dele.
+
+Saída: `hibrido_sombra{estado, arquivo, pontos}` no topo e, em cada ponto, `pontos.<P>.hibrido_sombra{metodo,
+modelo, arquivo, limite_curva_cm, horizonte_avaliado_h, aviso, variantes{todos_picos, so_curva: {q0, b, qmax, tau_h,
+fator_maximo, erro_em_tv_m3s{cen}, corrigido{cen}, nivel_previsto_cm{cen}, pico{cen: pico_vazao_m3s, pico_nivel_cm,
+t_pico, curva_extrapolada, fator_congelado}}}}`. `curva_extrapolada` = pico da sombra acima do limite da curva do
+ponto (em Muçum, 15 m).
+
+Conferência (09/10/2026): ciclo ao vivo completo com o `vo-val-c008` (rede + ECMWF 12z + GFS 18z, t0 09/10 20h) e
+retroativo de maio/2024 (t0 01/05 00h, arquivos). Refazendo o pós-processamento com o `posproc.py` anterior sobre as
+mesmas vazões do HEC, os `pontos` publicados saem idênticos; no retroativo, antigo × novo, o JSON inteiro é igual
+fora `hibrido_sombra`, `emitido_em` e `tempos_s`. Com o c002 a sombra não sai.
 
 ## Saída (JSON)
 
 Campo **`versao`** (e `versao_esquema`, igual): **2**. Histórico:
 
+- **2** + sombra: novas chaves `hibrido_sombra` (topo) e `pontos.*.hibrido_sombra` (só com parâmetros do híbrido);
+  nenhum campo existente mudou.
 - **2** (fase 2): `versao`; `parametros` ganhou `rota`, `J_cal`, `J_val`, `arquivo`, `correcao{fonte, tau_h_6h}`;
   `q0_especifica_m3s_km2` = `null` quando o ciclo começa de estado salvo; novo bloco `estado{loja, inicial, salvo,
   podados, assimilacao, instante_assimilacao, razoes{controle: razao, bruta, tipo, sim, obs}, metodo}`;

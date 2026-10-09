@@ -1,0 +1,28 @@
+{
+ "modelo": "vo-val-c008",
+ "sha256_p": "0eb97094239cbf67",
+ "metodo": "d_piv",
+ "formula": "F(S)=S*(min(S,qmax)/q0)^(b-1) se S>q0, senão S; F/S limitado a [1/rmax, rmax]; Q=F(S)+(O(tv)-F(S(tv)))*exp(-(t-tv)/tau_h), Q>=1; tv = o mesmo da correção aditiva (último observado válido até 72 h antes de t0)",
+ "rmax": 3.0,
+ "horizonte_avaliado_h": 47,
+ "origem": "repo_hec_hibrido/_analise_hibrido (hibrido.py --treino todas; branch cursor/hec-bacia145-hibrido, rodada hb-r1 run 37998403990). Ajuste só nos eventos de calibração: q0 = mediana dos picos simulados, b por mínimos quadrados em log contra os picos observados, qmax = maior pico simulado da amostra (fator congelado acima), tau_h por validação cruzada deixando uma janela de fora. Simulações vo-valb-c008 (mesmos p do vo-val-c008, forcamento_v3b).",
+ "validacao_ecmwf": "médias+grandes, erro de pico 1-12 h / 13-24 h (todos_picos): Muçum HEC -24/-23 %, aditiva -7/-19 %, d_piv -2/-12 %; Encantado HEC -31/-29 %, aditiva -6/-23 %, d_piv -3/-8 %. 25-47 h: nenhum método melhora (falta chuva na previsão).",
+ "variantes": {
+  "todos_picos": {
+   "descricao": "b ajustado com todos os picos de calibração, inclusive os com nível acima do limite da curva-chave",
+   "pontos": {
+    "MUCUM": {"q0": 2685.8, "b": 1.2, "qmax": 9175.3, "tau_h": 24},
+    "ENCANTADO": {"q0": 3223.1, "b": 1.41, "qmax": 10681.7, "tau_h": 36},
+    "LJJ": {"q0": 2002.9, "b": 1.47, "qmax": 7862.4, "tau_h": 12}
+   }
+  },
+  "so_curva": {
+   "descricao": "b ajustado só com picos observados dentro da curva-chave (Muçum <= 1500 cm, LJJ <= 1800 cm, Encantado <= 1920 cm)",
+   "pontos": {
+    "MUCUM": {"q0": 2588.8, "b": 1.04, "qmax": 4560.5, "tau_h": 24},
+    "ENCANTADO": {"q0": 3053.2, "b": 1.35, "qmax": 5327.2, "tau_h": 24},
+    "LJJ": {"q0": 1936.5, "b": 1.47, "qmax": 3498.9, "tau_h": 12}
+   }
+  }
+ }
+}

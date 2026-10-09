@@ -74,6 +74,9 @@ def args():
     ap.add_argument("--passo-estado-h", type=float, default=6, help="intervalo esperado até o próximo ciclo")
     ap.add_argument("--assimilar", choices=["nao", "previsao"], default="nao",
                     help="assimilação obs/sim por região de controle no fim do observado (estado.py)")
+    ap.add_argument("--sombra", default=os.environ.get("HEC_SOMBRA", "auto"),
+                    help="híbrido d_piv em sombra: auto (parametros/hibrido_<id>.json, se existir), nao, ou um arquivo; "
+                         "só acrescenta pontos.*.hibrido_sombra, nunca muda o publicado")
     ap.add_argument("--trabalho", default=str(Path.home() / "hec_aovivo_trabalho"))
     ap.add_argument("--cache-prev", default=None, help="cache das rodadas (padrão: <trabalho>/cache_prev)")
     ap.add_argument("--saida", default=str(AQUI / "saida"))
@@ -339,10 +342,11 @@ def main():
     # ---------------- pós-processamento
     t = time.time()
     corr, curvas = pp.carregar_config(par)
-    pontos = {}
+    pontos, obs_pt = {}, {}
     for nome, (cod, no, _, _) in pp.PONTOS.items():
         oq = {k: v for k, v in hec.observado(sim, cod).items() if k <= t0}
         on = {k: v for k, v in hec.nivel(sim, cod).items() if k <= t0}
+        obs_pt[nome] = (oq, on)
         pontos[nome] = pp.ponto(nome, horas, t0, {c: r.get(no, {}) for c, r in res.items()}, oq, on, corr, curvas,
                                 a.horizonte, aditiva=a.assimilar == "nao")
     pontos["MUCUM"]["cotas_previstas"] = pp.cotas_mucum(pontos["MUCUM"], horas, t0)
@@ -350,6 +354,17 @@ def main():
         rc = pp.resumo_conjunto(pontos[nome], ok, horas, t0)
         if rc:
             pontos[nome]["conjunto"] = rc
+    sombra, motivo = pp.carregar_sombra(par, a.sombra)
+    if sombra and a.assimilar != "nao":
+        sombra, motivo = None, "desligado com --assimilar (o híbrido foi avaliado sobre a simulação sem assimilação)"
+    info_sombra = dict(estado=motivo, arquivo=sombra and sombra["arquivo"], pontos=[])
+    if sombra:
+        for nome, (_, no, _, _) in pp.PONTOS.items():
+            hs = pp.sombra_ponto(pontos[nome], nome, horas, t0, {c: r.get(no, {}) for c, r in res.items()},
+                                 *obs_pt[nome], curvas, sombra)
+            if hs:
+                pontos[nome]["hibrido_sombra"] = hs
+                info_sombra["pontos"].append(nome)
     if a.modo == "retro" and a.janela_arquivo:           # verificação: observado DEPOIS de t0 (só no retroativo)
         fv = vo.ArquivoObservados(a.janela_arquivo, CAL / "dados" / "observados")
         rv, _ = fv.obter([pp.PONTOS[n][0] for n in pp.PONTOS], ini, fim)
@@ -399,6 +414,7 @@ def main():
         "pontos": pontos,
         "avisos": avisos,
         "tempos_s": T,
+        "hibrido_sombra": info_sombra,
     }
     if a.modo == "retro":
         saida["observados_controles_falhas"] = falhas_q
@@ -413,6 +429,11 @@ def main():
     for c, r in mu.get("cotas_previstas", {}).items():
         print(f"  Muçum {c}: pico {r['pico_nivel_cm']} cm ({r['pico_vazao_m3s']} m³/s) em {r['t_pico']}; cotas "
               + ", ".join(f"{k}={'sim ' + v['primeiro_cruzamento'] if v['cruza'] else 'não'}" for k, v in r["cotas"].items()))
+    for var, v in mu.get("hibrido_sombra", {}).get("variantes", {}).items():
+        for c, r in v["pico"].items():
+            print(f"  sombra {var} Muçum {c}: pico {r['pico_nivel_cm']} cm ({r['pico_vazao_m3s']} m³/s) em {r['t_pico']}"
+                  + ("; curva extrapolada" if r["curva_extrapolada"] else ""))
+    print("sombra:", info_sombra["estado"], info_sombra["pontos"])
     print("avisos:", avisos)
     return 0
 

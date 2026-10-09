@@ -9,10 +9,16 @@ cotas de Muçum e resumo de conjunto (ensemble). Mesmas regras de _analise_bacia
 
 Encaixe: ciclo.py chama ponto() → cotas_mucum() → resumo_conjunto(); outra correção (ex.: assimilação, outra curva)
 entra substituindo ponto() com as mesmas chaves de saída (observado, simulado, corrigido, nivel_previsto_cm).
+
+Híbrido em SOMBRA (d_piv; não muda nada do que é publicado, só acrescenta `hibrido_sombra` ao ponto), quando o conjunto
+de parâmetros tem parametros/hibrido_<id>.json:
+  F(S) = S·(min(S, qmax)/q0)^(b−1) se S > q0, senão S; F/S limitado a [1/rmax, rmax]
+  Q(t) = F(S(t)) + (O(tv) − F(S(tv)))·exp(−(t − tv)/τd),  saída ≥ 1 m³/s  (mesmo tv da correção aditiva)
 """
 import json
 import math
-from datetime import timedelta
+from datetime import datetime, timedelta
+from pathlib import Path
 
 import numpy as np
 
@@ -72,6 +78,14 @@ def _r(x, n=1):
     return None if x is None or (isinstance(x, float) and not math.isfinite(x)) else round(float(x), n)
 
 
+def curva_ponto(nome, t0, obs_q, obs_n, curvas):
+    if nome not in curvas:
+        return None
+    pares = [(obs_n[t], obs_q[t]) for t in obs_q if t <= t0 and t in obs_n and obs_q[t] and obs_q[t] > 0
+             and obs_n[t] is not None]
+    return Curva(pares, curvas[nome])
+
+
 def ponto(nome, horas, t0, sims, obs_q, obs_n, corr, curvas, horizonte_h, busca_h=72, aditiva=True):
     """sims: {cenario: {t: q}} (10 min); obs_q/obs_n: {t: valor} (só até t0 para a correção).
     aditiva=False: 'corrigido' = simulado (estado já assimilado; a correção aditiva dobraria o ajuste)."""
@@ -91,11 +105,7 @@ def ponto(nome, horas, t0, sims, obs_q, obs_n, corr, curvas, horizonte_h, busca_
         out["correcao"] = "não aplicada (sem estudo de correção neste posto)"
         return out
     tau_h = corr["tau_h"][nome]
-    curva = None
-    if nome in curvas:
-        pares = [(obs_n[t], obs_q[t]) for t in obs_q if t <= t0 and t in obs_n and obs_q[t] and obs_q[t] > 0
-                 and obs_n[t] is not None]
-        curva = Curva(pares, curvas[nome])
+    curva = curva_ponto(nome, t0, obs_q, obs_n, curvas)
     out["ultimo_observado_valido"] = None if tv is None else dict(
         t=str(horas[tv]), vazao_m3s=_r(O[tv]), nivel_cm=_r(N[tv]), idade_h=(t0 - horas[tv]) / H)
     out["corrigido"], out["nivel_previsto_cm"], out["erro_em_tv_m3s"] = {}, {}, {}
@@ -179,3 +189,81 @@ def resumo_conjunto(p, cenarios, horas, t0):
                 prob[nome] = _r(float(np.dot(w, cruza)), 3)
             out[g]["probabilidade_cota"] = prob
     return out
+
+
+# ------------------------------------------------------------------ híbrido em sombra (d_piv)
+def carregar_sombra(parametros, opcao="auto"):
+    """opcao: 'auto' = parametros/hibrido_<id>.json se existir; 'nao' = desligado; ou o caminho de um arquivo.
+    Devolve (config ou None, motivo). O arquivo só vale para o conjunto (id + sha256_p) a que está ligado."""
+    if opcao == "nao":
+        return None, "desligado (--sombra nao)"
+    arq = geo.DADOS.parent / "parametros" / f"hibrido_{parametros['id']}.json" if opcao == "auto" else Path(opcao)
+    if not arq.exists():
+        return None, f"sem parâmetros do híbrido para {parametros['id']}"
+    cfg = json.loads(arq.read_text(encoding="utf-8"))
+    if cfg["modelo"] != parametros["id"] or cfg.get("sha256_p") != parametros.get("sha256_p"):
+        return None, (f"{arq.name} é de {cfg['modelo']} (sha256_p {cfg.get('sha256_p')}), não de "
+                      f"{parametros['id']} ({parametros.get('sha256_p')})")
+    cfg["arquivo"] = arq.name
+    return cfg, "ligado"
+
+
+def f_piv(s, q0, b, qmax, rmax=3.0):
+    """Fator de porte: identidade até q0, S·(S/q0)^(b−1) acima, fator congelado acima de qmax."""
+    if s <= q0:
+        return s
+    f = s * (min(s, qmax) / q0) ** (b - 1)
+    return min(max(f, s / rmax), s * rmax)
+
+
+def d_piv(S, horas, tv, O_tv, q0, b, qmax, tau_h, t0, rmax=3.0):
+    """Série do híbrido (None até t0 e onde S falta); sem observado válido (tv None) fica só F(S)."""
+    e = 0.0
+    if tv is not None and S[tv] is not None:
+        e = O_tv - f_piv(S[tv], q0, b, qmax, rmax)
+    out = []
+    for i, t in enumerate(horas):
+        if t <= t0 or S[i] is None:
+            out.append(None)
+            continue
+        k = (t - horas[tv]) / H if tv is not None else 0.0
+        out.append(max(f_piv(S[i], q0, b, qmax, rmax) + e * math.exp(-k / tau_h), 1.0))
+    return out, e
+
+
+def sombra_ponto(p, nome, horas, t0, sims, obs_q, obs_n, curvas, cfg):
+    """Bloco `hibrido_sombra` de um ponto (ou None se o ponto não está no arquivo). Não altera `p`."""
+    lim = PONTOS[nome][2]
+    uv = p.get("ultimo_observado_valido")
+    tv = None if uv is None else horas.index(datetime.fromisoformat(uv["t"]))
+    O_tv = None if tv is None else obs_q[horas[tv]]
+    curva = curva_ponto(nome, t0, obs_q, obs_n, curvas)
+    rmax = cfg.get("rmax", 3.0)
+    res = {}
+    for var, v in cfg["variantes"].items():
+        pp_ = v["pontos"].get(nome)
+        if pp_ is None:
+            continue
+        r = dict(q0=pp_["q0"], b=pp_["b"], qmax=pp_["qmax"], tau_h=pp_["tau_h"],
+                 fator_maximo=_r((pp_["qmax"] / pp_["q0"]) ** (pp_["b"] - 1), 3),
+                 erro_em_tv_m3s={}, corrigido={}, nivel_previsto_cm={}, pico={})
+        for c, s in sims.items():
+            S = [s.get(t) for t in horas]
+            F, e = d_piv(S, horas, tv, O_tv, pp_["q0"], pp_["b"], pp_["qmax"], pp_["tau_h"], t0, rmax)
+            r["erro_em_tv_m3s"][c] = _r(e)
+            r["corrigido"][c] = [_r(x) for x in F]
+            niv = [None if x is None or curva is None else _r(curva.q2h(x), 0) for x in F]
+            if curva is not None:
+                r["nivel_previsto_cm"][c] = niv
+            fut = [(t, q, n, x) for t, q, n, x in zip(horas, F, niv, S) if q is not None]
+            if fut:
+                tm, qm, nm, _ = max(fut, key=lambda x: x[1])
+                r["pico"][c] = dict(pico_vazao_m3s=_r(qm), pico_nivel_cm=_r(nm, 0), t_pico=str(tm),
+                                    curva_extrapolada=bool(lim and nm is not None and nm > lim),
+                                    fator_congelado=any(x > pp_["qmax"] for *_, x in fut))
+        res[var] = r
+    if not res:
+        return None
+    return dict(metodo=cfg["metodo"], modelo=cfg["modelo"], arquivo=cfg["arquivo"], limite_curva_cm=lim,
+                horizonte_avaliado_h=cfg.get("horizonte_avaliado_h"),
+                aviso="SOMBRA — não publicado; comparar com `corrigido` (correção aditiva)", variantes=res)
