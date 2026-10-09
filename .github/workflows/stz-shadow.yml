@@ -22,8 +22,14 @@ on:
       - 'scripts/test_stz_shadow_ui.js'
       - 'assets/js/stz_shadow.js'
   schedule:
+    # Recuperacao/bootstrap. O ciclo nominal de 3 minutos e mantido pelo
+    # repository_dispatch ao final de cada execucao; este cron so religa a
+    # cadeia se o encadeamento parar.
     - cron: '17,47 * * * *'
   workflow_dispatch:
+  repository_dispatch:
+    types:
+      - previne-stz-shadow
 
 permissions:
   contents: write
@@ -35,7 +41,7 @@ concurrency:
 jobs:
   sombra:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -103,6 +109,23 @@ jobs:
             sleep 3
           done
           exit 1
+      # O schedule do GitHub pode ser atrasado ou descartado. O dispatch
+      # autenticado com GITHUB_TOKEN cria a proxima execucao sem depender dele.
+      - name: Encadear proximo ciclo
+        # Mesmo se a rodada falhar, agenda uma unica nova tentativa; o sleep
+        # impede loop agressivo de falhas.
+        if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sleep 180
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --url "https://api.github.com/repos/${GITHUB_REPOSITORY}/dispatches" \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            --data '{"event_type":"previne-stz-shadow"}'
       - name: Sinalizar falha parcial apos preservar os resultados validos
         if: always() && steps.inferencia.outcome == 'failure'
         run: exit 1

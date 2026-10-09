@@ -2,14 +2,11 @@
 import copy
 import datetime as dt
 import hashlib
-import json
 import math
 import xml.etree.ElementTree as ET
-from concurrent.futures import ThreadPoolExecutor
 from . import stz_shadow_common as C
 from . import stz_shadow_storage as S
 from . import gerar_previsao_ao_vivo as R
-from . import fontes_chuva_8h as F
 
 CONTRACT = C.ROOT / 'assets/data/stz_v11_sombra_contrato.json'
 OUT = C.ROOT / 'previsao_sombra_stz_v11.json'
@@ -38,44 +35,24 @@ def complete_ana_rain(xml):
             if all(h-dt.timedelta(minutes=i) in times for i in offsets)}
 
 def download_rain(rain, now):
-    """Coleta os tres postos exatos e registra payloads; sem substituicao espacial."""
+    """Coleta os postos ANA exatos do contrato e registra payloads; sem substituicao espacial.
+
+    Grupo Carreiro somente com ANA 2851044: INMET A894 esta em Pane e o
+    CEMADEN 432040401A foi retirado do V11 ao vivo.
+    """
     result = copy.deepcopy(rain)
     evidence = {}
     for cod in C.STATIONS:
         raw = C.DOWNLOAD_EVIDENCE.get(cod, {}).get('xml')
         result[cod] = complete_ana_rain(raw) if raw else {}
-    def ana():
+    try:
         xml = R._obter_xml_ana('2851044',8,R.ANA_TIMEOUT_CHUVA_S,2,R._serie_chuva_de_xml,'ANA chuva V11')
         raw = xml.encode('utf-8') if isinstance(xml,str) else xml
-        return complete_ana_rain(xml), {'fonte':'ANA','xml_sha256':hashlib.sha256(raw).hexdigest().upper() if raw else None,'xml':raw.decode('utf-8-sig') if raw else None}
-    def official(cod):
-        if cod == 'A894':
-            url=F.INMET_URL.format(ini=(now-dt.timedelta(days=8)).date().isoformat(),fim=now.date().isoformat(),cod=cod)
-            parser=F.parse_inmet_chuva
-        else:
-            url=F.CEMADEN_URL.format(id_estacao=F.CEMADEN_ID,horas_menos_um=167)
-            parser=F.parse_cemaden_chuva
-        payload=F._http_json(url,timeout=12,tentativas=1)
-        series=parser(payload)
-        # Os parsers existentes rotulam o inicio; V11 usa o final do intervalo.
-        series={t+HOUR:v for t,v in series.items() if math.isfinite(v) and 0<=v<=100}
-        body=json.dumps(payload,ensure_ascii=False,sort_keys=True).encode('utf-8')
-        return series,{'fonte':'INMET' if cod=='A894' else 'CEMADEN','endpoint':url,'payload_sha256':hashlib.sha256(body).hexdigest().upper(),'payload':payload}
-    jobs={'2851044':ana,'A894':lambda:official('A894'),'432040401A':lambda:official('432040401A')}
-    with ThreadPoolExecutor(max_workers=3) as pool:
-        pending={cod:pool.submit(fn) for cod,fn in jobs.items()}
-        for cod,future in pending.items():
-            try:result[cod],evidence[cod]=future.result()
-            except Exception as exc:
-                result[cod]={};evidence[cod]={'estado':'INDISPONIVEL','erro':f'{type(exc).__name__}: {exc}'}
-    csv=R._carregar_chuvas_8h_csv()
-    for cod in ('A894','432040401A'):
-        fallback={t+HOUR:v for t,v in csv.get(cod,{}).items() if math.isfinite(v) and 0<=v<=100}
-        missing={t:v for t,v in fallback.items() if t not in result[cod]}
-        result[cod].update(missing)
-        evidence[cod]['contingencia_csv_horas']=len(missing)
-    csvpath=C.ROOT/'assets/data/chuvas_horarias.csv'
-    if csvpath.exists():evidence['csv_sha256']=C.sha(csvpath)
+        result['2851044'] = complete_ana_rain(xml)
+        evidence['2851044'] = {'fonte':'ANA','xml_sha256':hashlib.sha256(raw).hexdigest().upper() if raw else None,'xml':raw.decode('utf-8-sig') if raw else None}
+    except Exception as exc:
+        result['2851044'] = {}
+        evidence['2851044'] = {'estado':'INDISPONIVEL','erro':f'{type(exc).__name__}: {exc}'}
     return result,evidence
 
 def rain_inputs(specs, rain, base):
