@@ -1,9 +1,12 @@
-"""Monta o PEDIDO.json das rodadas da perda Deficit and Constant (estrutura_v3.PARAMS_DC) para o lote na nuvem.
+"""Monta o PEDIDO.json das rodadas das famílias novas da estrutura v3 para o lote na nuvem (--familia, padrão dc):
+  dc   Deficit and Constant + base Recession          (estrutura_v3.PARAMS_DC)
+  lric Initial+Constant    + base em reservatório linear (PARAMS_LRIC)
+  lrdc Deficit and Constant + base em reservatório linear (PARAMS_LRDC)
 
 Mesmas janelas e papéis das famílias g1/g2/g4/g6 (todos os eventos de calibração), para o J ser comparável com
 lib-A (Initial+Constant) e scs-A (SCS).
 Uso:
-  python rodada_dc.py lhs  --rodada dc-g0 --n 32 --semente 7 --saida ../rodadas/PEDIDO.json
+  python rodada_dc.py lhs  --familia lric --rodada lric-g0 --n 32 --semente 7 --saida ../rodadas/PEDIDO.json
   python rodada_dc.py es   --rodada dc-g1 --resultados pasta [pasta ...] --lam 24 --mu 6 --sigma 0.15 --saida ...
   python rodada_dc.py top  --rodada dc-av --resultados pasta [pasta ...] --n 3 --janelas todas --saida ...
   python rodada_dc.py teste --rodada dc-teste --semente 1 --saida ...   (2 candidatos x 2 janelas: confere a sintaxe)
@@ -23,7 +26,7 @@ import estrutura_v3 as e3
 JANELAS_CAL = ("S2023_07,S2023_09,S2023_11,S2024_05,S2024_06,X20180721,X20180821,X20180828,X20180928,X20181028,"
                "X20190525,X20191027,X20200626,X20200809,X20210125,X20210525,X20210622")
 PAPEIS = {"E18": "validacao", "E22": "validacao"}
-P = e3.PARAMS_DC
+P = e3.PARAMS_DC   # trocado em main() conforme --familia
 
 
 def to_unit(p):
@@ -44,7 +47,7 @@ def ler_resultados(pastas):
     for pasta in pastas:
         for f in Path(pasta).rglob("resultado.json"):
             for c in json.loads(f.read_text(encoding="utf-8")):
-                if c["id"] in vistos or "dmax" not in c["p"]:
+                if c["id"] in vistos or set(c["p"]) != set(P):
                     continue
                 vistos.add(c["id"])
                 out.append(c)
@@ -59,6 +62,7 @@ def pedido(rodada, cands, janelas=JANELAS_CAL, **extra):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("modo", choices=("lhs", "es", "top", "teste"))
+    ap.add_argument("--familia", choices=tuple(e3.FAMILIAS), default="dc")
     ap.add_argument("--rodada", required=True)
     ap.add_argument("--n", type=int, default=32)
     ap.add_argument("--semente", type=int, default=7)
@@ -69,6 +73,8 @@ def main():
     ap.add_argument("--janelas", default=JANELAS_CAL)
     ap.add_argument("--saida", default="")
     a = ap.parse_args()
+    global P
+    P = e3.FAMILIAS[a.familia]
     chaves = list(P)
     if a.modo in ("lhs", "teste"):
         n = 2 if a.modo == "teste" else a.n

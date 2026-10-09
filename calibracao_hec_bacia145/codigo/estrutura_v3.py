@@ -67,6 +67,33 @@ PARAMS_DC.update({
 })
 CANOPY_MM, SUPERFICIE_MM = 3.0, 5.0
 
+# Base em reservatório linear (09/10): o candidato traz "k1". É o único método de base do HEC-HMS que conserva massa:
+# a perda (I+C: toda a perda; Deficit Constant: só a percolação) entra em dois reservatórios lineares em paralelo,
+# GW-1 rápido (subsuperficial, k1 h) e GW-2 lento (k2 h). fb = fração da perda que volta ao rio (o resto vira recarga
+# profunda); p1 = parcela de fb que vai para GW-1; s1 = parcela da vazão inicial q0 atribuída a GW-1.
+# Com a Recession, a perda simplesmente some, e a busca compensava com ~40% de área impermeável e cheias atrasadas.
+PARAMS_LR = {
+    "k1": (3.0, 150.0, "log"), "k2": (150.0, 4000.0, "log"),
+    "fb": (0.3, 1.0, "lin"), "p1": (0.02, 0.98, "lin"), "s1": (0.0, 0.6, "lin"),
+}
+PARAMS_LRIC = {k: v for k, v in PARAMS.items() if k not in ("rec", "thr", "s0")}
+PARAMS_LRIC.update({"ia_max": (0.0, 90.0, "lin"), "f": (0.5, 20.0, "log"), "imp": (0.0, 0.15, "lin"), **PARAMS_LR})
+PARAMS_LRDC = {k: v for k, v in PARAMS_DC.items() if k not in ("rec", "thr")}
+PARAMS_LRDC.update(PARAMS_LR)
+FAMILIAS = {"dc": PARAMS_DC, "lric": PARAMS_LRIC, "lrdc": PARAMS_LRDC}
+
+
+def bloco_lr(p, qloc):
+    def piso(x):
+        return math.floor(x * 1e4) / 1e4
+    f1, f2 = piso(p["fb"] * p["p1"]), piso(p["fb"] * (1 - p["p1"]))
+    linhas = ["     Baseflow: Linear Reservoir"]
+    for i, (fr, k, q) in enumerate(((f1, p["k1"], qloc * p["s1"]), (f2, p["k2"], qloc * (1 - p["s1"]))), 1):
+        linhas += [f"     Groundwater Layer: {i}", f"     GW-{i} Baseflow Fraction: {fr:.4f}",
+                   f"     GW-{i} Number Reservoirs: 1", f"     GW-{i} Routing Coefficient: {k:.4f}",
+                   f"     GW-{i} Initial Flow/Area Ratio: {q:.6f}"]
+    return "\n".join(linhas) + "\n"
+
 
 def bloco_dc(p, qloc, imp_pct):
     d0 = p["dmax"] * math.exp(-qloc / p["qstar"])
@@ -192,9 +219,14 @@ def bacia_v3(p, sim, rota="mc"):
         rep("Percent Impervious Area", f"{100 * p['imp']:.3f}")
         rep("Time of Concentration", f"{tc * v:.5f}")
         rep("Storage Coefficient", f"{r * v * p['mr']:.5f}")
-        rep("Recession Factor", f"{p['rec']:.4f}")
-        rep("Initial Flow/Area Ratio", f"{qloc:.6f}")
-        rep("Threshold Flow to Peak Ratio", f"{p['thr']:.4f}")
+        if "k1" in p:
+            corpo, n = re.subn(r"(?ms)^[ \t]*Baseflow: Recession\n.*?^[ \t]*Threshold Flow to Peak Ratio: [^\n]+\n",
+                               lambda mm: bloco_lr(p, qloc), corpo, count=1)
+            assert n == 1, (nome, "bloco de base")
+        else:
+            rep("Recession Factor", f"{p['rec']:.4f}")
+            rep("Initial Flow/Area Ratio", f"{qloc:.6f}")
+            rep("Threshold Flow to Peak Ratio", f"{p['thr']:.4f}")
         return f"Subbasin: {m[1]}\n{corpo}End:"
 
     def rea(m):
