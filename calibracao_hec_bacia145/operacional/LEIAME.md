@@ -298,6 +298,11 @@ e nos JSON de `exemplos/`.
 A chuva observada passou a ser o gargalo no PC. A ANA em série (72 postos) leva 60–120 s, mais 1–2 s da coleta do
 CEMADEN e o QC. A assimilação acrescenta uma rodada do HEC (+7–20 s).
 
+Nuvem (run 37987492580, t0 09/10 17h, rede, partida a frio): **202 s** de ciclo (chuva observada 148 s, sendo ANA
+146 s em série sem nenhum 429 e CEMADEN 1,4 s com 66/66 postos; chuva prevista 8 s; HEC 41 s). INMET pulado (sem
+`INMET_TOKEN`). Esse ciclo rodou antes da primeira gravação da branch de dados, então o CEMADEN entrou só pela
+coleta do instante (135-137 postos/hora nas últimas 6 h, ~70 antes).
+
 Fase 1 (lr-g8-c038, só ANA): ao vivo no PC 75–196 s (o download do GFS domina); na nuvem 89 s (job 1 min 46 s).
 
 ## Proposta para o site (não aplicada no repo_site)
