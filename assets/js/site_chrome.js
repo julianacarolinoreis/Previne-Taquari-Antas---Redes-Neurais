@@ -25,7 +25,10 @@
       '<a href="' + prefix + 'pesquisas.html"' + cur('acervo') + '>Pesquisa</a>' +
       '<a href="' + prefix + 'projeto.html"' + cur('projeto') + '>Projeto</a>' +
     '</div>';
-  document.body.insertBefore(nav, document.body.firstChild);
+  var signature = document.getElementById('previne-institutions');
+  var insertionPoint = signature && signature.parentNode === document.body
+    ? signature.nextSibling : document.body.firstChild;
+  document.body.insertBefore(nav, insertionPoint);
   document.body.insertBefore(bar, nav);
   document.body.classList.add('has-site-chrome');
 })();

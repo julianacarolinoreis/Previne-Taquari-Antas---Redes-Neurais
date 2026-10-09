@@ -15,7 +15,7 @@ from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
 
-VERSION = "20261008"
+VERSION = "20261008-top"
 MARKER = 'data-previne-institutions="v1"'
 LOGOS = (
     ("previne", "PREVINE Taquari-Antas", 1000, 1000),
@@ -32,6 +32,7 @@ class PageStructure(HTMLParser):
         self.offsets = [0]
         self.offsets.extend(m.end() for m in re.finditer(r"\n", source))
         self.head_end = None
+        self.head_close_end = None
         self.head_start_end = None
         self.html_start_end = None
         self.body_end = None
@@ -64,6 +65,7 @@ class PageStructure(HTMLParser):
     def handle_endtag(self, tag):
         if tag == "head":
             self.head_end = self.source_offset()
+            self.head_close_end = self.source_offset() + len("</head>")
         elif tag == "body":
             self.body_end = self.source_offset()
         elif tag == "style":
@@ -93,7 +95,10 @@ def brand_page(path: Path, root: Path) -> str:
     head_position = page.head_end
     if head_position is None:
         head_position = page.head_start_end or page.html_start_end or 0
-    body_position = page.body_end if page.body_end is not None else len(source)
+    body_position = (page.body_attributes_end + 1 if page.has_body
+                     else page.head_close_end)
+    if body_position is None:
+        raise ValueError(f"Cannot locate start of page content: {relative.as_posix()}")
     prefix = Path(os.path.relpath(root, path.parent)).as_posix()
     prefix = "" if prefix == "." else prefix + "/"
     newline = "\r\n" if "\r\n" in source else "\n"
@@ -105,8 +110,8 @@ def brand_page(path: Path, root: Path) -> str:
     for name, label, width, height in LOGOS:
         blocks.append(f'    <span class="previne-institutions__frame previne-institutions__frame--{name}"><img src="{prefix}assets/logos/{name}.png?v={VERSION}" alt="{escape(label, quote=True)}" width="{width}" height="{height}" decoding="async"></span>')
     blocks.extend(['  </div>', '</div>', '<!-- /PREVINE: institutional signature -->', ''])
-    footer = newline.join(blocks)
-    additions = [(head_position, style), (body_position, footer)]
+    signature = newline.join(blocks)
+    additions = [(head_position, style), (body_position, signature)]
     if page.fixed_map and page.body_attributes_end is not None:
         attributes = ' data-previne-map-signature="v1"'
         if page.mobile_bottom_panel:

@@ -44,7 +44,10 @@
       '<a href="' + prefix + 'pesquisas.html"' + current('arquivo') + '>Arquivo</a>' +
     '</div>' +
     '<div class="gestor-chrome-seal">Pesquisa · não é alerta oficial</div>';
-  document.body.insertBefore(nav, document.body.firstChild);
+  var signature = document.getElementById('previne-institutions');
+  var insertionPoint = signature && signature.parentNode === document.body
+    ? signature.nextSibling : document.body.firstChild;
+  document.body.insertBefore(nav, insertionPoint);
   document.body.classList.add('has-gestor-chrome');
   if (page === 'mapa' || page === 'pessoas') document.body.classList.add('gestor-fill-layout');
 })();

@@ -19,6 +19,7 @@ do upload. Isso também atende páginas de pesquisa geradas por outros scripts.
 HTML de fontes externas em diretórios `raw`, rascunhos e redirecionamentos são
 preservados. As páginas de destino dos redirecionamentos recebem a assinatura.
 
-A aplicação é idempotente. Cada página recebe uma assinatura acessível e os
-caminhos relativos necessários à sua profundidade. Mapas em tela inteira
-reservam 84 px para a assinatura, a legenda e os controles permanecem acima dela.
+A aplicação é idempotente. Cada página recebe uma assinatura acessível no topo,
+antes da navegação, e os caminhos relativos necessários à sua profundidade.
+Mapas em tela inteira reservam 84 px no topo para a assinatura; a legenda,
+os controles e os painéis permanecem na área do mapa abaixo dela.
