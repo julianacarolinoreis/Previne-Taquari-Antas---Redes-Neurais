@@ -85,6 +85,10 @@ jobs:
           BASE="assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum"
           cp "$BASE/run.log" /tmp/hec_dual_run.log
           cp "$BASE/exit_code.txt" /tmp/hec_dual_exit_code.txt
+          if [ "$(cat /tmp/hec_dual_exit_code.txt)" = "0" ]; then
+            cp assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum_latest.json /tmp/hec_dual_diagnostic_candidate_latest.json
+            cp "$BASE/primary_series.csv" /tmp/hec_dual_diagnostic_series.csv
+          fi
 
           for attempt in 1 2 3 4 5; do
             git fetch origin main
@@ -92,7 +96,11 @@ jobs:
             mkdir -p "$BASE"
             cp /tmp/hec_dual_run.log "$BASE/run.log"
             cp /tmp/hec_dual_exit_code.txt "$BASE/exit_code.txt"
-            git add -- "$BASE/run.log" "$BASE/exit_code.txt"
+            if [ -f /tmp/hec_dual_diagnostic_candidate_latest.json ]; then
+              cp /tmp/hec_dual_diagnostic_candidate_latest.json "$BASE/diagnostic_candidate_latest.json"
+              cp /tmp/hec_dual_diagnostic_series.csv "$BASE/diagnostic_series.csv"
+            fi
+            git add -- "$BASE/run.log" "$BASE/exit_code.txt" "$BASE/diagnostic_candidate_latest.json" "$BASE/diagnostic_series.csv"
             if git diff --cached --quiet; then exit 0; fi
             git commit -m "bot: HEC Muçum dual-boundary diagnostic [skip ci]"
             if git push origin HEAD:main; then exit 0; fi
