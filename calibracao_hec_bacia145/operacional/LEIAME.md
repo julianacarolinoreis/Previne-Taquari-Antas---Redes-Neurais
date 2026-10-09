@@ -6,7 +6,9 @@ referência) depois, correção aditiva pelo último observado, conversão para 
 Muçum o nível é só indicativo (fim da validade da curva-chave).
 
 Parâmetros padrão: **`md-val2-c002`** (família lrdc pura, calha trapezoidal em Muskingum-Cunge, J cal 6,73 / val
-7,00; branch `cursor/hec-bacia145-modelo`). `lr-g8-c038` continua disponível (`--parametros parametros/lr-g8-c038.json`).
+7,00; branch `cursor/hec-bacia145-modelo`). `lr-g8-c038` continua disponível (`--parametros parametros/lr-g8-c038.json`),
+e também `vo-val-c008` (família lrdcr: `vo-rp5-c041` só com o fb regional, xfb_T 0,815 / xfb_B 1,245; J val 5,89; branch
+`cursor/hec-bacia145-volume`), com o τ(h) do c002 copiado (ainda não re-escolhido para ele).
 
 Nada do motor foi reescrito: o `.basin` sai de `codigo/estrutura_v3.bacia_v3` (estado inicial pelo q0 observado no
 início da janela, como na calibração), o DSS de chuva de `codigo/hec.dss_chuva` e a execução de `codigo/hec.rodar_lote`.

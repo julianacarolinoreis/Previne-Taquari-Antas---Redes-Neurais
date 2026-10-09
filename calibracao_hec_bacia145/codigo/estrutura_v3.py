@@ -80,7 +80,21 @@ PARAMS_LRIC = {k: v for k, v in PARAMS.items() if k not in ("rec", "thr", "s0")}
 PARAMS_LRIC.update({"ia_max": (0.0, 90.0, "lin"), "f": (0.5, 20.0, "log"), "imp": (0.0, 0.15, "lin"), **PARAMS_LR})
 PARAMS_LRDC = {k: v for k, v in PARAMS_DC.items() if k not in ("rec", "thr")}
 PARAMS_LRDC.update(PARAMS_LR)
-FAMILIAS = {"dc": PARAMS_DC, "lric": PARAMS_LRIC, "lrdc": PARAMS_LRDC}
+# Multiplicadores regionais de volume (família lrdcr, branch cursor/hec-bacia145-volume): três grupos, T = tainhas,
+# A = alto+medio (valores globais), B = carreiro+guapore+baixo. dmax, perc e fb de T e B = valor global x multiplicador
+# (fb limitado a 1); multiplicadores = 1 reproduzem o lrdc.
+GRUPO_VOL = {"tainhas": "T", "alto": "A", "medio": "A", "carreiro": "B", "guapore": "B", "baixo": "B"}
+PARAMS_LRDCR = dict(PARAMS_LRDC, **{f"x{k}_{g}": (lo, hi, "log") for g in ("T", "B")
+                                    for k, lo, hi in (("dmax", 1 / 3, 3.0), ("perc", 0.2, 5.0), ("fb", 0.5, 2.0))})
+FAMILIAS = {"dc": PARAMS_DC, "lric": PARAMS_LRIC, "lrdc": PARAMS_LRDC, "lrdcr": PARAMS_LRDCR}
+
+
+def p_regional(p, reg):
+    """Parâmetros de volume do grupo da região (família lrdcr); sem multiplicadores devolve p."""
+    g = GRUPO_VOL[reg]
+    if f"xdmax_{g}" not in p:
+        return p
+    return dict(p, dmax=p["dmax"] * p[f"xdmax_{g}"], perc=p["perc"] * p[f"xperc_{g}"], fb=min(1.0, p["fb"] * p[f"xfb_{g}"]))
 
 
 def bloco_lr(p, qloc):
@@ -182,10 +196,12 @@ def bloco_mc(r, mn):
 
 def bacia_v3(p, sim, rota="mc"):
     q0 = q0_controles(sim)
+    p_glob = p
 
     def sub(m):
         nome, corpo = m[1].strip(), m[2]
         reg = bi.REG[nome]
+        p = p_regional(p_glob, reg)
         v = p["v_alto"] if reg in GRUPO_ALTO else p["v_resto"]
         md = SUB_MDT[nome]
         if md["area"] > A_GRANDE:
