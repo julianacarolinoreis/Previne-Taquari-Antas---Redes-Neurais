@@ -240,13 +240,17 @@
     if(!old||priority>=old.priority) points.set(key,{time:d,cm,priority,kind});
   }
 
-  // Registros 4h_cascata pertencem ao replay legado e continuam preservados
-  // no histórico para auditoria. Eles não são, porém, uma saída pública do
-  // robô atual: misturá-los ao gráfico faria parecer que o horizonte 4h foi
-  // emitido por dois modelos diferentes no mesmo ciclo.
+  // O 4h publicado é somente a V11 em cascata com a RNA 2h. Registros de
+  // modelos 4h retirados (PRO, PRIO e o replay 4h_cascata legado) continuam
+  // preservados no histórico para auditoria, mas misturá-los ao gráfico faria
+  // parecer que o horizonte 4h foi emitido por mais de um modelo.
+  const FOUR_HOUR_MODEL='STZ_4H_V11_CASCATA';
   function isLegacyCascade(row){
     if(!row||typeof row!=='object') return false;
-    return ['id','horizonte','tipo','modelo','rotulo'].some(key=>/cascata/i.test(String(row[key]||'')));
+    if(/cascata/i.test(String(row.horizonte||''))) return true;
+    const model=String(row.modelo||'');
+    if(String(row.horizonte||'')==='4h') return model!==FOUR_HOUR_MODEL;
+    return /cascata/i.test(model)&&model!==FOUR_HOUR_MODEL;
   }
 
   function observedPoints(history,live){
@@ -709,9 +713,10 @@
     return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   }
 
-  function errorHorizonLabel(key,hours){
+  function errorHorizonLabel(key,hours,model){
     const normalized=String(key||'').toLowerCase();
     if(normalized==='2h_versao_b') return '2 h B';
+    if(normalized==='4h'&&model===FOUR_HOUR_MODEL) return '4 h V11 cascata';
     if(normalized==='4h_versao_b') return '4 h comparativo';
     if(normalized==='8h_v002') return '8 h V002';
     if(normalized==='8h_versao_b') return '8 h comparativo';
@@ -726,7 +731,7 @@
     const rows=Array.isArray(historyOrRows)?historyOrRows:(historyOrRows&&Array.isArray(historyOrRows.registros)?historyOrRows.registros:[]);
     const unique=new Map();
     rows.forEach(row=>{
-      if(!row||typeof row!=='object') return;
+      if(!row||typeof row!=='object'||(row._source!=='catalog'&&isLegacyCascade(row))) return;
       const target=parseWhen(row.hora_alvo), predicted=number(row.nivel_previsto_cm);
       const hours=horizonHours(row.horizonte,row), model=String(row.modelo||'').trim();
       if(!target||predicted===null||hours===null||!model) return;
@@ -781,7 +786,7 @@
     rows.forEach(item=>{
       let group=groups.get(item.groupKey);
       if(!group){
-        group={key:item.groupKey,horizonKey:item.horizonKey,hours:item.hours,model:item.model,label:errorHorizonLabel(item.horizonKey,item.hours),rows:[]};
+        group={key:item.groupKey,horizonKey:item.horizonKey,hours:item.hours,model:item.model,label:errorHorizonLabel(item.horizonKey,item.hours,item.model),rows:[]};
         groups.set(item.groupKey,group);
       }
       group.rows.push(item);
