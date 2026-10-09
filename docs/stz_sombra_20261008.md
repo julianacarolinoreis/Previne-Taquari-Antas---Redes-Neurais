@@ -60,8 +60,13 @@ Feed `previsao_sombra_stz_usuario.json`, historico em `assets/data/stz_shadow_hi
 - Os nomes seguem o comparativo de 15/09. Seq2Seq tem um unico passo de
   decodificador; o Transformer nao tem codificacao posicional; o TCN nao e
   dilatado nem estritamente causal. Detalhes em `architecture_notes` do manifesto.
-- Chuva: uma hora com parte das leituras de 15 min entra como completa. Falta
-  confirmar se o CSV de treino usou a mesma regra antes de endurecer o filtro.
+- Chuva: uma hora com parte das leituras de 15 min entra como completa, a mesma
+  regra do treino (`02_SERIES_HORARIAS/montar_series_horarias.py`, soma por
+  `ceil("h")` sem minimo de leituras; 0,5-1,4% das horas dos postos locais desde
+  2023 sao parciais). Diferencas restantes: o treino descarta so a leitura
+  negativa, o robo descarta a hora; o QC diario contra vizinhos do treino
+  (`montar_base_v2.qc_chuva`) nao e causal e nao roda ao vivo; leituras que a
+  ANA ainda nao transmitiu deixam a ultima hora incompleta ao vivo.
 
 ## Dados e avaliacao ao vivo
 
