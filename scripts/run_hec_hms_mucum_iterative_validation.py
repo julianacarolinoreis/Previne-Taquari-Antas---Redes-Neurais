@@ -335,6 +335,18 @@ def joint_wave_candidates(best):
             q.update(k1=k1,k2=k2,k3=k3,warmup_h=12,
                      dn_flow_ratio_scale=fr)
             out.append(norm(q))
+    # Distinct physical reaches need not have equal travel times. The
+    # observed Antas flood wave is steep; test shorter downstream travel
+    # without forcing the Muçum outlet to an observed level.
+    for k1,k2,k3 in ((2.75,0.75,0.50),(2.50,1.00,0.50),
+                      (3.00,0.75,0.75),(2.75,1.25,0.50),
+                      (2.25,0.75,0.75),(1.75,0.75,0.50),
+                      (3.25,0.75,1.00),(3.50,1.00,0.75)):
+        for fr in (16,30,45):
+            q=dict(b)
+            q.update(k1=k1,k2=k2,k3=k3,warmup_h=12,
+                     dn_flow_ratio_scale=fr)
+            out.append(norm(q))
     # Joint adjustments of recession and routing; not vertical stage-shifting.
     for k,fr,rec in ((0.75,8,0.75),(1.25,18,0.85),(1.80,25,0.85),
                      (2.50,30,0.95),(3.20,45,0.95),
