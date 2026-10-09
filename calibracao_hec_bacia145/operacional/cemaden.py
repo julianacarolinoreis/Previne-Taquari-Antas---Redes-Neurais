@@ -22,8 +22,7 @@ from pathlib import Path
 
 import requests
 
-import geo
-
+DADOS = Path(__file__).resolve().parent / "dados"
 URL = "https://resources.cemaden.gov.br/graficos/interativo/getJson2.php?uf=RS"
 BLOCOS = [("acc1hr", 1), ("acc3hr", 3), ("acc6hr", 6), ("acc12hr", 12), ("acc24hr", 24), ("acc48hr", 48),
           ("acc72hr", 72), ("acc96hr", 96)]
@@ -38,7 +37,7 @@ def norm(s):
 
 def mapa_publico(postos=None):
     """{(município, nome público) normalizados: código CEM_…} dos postos CEMADEN da rede."""
-    postos = postos or json.loads((geo.DADOS / "postos_rede.json").read_text(encoding="utf-8"))["postos"]
+    postos = postos or json.loads((DADOS / "postos_rede.json").read_text(encoding="utf-8"))["postos"]
     return {(norm(p["municipio"]), norm(p["nome_publico"])): c for c, p in postos.items() if p["fonte"] == "CEMADEN"}
 
 
