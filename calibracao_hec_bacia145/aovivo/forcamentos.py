@@ -108,6 +108,38 @@ def qc_causal(series, horas, P):
     return fora
 
 
+TRAVA_H, TRAVA_MIN, TRAVA_AMP = 6, 2.0, 1.0
+ISOL_MIN, ISOL_VIZ = 10.0, 1.0
+
+
+def qc_hora(series, horas, P):
+    """Regras horárias causais: valor travado (últimas TRAVA_H h todas >= TRAVA_MIN e amplitude <= TRAVA_AMP)
+    e chuva isolada (>= ISOL_MIN com os 3 vizinhos com dado todos < ISOL_VIZ). Devolve horas excluídas/posto."""
+    cs = sorted(series)
+    xy = {c: idw.TR.transform(P[c][2], P[c][1]) for c in cs}
+    viz = {c: sorted((x for x in cs if x != c), key=lambda x: math.dist(xy[c], xy[x]))[:3] for c in cs}
+    fora, novo = {}, {}
+    for c in cs:
+        s, ruins = series[c], set()
+        for i, h in enumerate(horas):
+            v = s.get(h)
+            if v is None:
+                continue
+            ult = [s.get(x) for x in horas[max(0, i - TRAVA_H + 1):i + 1]]
+            if len(ult) == TRAVA_H and all(x is not None and x >= TRAVA_MIN for x in ult) and max(ult) - min(ult) <= TRAVA_AMP:
+                ruins.add(h)
+                continue
+            vv = [series[x].get(h) for x in viz[c]]
+            if v >= ISOL_MIN and len(vv) == 3 and all(x is not None and x < ISOL_VIZ for x in vv):
+                ruins.add(h)
+        novo[c] = {h: v for h, v in s.items() if h not in ruins}
+        if ruins:
+            fora[c] = len(ruins)
+    series.clear()
+    series.update({c: s for c, s in novo.items() if s})
+    return fora
+
+
 def montar(versao, sim, P, U, VIV):
     d = v3(sim)
     horas = [E.datetime.fromisoformat(h) for h in d["horas"]]
@@ -117,6 +149,9 @@ def montar(versao, sim, P, U, VIV):
         cand = [c for c in U if c in VIV]
         if versao == "avana":
             cand = [c for c in cand if E.fonte(c) == "ANA"]
+        if versao in ("avtelbl", "avtelbl0", "avtelqc2"):
+            negra = set(json.loads((E.AQUI / "lista_negra.json").read_text(encoding="utf-8"))["lista"])
+            cand = [c for c in cand if c not in negra]
     series = {}
     for c in sorted(cand):
         s = E.serie(c, sim, horas)
@@ -127,7 +162,10 @@ def montar(versao, sim, P, U, VIV):
     if versao == "avtelq3":
         series = {c: s for c, s in series.items() if len(s) >= 0.5 * len(horas) and sum(s.values()) > 0}
         info["excluidos_qc"] = qc_v3(series, horas, P)
-    elif versao in ("avtel", "avana"):
+    elif versao in ("avtel", "avana", "avtelbl"):
+        info["horas_excluidas_qc"] = qc_causal(series, horas, P)
+    elif versao == "avtelqc2":
+        info["horas_excluidas_qc_hora"] = qc_hora(series, horas, P)
         info["horas_excluidas_qc"] = qc_causal(series, horas, P)
     codes = sorted(series)
     ch, n = idw.idw(codes, series, horas, P, vazio="zero")
