@@ -120,7 +120,7 @@ PARAMS_LRSCSF.update(s0=(20.0, 1000.0, "log"), iar=(0.01, 0.3, "log"))
 PARAMS_LRSMAF = {k: v for k, v in PARAMS_LRDC.items() if k not in ("perc", "fb", "p1")}
 PARAMS_LRSMAF.update(dmax=(10.0, 300.0, "log"), sup=(5.0, 300.0, "log"), finf=(1.0, 60.0, "log"),
                      psoil=(0.2, 30.0, "log"), g1=(5.0, 300.0, "log"), p12=(0.02, 10.0, "log"),
-                     g2=(20.0, 3000.0, "log"), pdeep=(0.002, 3.0, "log"),
+                     g2=(20.0, 1500.0, "log"), pdeep=(0.002, 3.0, "log"),   # HEC: camada <= 1500 mm (ERROR 42001)
                      xpdeep_T=(0.2, 5.0, "log"), xpdeep_B=(0.2, 5.0, "log"))
 K_LR_SMA = 1.0
 FAMILIAS = {"dc": PARAMS_DC, "lric": PARAMS_LRIC, "lrdc": PARAMS_LRDC, "lrdcv": PARAMS_LRDCV, "lrdc8": PARAMS_LRDC8,
