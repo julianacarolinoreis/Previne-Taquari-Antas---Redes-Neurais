@@ -21,6 +21,10 @@ Uso:
 --rota mc|mc8st|mc8 (calha trapezoidal ou seções de 8 pontos); es/top só leem resultados da mesma rota.
 --objetivo J|J_pico: chave de ordenação de es/top (J_pico = J ponderado pelo tamanho da cheia observada; o J padrão
 continua no resultado para comparar).
+--eventos E4,E5,...: o objetivo passa a ser a média de J_ev só nesses eventos de calibração (parâmetros por porte de
+cheia); candidato sem J_ev finito em algum deles fica fora.
+--livres k1,k2,...: só esses parâmetros variam (viz e es); os outros ficam no valor do centro (viz) ou do melhor (es).
+--forcamento forcamento_v3b: pasta de chuva do lote (campo "forcamento" do PEDIDO).
 """
 import argparse
 import json
@@ -54,7 +58,12 @@ def from_unit(u):
     return out
 
 
-def ler_resultados(pastas, rota="mc", objetivo="J"):
+def j_eventos(c, eventos):
+    v = [c.get("J_ev", {}).get(e) for e in eventos]
+    return sum(v) / len(v) if v and all(x is not None and math.isfinite(x) for x in v) else None
+
+
+def ler_resultados(pastas, rota="mc", objetivo="J", eventos=None):
     vistos, out = set(), []
     for pasta in pastas:
         for f in Path(pasta).rglob("resultado.json"):
@@ -62,6 +71,8 @@ def ler_resultados(pastas, rota="mc", objetivo="J"):
                 if c["id"] in vistos or set(c["p"]) != set(P) or c.get("rota", "mc") != rota:
                     continue
                 vistos.add(c["id"])
+                if eventos:
+                    c["J_porte"] = j_eventos(c, eventos)
                 out.append(c)
     return [c for c in out if c.get(objetivo) is not None and math.isfinite(c[objetivo])]
 
@@ -85,6 +96,7 @@ def gerar(a, fam, semente):
         n = 2 if a.modo == "teste" else a.n
         amostras = qmc.LatinHypercube(d=len(chaves), seed=semente).random(n)
         return [from_unit(dict(zip(chaves, x))) for x in amostras], {}
+    livres = set(a.livres.split(",")) if a.livres else set(chaves)
     if a.modo == "viz":
         c0 = ler_centro(a.centro)
         p0 = {k: c0["p"].get(k, NEUTROS.get(k)) for k in chaves}
@@ -92,24 +104,28 @@ def gerar(a, fam, semente):
         amostras = qmc.LatinHypercube(d=len(chaves), seed=semente).random(a.n - 1)
         cands = [p0]
         for x in amostras:
-            u = {k: (u0[k] + a.raio * (2 * xi - 1)) if k in c0["p"] else
+            u = {k: u0[k] if k not in livres else (u0[k] + a.raio * (2 * xi - 1)) if k in c0["p"] else
                  (u0[k] + a.raio_novos * (2 * xi - 1)) if a.raio_novos > 0 else xi for k, xi in zip(chaves, x)}
             cands.append(from_unit(u))
-        return cands, {"centro": c0["id"], "raio": a.raio, "raio_novos": a.raio_novos}
-    todos = sorted(ler_resultados(a.resultados, a.rota, a.objetivo), key=lambda c: c[a.objetivo])
+        return cands, {"centro": c0["id"], "raio": a.raio, "raio_novos": a.raio_novos, "livres": sorted(livres)}
+    obj = "J_porte" if a.eventos else a.objetivo
+    eventos = a.eventos.split(",") if a.eventos else None
+    todos = sorted(ler_resultados(a.resultados, a.rota, a.objetivo, eventos), key=lambda c: c[obj])
     if not todos:
-        sys.exit(f"{fam}: nenhum resultado com {a.objetivo} finito nas pastas indicadas")
+        sys.exit(f"{fam}: nenhum resultado com {obj} finito nas pastas indicadas")
     if a.modo == "top":
-        return [c["p"] for c in todos[:a.n]], {"origem": [{"id": c["id"], "J": c["J"], a.objetivo: c[a.objetivo]}
+        return [c["p"] for c in todos[:a.n]], {"origem": [{"id": c["id"], "J": c["J"], obj: c[obj]}
                                                           for c in todos[:a.n]]}
     elite = todos[:a.mu]
     w = [math.log(a.mu + 0.5) - math.log(i + 1) for i in range(len(elite))]
     us = [to_unit(c["p"]) for c in elite]
     med = {k: sum(wi * u[k] for wi, u in zip(w, us)) / sum(w) for k in chaves}
     rnd = random.Random(semente)
-    filhos = [from_unit({k: med[k] + rnd.gauss(0, a.sigma) for k in chaves}) for _ in range(a.lam)]
-    return filhos, {"melhor_ate_aqui": {"id": elite[0]["id"], "J": elite[0]["J"], a.objetivo: elite[0][a.objetivo]},
-                    "sigma": a.sigma, "n_avaliados": len(todos), "objetivo": a.objetivo}
+    filhos = [from_unit({k: (med[k] + rnd.gauss(0, a.sigma)) if k in livres else us[0][k] for k in chaves})
+              for _ in range(a.lam)]
+    return filhos, {"melhor_ate_aqui": {"id": elite[0]["id"], "J": elite[0]["J"], obj: elite[0][obj]},
+                    "sigma": a.sigma, "n_avaliados": len(todos), "objetivo": obj, "eventos": eventos,
+                    "livres": sorted(livres)}
 
 
 def main():
@@ -130,6 +146,9 @@ def main():
     ap.add_argument("--raio", type=float, default=0.15)
     ap.add_argument("--raio-novos", type=float, default=0.0,
                     help="viz: parâmetros novos amostrados a ±raio-novos do valor neutro (0 = faixa toda)")
+    ap.add_argument("--eventos", default="", help="objetivo = média de J_ev nesses eventos (J_porte)")
+    ap.add_argument("--livres", default="", help="parâmetros que variam (padrão: todos da família)")
+    ap.add_argument("--forcamento", default="", help="pasta de chuva do lote (ex.: forcamento_v3b)")
     ap.add_argument("--saida", default="")
     a = ap.parse_args()
     janelas = "S2023_09,S2023_11" if a.modo == "teste" else a.janelas
@@ -138,6 +157,8 @@ def main():
         c, x = gerar(a, fam, a.semente + i)
         extra["familias"][fam] = {"de": len(cands), "ate": len(cands) + len(c) - 1, **x}
         cands += c
+    if a.forcamento:
+        extra["forcamento"] = a.forcamento
     out = pedido(a.rodada, cands, janelas, a.rota, **extra)
     txt = json.dumps(out, indent=1, default=float)
     if a.saida:
