@@ -4,6 +4,7 @@
   lrdc  Deficit and Constant + base em reservatório linear (PARAMS_LRDC)
   lrdcv lrdc + Clark variável (Tc e R pela intensidade do excesso; PARAMS_LRDCV)
   lrdc8 lrdc + n das encostas da seção de 8 pontos (nob; usar com --rota mc8 ou mc8st)
+  lrdcv8 lrdcv + nob (Clark variável e seções de 8 pontos juntos)
 
 Mesmas janelas e papéis das famílias g1/g2/g4/g6 (todos os eventos de calibração), para o J ser comparável com
 lib-A (Initial+Constant) e scs-A (SCS).

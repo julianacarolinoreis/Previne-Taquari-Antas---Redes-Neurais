@@ -94,7 +94,9 @@ VC_MIN, VC_MAX = 20.0, 400.0
 # lâmina ajustado à curva-chave de LJJ (_analise_modelo/secoes). mc8st: só os 3 trechos do mosaico; mc8: os 17.
 # n da calha entre os pontos 3 e 6 = N_BASE*mn; nas encostas = nob vezes isso (família lrdc8; sem nob, 1).
 PARAMS_LRDC8 = dict(PARAMS_LRDC, nob=(0.7, 3.0, "log"))
-FAMILIAS = {"dc": PARAMS_DC, "lric": PARAMS_LRIC, "lrdc": PARAMS_LRDC, "lrdcv": PARAMS_LRDCV, "lrdc8": PARAMS_LRDC8}
+PARAMS_LRDCV8 = dict(PARAMS_LRDCV, nob=PARAMS_LRDC8["nob"])
+FAMILIAS = {"dc": PARAMS_DC, "lric": PARAMS_LRIC, "lrdc": PARAMS_LRDC, "lrdcv": PARAMS_LRDCV, "lrdc8": PARAMS_LRDC8,
+            "lrdcv8": PARAMS_LRDCV8}
 ROTAS_8PT = {"mc8st": ("R_208", "R_256", "R_201"), "mc8": None}
 _SECOES = None
 
