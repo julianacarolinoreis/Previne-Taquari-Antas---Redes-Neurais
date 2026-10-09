@@ -8,7 +8,9 @@ Muçum o nível é só indicativo (fim da validade da curva-chave).
 Parâmetros padrão: **`md-val2-c002`** (família lrdc pura, calha trapezoidal em Muskingum-Cunge, J cal 6,73 / val
 7,00; branch `cursor/hec-bacia145-modelo`). `lr-g8-c038` continua disponível (`--parametros parametros/lr-g8-c038.json`),
 e também `vo-val-c008` (família lrdcr: `vo-rp5-c041` só com o fb regional, xfb_T 0,815 / xfb_B 1,245; J val 5,89; branch
-`cursor/hec-bacia145-volume`), com o τ(h) do c002 copiado (ainda não re-escolhido para ele).
+`cursor/hec-bacia145-volume`), com τ(h) próprio (`correcao_horaria.py` nas vazões da rodada vo-val, escolha só na
+calibração; na validação, MAE corrigido igual ao do τ do c002 até +24 h e ±2,5% em +48 h). Contra o c002 com o τ dele,
+validação, MAE corrigido +24/+48 h: Muçum 304/327 × 316/356, Encantado 464/442 × 516/518, LJJ 307/299 × 314/310 m³/s.
 
 Nada do motor foi reescrito: o `.basin` sai de `codigo/estrutura_v3.bacia_v3` (estado inicial pelo q0 observado no
 início da janela, como na calibração), o DSS de chuva de `codigo/hec.dss_chuva` e a execução de `codigo/hec.rodar_lote`.
