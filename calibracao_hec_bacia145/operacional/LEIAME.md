@@ -115,6 +115,11 @@ não disparar nesta branch (senão o `PEDIDO.json` da cp-r2 rodaria de novo).
 | GFS | 636 cm (1627 m³/s) | 11/10 04:00 | 09/10 17:00 | não |
 | sem chuva | 529 cm (1163 m³/s) | 10/10 04:00 | 09/10 17:00 | não |
 
+Mesmo t0 na nuvem ([run 37959276471](https://github.com/previne-taquari-antas/Previne-Taquari-Antas---Redes-Neurais/actions/runs/37959276471),
+emitido 13:27, 89 s de ciclo, 1 min 46 s de job): simulado do ECMWF e do sem chuva idêntico ao do PC (HEC Linux =
+HEC Windows); o GFS já pegou a 12z completa (26,8 mm). A leitura das 13:00 de Muçum já tinha chegado (429 cm,
+787 m³/s), a correção ficou em −622 m³/s e o 5 m passou para 09/10 23:00 (ECMWF; pico 885 cm em 13/10 19:00).
+
 Cuidado de leitura: em t0 o modelo estava ~1,7× acima do observado em todos os postos (LJJ 1218 × 344,
 Encantado 1616 × 972 m³/s). A correção decai com τ de 24–72 h, então o pico do ECMWF no dia 13 já carrega boa parte
 desse excesso do simulado. É exatamente o caso que a frente 3 (modelo) e um estado inicial melhor devem atacar.
@@ -148,8 +153,10 @@ de novo, início adaptativo em 14/04 02:00 com Muçum 78 m³/s):
 | retroativa operacional, rodadas em cache | 87 s | 45 s | 1 s | 33 s |
 | retroativa operacional, rodadas baixadas | 151 s | — | — | — |
 | reprodução (arquivos locais) | 30 s | — | — | 29 s |
+| nuvem (GitHub Actions), tudo baixado agora | 89 s (job 1 min 46 s) | 52 s | 8 s | 24 s |
 
-O gargalo é o download: GFS de hora em hora até 120 h são 116 mensagens; ECMWF de 3 em 3 h, 42. O HEC (3 cenários em
+No PC o gargalo é o download: GFS de hora em hora até 120 h são 116 mensagens; ECMWF de 3 em 3 h, 42. Na nuvem
+(perto da AWS/Google) o mesmo download leva 8 s e o gargalo passa a ser a telemetria da ANA (52 s). O HEC (3 cenários em
 paralelo) leva 17–33 s conforme o comprimento da janela; membros de ensemble também rodam em paralelo, então o custo
 cresce com o número de membros dividido pelos núcleos disponíveis (não medido).
 
@@ -199,7 +206,7 @@ Uma correção diferente (assimilação, outra curva) substitui `posproc.ponto` 
 - Chuva observada ao vivo só com a ANA (CEMADEN/INMET fora): frente 2.
 - Estrela sem correção nem curva; Santa Tereza sem ponto próprio (ver proposta acima).
 - Ensemble ECMWF e correção de viés: só os encaixes (frente 1).
-- Nuvem: o workflow foi disparado por push; o agendamento só vale na branch padrão e o JSON fica como artefato (sem
-  publicação).
+- Nuvem: o workflow roda por push nesta branch (testado); o agendamento só vale na branch padrão e o JSON fica como
+  artefato por 7 dias (sem publicação).
 - Telemetria da ANA às vezes devolve postos de controle com lacunas longas (LJJ em maio/2024): o ciclo segue sem
   correção nesse ponto e avisa.
