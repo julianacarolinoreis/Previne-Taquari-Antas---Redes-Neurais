@@ -1,7 +1,10 @@
 name: HEC bacia 145 - ciclo ao vivo
 
-# Um ciclo do HEC-HMS ao vivo (145 sub-bacias, lr-g8-c038) no GitHub (Linux): chuva observada da telemetria da ANA,
-# chuva prevista ECMWF/GFS (dados abertos, por byte-range), HEC por cenário, correção aditiva e nível.
+# Um ciclo do HEC-HMS ao vivo (145 sub-bacias, md-val2-c002) no GitHub (Linux): chuva observada da rede ANA +
+# CEMADEN (histórico do coletor na branch de dados) + INMET (secret INMET_TOKEN, se existir), chuva prevista
+# ECMWF/GFS (dados abertos, por byte-range), HEC por cenário (partida a frio adaptativa), correção aditiva e nível.
+# Estado entre ciclos (--estado) fica desligado: não melhorou no experimento retroativo (ver LEIAME); para ligar,
+# passar --estado DIR e guardar DIR com actions/cache (restaurar pelo prefixo da chave).
 # PESQUISA — nada aqui é alerta oficial. Ver calibracao_hec_bacia145/operacional/LEIAME.md.
 #  - push na branch do sistema (pasta operacional/ ou este arquivo): roda um ciclo ao vivo;
 #  - workflow_dispatch e schedule só valem quando o arquivo estiver na branch padrão.
@@ -30,7 +33,9 @@ on:
   push:
     branches: ["cursor/hec-bacia145-sistema"]
     paths:
-      - "calibracao_hec_bacia145/operacional/**"
+      - "calibracao_hec_bacia145/operacional/*.py"
+      - "calibracao_hec_bacia145/operacional/dados/**"
+      - "calibracao_hec_bacia145/operacional/parametros/**"
       - ".github/workflows/hec-bacia145-aovivo.yml"
 
 permissions:
@@ -70,7 +75,21 @@ jobs:
           mkdir -p .hec
           curl -L --fail --retry 3 --retry-delay 4 -o /tmp/HEC-HMS-4.13-linux64.tar.gz https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
           tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
+      - name: Histórico CEMADEN (branch de dados)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p dados/cemaden
+          cd dados && git init -q
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git fetch -q --depth 1 origin cursor/hec-bacia145-sistema-dados; then
+            git checkout -q FETCH_HEAD -- . && ls cemaden | tail -n 3
+          else
+            echo "sem branch de dados: CEMADEN só com a coleta do próprio ciclo"
+          fi
       - name: Rodar o ciclo
+        env:
+          INMET_TOKEN: ${{ secrets.INMET_TOKEN }}
         run: |
           HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
           test -n "$HEC_SH"
@@ -80,7 +99,8 @@ jobs:
           if [ "$MODO" = "retro" ]; then EXTRA="--t0 $T0"; fi
           cd calibracao_hec_bacia145/operacional
           python -B ciclo.py --modo "$MODO" $EXTRA --horizonte "$HORIZONTE" --cenarios "$CENARIOS" \
-            --hec-cmd "$HEC_SH" --trabalho "$RUNNER_TEMP/trabalho" --saida "$RUNNER_TEMP/saida"
+            --hec-cmd "$HEC_SH" --trabalho "$RUNNER_TEMP/trabalho" --saida "$RUNNER_TEMP/saida" \
+            --cemaden "$GITHUB_WORKSPACE/dados/cemaden"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

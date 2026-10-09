@@ -1,17 +1,23 @@
-"""Um ciclo do HEC-HMS ao vivo (bacia 145, lr-g8-c038). PESQUISA — não é alerta oficial.
+"""Um ciclo do HEC-HMS ao vivo (bacia 145; parâmetros em parametros/*.json, padrão md-val2-c002).
+PESQUISA — não é alerta oficial.
 
-  janela: t0 − dias_antes … t0 + horizonte, passo de 10 min; estado inicial pelo q0 observado no início (estrutura_v3)
-  chuva:  observada (fonte trocável) até a última hora com dado; depois, um cenário de chuva prevista por HEC
-  saída:  vazão em LJJ, Muçum, Encantado e Estrela; correção aditiva; nível; cotas de Muçum; JSON com metadados
+  janela: início … t0 + horizonte, passo de 10 min. Início = partida a frio pelo q0 observado (estrutura_v3) na
+          última hora de vazão baixa em Muçum; com --estado, o estado salvo por um ciclo anterior (Start State do HMS,
+          o mais recente com instante <= t0 − dias_antes; estado.py), e cada ciclo salva o que o próximo vai usar
+  chuva:  observada (fonte trocável; padrão: rede ANA + CEMADEN + INMET, chuva_rede.py) até a última hora com dado;
+          depois, um cenário de chuva prevista por HEC
+  saída:  vazão em LJJ, Muçum, Encantado e Estrela; correção aditiva; nível; cotas de Muçum; JSON (versão em VERSAO)
 
 Uso:
-  ao vivo:      python ciclo.py --modo aovivo [--horizonte 120] [--cenarios ecmwf,gfs,zero]
-  retroativo:   python ciclo.py --modo retro --t0 2024-05-10T14:00 [--fonte-obs ana|arquivo --janela-arquivo S2024_05]
+  ao vivo:      python ciclo.py --modo aovivo [--horizonte 120] [--cenarios ecmwf,gfs,zero] [--estado DIR]
+                              [--assimilar previsao]
+  retroativo:   python ciclo.py --modo retro --t0 2024-05-10T14:00 [--fonte-obs rede|ana|arquivo --janela-arquivo S2024_05]
                               [--fonte-prev aberto|arquivo] [--janela-mae S2024_05]   (janela-mae: período da calibração)
 """
 import argparse
 import hashlib
 import json
+import os
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -23,6 +29,8 @@ AQUI = Path(__file__).resolve().parent
 sys.path.insert(0, str(AQUI))
 
 import chuva_observada as co   # noqa: E402
+import chuva_rede              # noqa: E402
+import estado                  # noqa: E402
 import chuva_prevista as cp    # noqa: E402
 import executor                # noqa: E402
 import geo                     # noqa: E402
@@ -32,9 +40,10 @@ import vazao_observada as vo   # noqa: E402
 H = timedelta(hours=1)
 BRT = timezone(-3 * H)
 CAL = AQUI.parent
+VERSAO = 2   # formato do hec_aovivo_*.json (histórico no LEIAME)
 JANELAS_TESTE = {"X20260918": (datetime(2026, 9, 18, 6), datetime(2026, 10, 4, 11))}   # catálogo: papel "teste"
-AVISO = ("PESQUISA — não é alerta oficial. Previsão do modelo HEC-HMS da bacia Taquari-Antas (145 sub-bacias, "
-         "lr-g8-c038) com chuva prevista determinística; acima de 15 m em Muçum o nível é só indicativo.")
+AVISO = ("PESQUISA — não é alerta oficial. Previsão do modelo HEC-HMS da bacia Taquari-Antas (145 sub-bacias) com "
+         "chuva prevista determinística; acima de 15 m em Muçum o nível é só indicativo.")
 
 
 def args():
@@ -49,11 +58,22 @@ def args():
     ap.add_argument("--cenarios", default="ecmwf,gfs,zero")
     ap.add_argument("--pos-chuva", default="", help="pós-processadores da chuva prevista, ex.: fator:1.2 "
                                                     "(registrados em chuva_prevista.POS_CHUVA)")
-    ap.add_argument("--fonte-obs", choices=["ana", "arquivo"], default="ana")
+    ap.add_argument("--fonte-obs", choices=["rede", "ana", "arquivo"], default="rede",
+                    help="rede = ANA + CEMADEN + INMET (chuva_rede.py); ana = só telemetria ANA (fase 1)")
+    ap.add_argument("--cemaden", default=os.environ.get("HEC_CEMADEN_DIR",
+                                                        str(Path.home() / "hec_aovivo_estado" / "cemaden")),
+                    help="histórico do coletor CEMADEN (cemaden.py coletar)")
     ap.add_argument("--fonte-prev", choices=["aberto", "arquivo"], default="aberto")
     ap.add_argument("--janela-arquivo", help="janela do catálogo para --fonte-obs arquivo / observados arquivados")
     ap.add_argument("--janela-mae", help="usa o período (ini/fim) desta janela da calibração em vez de t0 − dias")
-    ap.add_argument("--parametros", default=str(AQUI / "parametros" / "lr-g8-c038.json"))
+    ap.add_argument("--parametros", default=str(AQUI / "parametros" / "md-val2-c002.json"),
+                    help="conjunto de parâmetros (parametros/*.json); lr-g8-c038.json continua disponível")
+    ap.add_argument("--estado", default=None,
+                    help="loja de estados do HMS entre ciclos (estado.py); padrão: $HEC_ESTADO_DIR ou desligado "
+                         "('-'). Desligado = partida a frio adaptativa (melhor no experimento_estado.py; ver LEIAME)")
+    ap.add_argument("--passo-estado-h", type=float, default=6, help="intervalo esperado até o próximo ciclo")
+    ap.add_argument("--assimilar", choices=["nao", "previsao"], default="nao",
+                    help="assimilação obs/sim por região de controle no fim do observado (estado.py)")
     ap.add_argument("--trabalho", default=str(Path.home() / "hec_aovivo_trabalho"))
     ap.add_argument("--cache-prev", default=None, help="cache das rodadas (padrão: <trabalho>/cache_prev)")
     ap.add_argument("--saida", default=str(AQUI / "saida"))
@@ -82,6 +102,59 @@ def escolher_inicio(reg_muc, corrige, t0, lim_ini, min_dias, fator):
     ini = max(t for t, v in q.items() if v <= fator * qmin)
     return ini, dict(regra=f"última hora em [{lim_ini}, {teto}] com Q(Muçum) <= {fator} x mínima do período",
                      q_muc_minima=qmin, q_muc_inicio=q[ini], q_muc_em_t0_menos_min_dias=q.get(teto))
+
+
+def _cortar(f, a_, b_):
+    hs = [datetime.fromisoformat(h) for h in f["horas"]]
+    i, j = hs.index(a_), hs.index(b_)
+    return dict(f, horas=f["horas"][i:j + 1], chuva_por_subbacia={n: v[i:j + 1] for n, v in f["chuva_por_subbacia"].items()})
+
+
+def rodar_assimilado(a, sim, ini, fim, ta, salvar, regs, forc, par, arq_ini, mods):
+    """Observado até ta em uma ou duas rodadas (a primeira salva o estado da cadeia em `salvar`), estado em ta escalado
+    pela razão obs/sim por região de controle (estado.assimilar) e os cenários de ta até fim a partir dele.
+    Séries devolvidas: modelo puro até ta, previsão assimilada depois. A loja guarda só a cadeia pura."""
+    e3, bi = mods["estrutura_v3"], mods["bacia_inteira"]
+    c0 = next(iter(forc))
+    th = dict(gerar_bacia_s=0.0, hec_s=0.0)
+    partes, guardar, ini_e, arq = [], None, ini, arq_ini
+    etapas = ([salvar] if salvar is not None and ini < salvar < ta else []) + [ta]
+    for k, fim_e in enumerate(etapas):
+        nome = f"{sim}_E{k + 1}"
+        r, t_, q0_ = executor.rodar(nome, ini_e, fim_e, regs, {"obs": _cortar(forc[c0], ini_e, fim_e)}, par,
+                                    salvar_em=fim_e, estado_inicial=arq)
+        arq = estado.salvo(executor.diretorio(nome, "obs"))
+        if isinstance(r["obs"], Exception) or not arq:
+            raise RuntimeError(f"etapa {nome} ({ini_e} → {fim_e}) falhou: {r['obs']}")
+        if k == 0:
+            q0 = q0_
+        if fim_e == salvar:
+            guardar = arq
+        partes.append(r["obs"])
+        th = {x: round(th[x] + t_[x], 1) for x in th}
+        ini_e = fim_e
+    puro = arq
+    nome = f"{sim}_E{len(etapas)}"
+    hist = {}
+    for p in partes:
+        for no, s in p.items():
+            hist.setdefault(no, {}).update(s)
+    sim_q = {n: {t: q for t, q in hist.get(no, {}).items() if t.minute == 0} for n, no in e3.CTRL_NOS}
+    obs_q = {n: bi.obs_limpo(nome, bi.CONTROLES[n][0]) for n, _ in e3.CTRL_NOS}
+    assim = puro.parent / "assimilado.state"
+    rz = estado.assimilar(puro, assim, sim_q, obs_q, ta, e3)
+    r2, t2, _ = executor.rodar(sim, ta, fim, regs, {c: _cortar(f, ta, fim) for c, f in forc.items()}, par,
+                               estado_inicial=assim)
+    res = {}
+    for c, r in r2.items():
+        res[c] = r if isinstance(r, Exception) else {
+            no: {**{t: q for t, q in hist.get(no, {}).items() if t < ta}, **s} for no, s in r.items()}
+    th = dict(gerar_bacia_s=round(th["gerar_bacia_s"] + t2["gerar_bacia_s"], 1), hec_s=round(th["hec_s"] + t2["hec_s"], 1),
+              hec_observado_s=th["hec_s"], hec_previsao_s=t2["hec_s"])
+    info = dict(instante_assimilacao=str(ta), razoes=rz,
+                metodo="razão obs/sim incremental por região de controle (média de 3 h), limitada a [0,33; 3]; "
+                       "escala resíduos do Clark, reservatórios lineares e trechos; déficit inalterado")
+    return res, th, q0, dict(info=info, guardar=guardar or (puro if salvar == ta else None))
 
 
 def montar_forcamento(horas, obs, cen, avisos):
@@ -161,7 +234,18 @@ def main():
     # causal: nada depois de t0, no horário já corrigido (relógio de Muçum adiantado 105 min em 2023–2024)
     regs = {c: {t: v for t, v in r.items() if comum.corrige_relogio(c, t) <= t0} for c, r in regs.items()}
     T["observados_s"] = round(time.time() - t, 1)
-    if not a.janela_mae:
+    par = json.loads(Path(a.parametros).read_text(encoding="utf-8"))
+    dir_estado = a.estado if a.estado is not None else os.environ.get("HEC_ESTADO_DIR", "-")
+    loja = estado.Loja(dir_estado, par) if dir_estado != "-" else None
+    achado = None
+    if loja and not a.janela_mae and not a.inicio_fixo:
+        achado = loja.buscar(t0 - timedelta(days=a.dias_antes), lim_ini)
+    if achado:
+        ini = achado[0]
+        info_ini = dict(regra=f"estado salvo do ciclo anterior (Start State), o mais recente com instante <= t0 − "
+                              f"{a.dias_antes:g} dias", estado_instante=str(achado[0]), estado_meta=achado[2])
+        regs = {c: {t: v for t, v in r.items() if comum.corrige_relogio(c, t) >= ini - 6 * H} for c, r in regs.items()}
+    elif not a.janela_mae:
         if a.inicio_fixo:
             ini = max(lim_ini, t0 - timedelta(days=a.dias_antes))
             info_ini = dict(regra=f"fixo: t0 − {a.dias_antes:g} dias")
@@ -177,7 +261,9 @@ def main():
     # ---------------- chuva observada
     t = time.time()
     ctx = dict(corrige_relogio=comum.corrige_relogio)
-    if a.fonte_obs == "ana":
+    if a.fonte_obs == "rede":
+        fobs = chuva_rede.RedeAoVivo(pasta_cemaden=a.cemaden, coletar_agora=a.modo == "aovivo")
+    elif a.fonte_obs == "ana":
         fobs = co.TelemetriaANA()
     else:
         fobs = co.ArquivoForcamento(a.janela_arquivo, CAL / "dados" / "forcamento_v3")
@@ -216,9 +302,31 @@ def main():
     # ---------------- HEC
     horas = co.grade(ini, fim)
     forc = {c.id: montar_forcamento(horas, obs, c, avisos) for c in ok}
-    par = json.loads(Path(a.parametros).read_text(encoding="utf-8"))
     sim = f"AV{t0:%Y%m%d%H}"
-    res, th, q0 = executor.rodar(sim, ini, fim, regs, forc, par)
+    salvar = None
+    if loja:
+        # o próximo ciclo (t0 + passo) vai procurar um estado <= t0 + passo − dias_antes
+        salvar = (t0 + a.passo_estado_h * H - timedelta(days=a.dias_antes)).replace(minute=0)
+        if not ini < salvar <= obs.ate:
+            salvar = obs.ate if obs.ate > ini else None
+    arq_ini = achado[1] if achado else None
+    info_estado = dict(loja=str(loja.dir) if loja else None, inicial=str(achado[0]) if achado else None,
+                       assimilacao=a.assimilar)
+    if a.assimilar != "nao" and obs.ate > ini:
+        res, th, q0, ext = rodar_assimilado(a, sim, ini, fim, obs.ate, salvar, regs, forc, par, arq_ini, mods)
+        info_estado.update(ext["info"])
+        guardar = ext["guardar"]
+    else:
+        res, th, q0 = executor.rodar(sim, ini, fim, regs, forc, par, salvar_em=salvar, estado_inicial=arq_ini)
+        guardar = next((estado.salvo(executor.diretorio(sim, c)) for c in forc
+                        if not isinstance(res.get(c), Exception) and estado.salvo(executor.diretorio(sim, c))), None)
+    if loja and guardar:
+        ts, d = loja.guardar(guardar, dict(t0=str(t0), sim=sim, fonte_chuva=obs.fonte, parametros=par["id"],
+                                           estado_inicial=info_estado["inicial"], assimilacao=a.assimilar,
+                                           criado_em=agora.isoformat(timespec="seconds")))
+        info_estado.update(salvo=str(ts), podados=loja.podar(t0 - timedelta(days=max(a.dias_max, a.dias_antes) + 5)))
+    elif loja:
+        avisos.append("estado do HMS não foi salvo neste ciclo")
     T.update(th)
     erros = {c: str(r)[:300] for c, r in res.items() if isinstance(r, Exception)}
     res = {c: r for c, r in res.items() if not isinstance(r, Exception)}
@@ -230,13 +338,13 @@ def main():
 
     # ---------------- pós-processamento
     t = time.time()
-    corr, curvas = pp.carregar_config()
+    corr, curvas = pp.carregar_config(par)
     pontos = {}
     for nome, (cod, no, _, _) in pp.PONTOS.items():
         oq = {k: v for k, v in hec.observado(sim, cod).items() if k <= t0}
         on = {k: v for k, v in hec.nivel(sim, cod).items() if k <= t0}
         pontos[nome] = pp.ponto(nome, horas, t0, {c: r.get(no, {}) for c, r in res.items()}, oq, on, corr, curvas,
-                                a.horizonte)
+                                a.horizonte, aditiva=a.assimilar == "nao")
     pontos["MUCUM"]["cotas_previstas"] = pp.cotas_mucum(pontos["MUCUM"], horas, t0)
     for nome in pontos:
         rc = pp.resumo_conjunto(pontos[nome], ok, horas, t0)
@@ -263,13 +371,18 @@ def main():
     elif mu["ultimo_observado_valido"]["idade_h"] > 3:
         avisos.append(f"último observado válido de Muçum tem {mu['ultimo_observado_valido']['idade_h']:.0f} h")
     saida = {
-        "produto": "previne-hec-bacia145-aovivo", "versao_esquema": 1, "aviso": AVISO, "modo": a.modo,
+        "produto": "previne-hec-bacia145-aovivo", "versao": VERSAO, "versao_esquema": VERSAO, "aviso": AVISO,
+        "modo": a.modo,
         "emitido_em": agora.isoformat(timespec="seconds") + "-03:00", "t0": str(t0),
         "janela": dict(inicio=str(ini), fim=str(fim), passo_modelo_min=10, passo_saida_h=1, horizonte_h=a.horizonte,
                        dias_antes_min=a.dias_antes, dias_antes_max=a.dias_max, janela_mae=a.janela_mae,
                        inicio_escolhido=info_ini),
-        "parametros": dict(id=par["id"], familia=par["familia"], gerador=par.get("gerador"), sha256_p=par.get("sha256_p"),
-                           q0_especifica_m3s_km2={k: round(v, 6) for k, v in q0.items()}),
+        "parametros": dict(id=par["id"], familia=par["familia"], gerador=par.get("gerador"), rota=par.get("rota"),
+                           sha256_p=par.get("sha256_p"), J_cal=par.get("J_cal"), J_val=par.get("J_val"),
+                           arquivo=Path(a.parametros).name,
+                           correcao=dict(fonte=corr.get("fonte"), tau_h_6h={k: v[5] for k, v in corr["tau_h"].items()}),
+                           q0_especifica_m3s_km2=(None if achado else {k: round(v, 6) for k, v in q0.items()})),
+        "estado": info_estado,
         "chuva_observada": dict(fonte=obs.fonte, ate=str(obs.ate),
                                 **{k: v for k, v in obs.cobertura.items() if k not in ("razao_total_vizinhos",)}),
         "cenarios": [dict(id=c.id, modelo=c.modelo, papel=c.papel, status=c.status, fonte=c.fonte,

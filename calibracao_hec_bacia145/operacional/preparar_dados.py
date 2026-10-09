@@ -7,7 +7,9 @@
   menos a de teste (X20260918) e a LIVE — a curva agregada de correcao/horaria/correcao_horaria.py (classe Curva).
 - correcao.json: τ(h) da correção aditiva escolhidos na calibração (correcao/horaria/resultado_horaria.json).
 - parametros/lr-g8-c038.json: membro mt-b1-c000 da biblioteca_mt-b1.json.
-Uso: python preparar_dados.py
+- parametros/md-val2-c002.json: o modelo novo, com o τ(h) da correção re-escolhido para ele (`preparar_dados.py c002`).
+- postos_rede.json: rede ao vivo ANA + CEMADEN + INMET da frente de chuva (`preparar_dados.py rede`).
+Uso: python preparar_dados.py [c002 | rede]
 """
 import gzip
 import hashlib
@@ -90,8 +92,63 @@ def parametros():
     (AQUI / "parametros" / "lr-g8-c038.json").write_text(json.dumps(p, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
+AOVIVO = Path(r"D:\PREVINE\repo_hec_aovivo\_analise_aovivo")
+
+
+def rede():
+    """Postos da rede ao vivo recomendada pela frente de chuva (branch cursor/hec-bacia145-aovivo,
+    postos_recomendados.json: universo v3 ∩ vivos em 09/10/2026 − lista negra), com o nome público do CEMADEN
+    (cemaden_ao_vivo.json: casamento por município + nome, porque o JSON público não traz o código)."""
+    rec = json.loads((AOVIVO / "postos_recomendados.json").read_text(encoding="utf-8"))
+    cem = json.loads((AOVIVO / "cemaden_ao_vivo.json").read_text(encoding="utf-8"))
+    postos = {}
+    for p in rec["postos"]:
+        c = p["codigo"]
+        d = dict(fonte=p["fonte"], lat=p["lat"], lon=p["lon"])
+        if p["fonte"] == "CEMADEN":
+            d.update(nome_publico=cem[c]["casado_com"], municipio=cem[c]["municipio"])
+            assert d["nome_publico"], c
+        postos[c] = d
+    out = dict(fonte="repo_hec_aovivo/_analise_aovivo/postos_recomendados.json + cemaden_ao_vivo.json",
+               descricao=rec["descricao"], lista_negra=rec["lista_negra"], por_fonte=rec["por_fonte"], postos=postos)
+    (DADOS / "postos_rede.json").write_text(json.dumps(out, ensure_ascii=False, indent=0), encoding="utf-8")
+    print("rede:", rec["por_fonte"])
+
+
+MODELO = Path(r"D:\PREVINE\repo_hec_modelo")
+TAU_C002 = AQUI.parents[1] / "_analise_sistema" / "tau_c002" / "resultado_horaria.json"
+
+
+def parametros_c002():
+    """md-val2-c002 (frente do modelo, branch cursor/hec-bacia145-modelo): lrdc puro, calha trapezoidal, rota mc.
+    ie/atc/ar/nob do pedido são neutros nessa rota/família (atc = ar = 0, sem seções) e ficam de fora. A correção vai
+    junto: τ(h) re-escolhido com correcao_horaria.py (só calibração) sobre as vazões da rodada md-val2."""
+    ped = json.loads((MODELO / "calibracao_hec_bacia145" / "rodadas" / "PEDIDO.json").read_text(encoding="utf-8"))
+    c = next(x for x in ped["candidatos"] if x["id"] == "md-val2-c002")
+    assert c["rota"] == "mc" and c["p"]["atc"] == 0 and c["p"]["ar"] == 0
+    p = {k: v for k, v in c["p"].items() if k not in ("ie", "atc", "ar", "nob")}
+    r = json.loads(TAU_C002.read_text(encoding="utf-8"))
+    out = dict(id="md-val2-c002", familia="lrdc", rota="mc", gerador="estrutura_v3.bacia_v3",
+               J_cal=6.731490621901747, J_val=6.998, J_pico_val=7.176, p=p,
+               origem="repo_hec_modelo/_analise_modelo/LEIAME.md (rodada md-val2, decomposição do md-w2-c016)",
+               correcao={"fonte": "correcao_horaria.py com o membro md-val2-c002 (vazões da rodada md-val2; escolha só "
+                                  "nos eventos de calibração)",
+                         "busca_ultimo_valido_h": 72,
+                         "tau_h": {a: r["escolha"][a]["adit_h"]["tau"] for a in ("MUCUM", "ENCANTADO", "LJJ")},
+                         "tau_unico": {a: r["escolha"][a]["adit"]["tau"] for a in ("MUCUM", "ENCANTADO", "LJJ")}})
+    out["sha256_p"] = hashlib.sha256(json.dumps(p, sort_keys=True).encode()).hexdigest()[:16]
+    (AQUI / "parametros" / "md-val2-c002.json").write_text(json.dumps(out, ensure_ascii=False, indent=1),
+                                                            encoding="utf-8")
+
+
 if __name__ == "__main__":
     DADOS.mkdir(exist_ok=True)
+    if sys.argv[1:] == ["c002"]:
+        parametros_c002()
+        sys.exit()
+    if sys.argv[1:] == ["rede"]:
+        rede()
+        sys.exit()
     subbacias()
     curvas()
     correcao()

@@ -28,8 +28,9 @@ PONTOS = {   # nome: (código ANA, nó do modelo, limite da curva em cm ou None,
 COTAS_MUCUM_CM = {"atencao_5m": 500, "alerta_10m": 1000, "limite_curva_15m": 1500, "inundacao_18m": 1800}
 
 
-def carregar_config():
-    corr = json.loads((geo.DADOS / "correcao.json").read_text(encoding="utf-8"))
+def carregar_config(parametros=None):
+    """τ(h) da correção: o do conjunto de parâmetros (chave 'correcao'), senão o de dados/correcao.json (lr-g8-c038)."""
+    corr = (parametros or {}).get("correcao") or json.loads((geo.DADOS / "correcao.json").read_text(encoding="utf-8"))
     curvas = json.loads((geo.DADOS / "curvas_telemetria.json").read_text(encoding="utf-8"))
     return corr, curvas
 
@@ -71,8 +72,9 @@ def _r(x, n=1):
     return None if x is None or (isinstance(x, float) and not math.isfinite(x)) else round(float(x), n)
 
 
-def ponto(nome, horas, t0, sims, obs_q, obs_n, corr, curvas, horizonte_h, busca_h=72):
-    """sims: {cenario: {t: q}} (10 min); obs_q/obs_n: {t: valor} (só até t0 para a correção)."""
+def ponto(nome, horas, t0, sims, obs_q, obs_n, corr, curvas, horizonte_h, busca_h=72, aditiva=True):
+    """sims: {cenario: {t: q}} (10 min); obs_q/obs_n: {t: valor} (só até t0 para a correção).
+    aditiva=False: 'corrigido' = simulado (estado já assimilado; a correção aditiva dobraria o ajuste)."""
     cod, no, lim, corrigir = PONTOS[nome]
     O = [obs_q.get(t) for t in horas]
     N = [obs_n.get(t) for t in horas]
@@ -99,7 +101,7 @@ def ponto(nome, horas, t0, sims, obs_q, obs_n, corr, curvas, horizonte_h, busca_
     out["corrigido"], out["nivel_previsto_cm"], out["erro_em_tv_m3s"] = {}, {}, {}
     for c, s in sims.items():
         S = [s.get(t) for t in horas]
-        e = (O[tv] - S[tv]) if (tv is not None and S[tv] is not None) else 0.0
+        e = (O[tv] - S[tv]) if (aditiva and tv is not None and S[tv] is not None) else 0.0
         out["erro_em_tv_m3s"][c] = _r(e)
         F = []
         for i, t in enumerate(horas):
@@ -114,6 +116,8 @@ def ponto(nome, horas, t0, sims, obs_q, obs_n, corr, curvas, horizonte_h, busca_
         if curva is not None:
             out["nivel_previsto_cm"][c] = [None if x is None else _r(curva.q2h(x), 0) for x in F]
     out["tau_h_usado"] = {"1h": tau_h[0], "6h": tau_h[5], "24h": tau_h[23], "48h+": tau_h[-1]}
+    if not aditiva:
+        out["correcao"] = "estado assimilado no fim do observado; sem correção aditiva"
     if curva is not None:
         out["curva"] = dict(pares_da_janela=len(curva.h), faixa_janela_cm=[_r(curva.h[0], 0), _r(curva.h[-1], 0)]
                             if len(curva.h) else None, agregada_janelas=len(curvas[nome]["janelas"]))

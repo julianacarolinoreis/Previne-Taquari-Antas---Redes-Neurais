@@ -53,9 +53,17 @@ def gerar_bacia(parametros, sim):
     return getattr(_MOD.get(mod) or importlib.import_module(mod), fn)(parametros["p"], sim, parametros.get("rota", "mc"))
 
 
-def rodar(sim, ini, fim, observados, forcamentos, parametros, paralelo=None):
+def diretorio(sim, cenario):
+    return _MOD["comum"].RUNS / sim / cenario
+
+
+def rodar(sim, ini, fim, observados, forcamentos, parametros, paralelo=None, salvar_em=None, estado_inicial=None,
+          por_jvm=1):
     """observados: {cod: {t: (nivel, vazao, chuva)}}; forcamentos: {cenario: {'horas': [...], 'chuva_por_subbacia': {...}}}.
-    Devolve ({cenario: {no: {t: q}} ou Exception}, tempos)."""
+    salvar_em: instante do Save State (estado.py); estado_inicial: arquivo .state com instante = ini (Start State).
+    Devolve ({cenario: {no: {t: q}} ou Exception}, tempos, q0); com salvar_em, o .state salvo fica em
+    <trabalho>/runs/<sim>/<cenario>/basinStates/fim.state."""
+    import estado
     import telemetria_ana as ta
     comum, hec, bi = _MOD["comum"], _MOD["hec"], _MOD["bacia_inteira"]
     w = _MOD["w"]
@@ -67,13 +75,23 @@ def rodar(sim, ini, fim, observados, forcamentos, parametros, paralelo=None):
         nome = f"{sim}__{cen}"
         comum.SIMULACOES[nome] = dict(ini=ini, fim=fim, mae=sim)
         (comum.FORC / f"{nome}.json").write_text(json.dumps(dict(f, sim=nome)), encoding="utf-8")
-        jobs.append((comum.RUNS / sim / cen, nome))
+        jobs.append((diretorio(sim, cen), nome))
     hec.NOS_EXTRA = sorted({c[1] for c in bi.CONTROLES.values()})
     t = time.time()
     txt = gerar_bacia(parametros, sim)          # o q0 vem dos observados da janela-base (iguais em todos os cenários)
     t_bacia = time.time() - t
     t = time.time()
-    res = hec.rodar_lote([(d, nome, txt) for d, nome in jobs], paralelo=paralelo or len(jobs), por_jvm=1)
+    original = hec.escrever_projeto
+
+    def escrever(d, nome, texto):
+        original(d, nome, texto)
+        estado.configurar(d, hec, salvar_em, estado_inicial)
+
+    hec.escrever_projeto = escrever if (salvar_em is not None or estado_inicial is not None) else original
+    try:
+        res = hec.rodar_lote([(d, nome, txt) for d, nome in jobs], paralelo=paralelo or len(jobs), por_jvm=por_jvm)
+    finally:
+        hec.escrever_projeto = original
     t_hec = time.time() - t
     out = {cen: res[d] for (d, _), cen in zip(jobs, forcamentos)}
     q0 = _MOD["estrutura_v3"].q0_controles(sim)

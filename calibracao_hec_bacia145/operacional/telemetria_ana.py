@@ -5,6 +5,7 @@ calibração. Nada é preenchido; o que falhar fica registrado em `falhas`.
 """
 import re
 import time
+import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
@@ -39,12 +40,17 @@ def ler_xml(txt):
     return out
 
 
-def baixar(cod, ini, fim, tentativas=3, timeout=60):
-    """Registros do posto entre ini e fim (hora local). Devolve (registros, erro ou None)."""
+N_429 = [0]   # respostas "Too Many Requests" no processo (a frente de chuva viu 429 com muitas consultas em paralelo)
+
+
+def baixar(cod, ini, fim, tentativas=4, timeout=60):
+    """Registros do posto entre ini e fim (hora local). Devolve (registros, erro ou None).
+    HTTP 429: espera 10, 20, 30 s antes de tentar de novo (backoff)."""
     a = (ini - timedelta(days=1)).strftime("%d/%m/%Y")
     b = (fim + timedelta(days=1)).strftime("%d/%m/%Y")
     erro = None
     for k in range(tentativas):
+        espera = 3 * (k + 1)
         for base in BASES:
             try:
                 req = urllib.request.Request(f"{base}?codEstacao={cod}&dataInicio={a}&dataFim={b}",
@@ -52,15 +58,21 @@ def baixar(cod, ini, fim, tentativas=3, timeout=60):
                 txt = urllib.request.urlopen(req, timeout=timeout).read().decode("utf-8", "replace")
                 reg = {t: v for t, v in ler_xml(txt).items() if ini <= t <= fim}
                 return reg, None
+            except urllib.error.HTTPError as exc:
+                erro = f"HTTP {exc.code}"
+                if exc.code == 429:
+                    N_429[0] += 1
+                    espera = 10 * (k + 1)
+                    break
             except Exception as exc:  # noqa: BLE001 — falha de rede é registrada, não interrompe o ciclo
                 erro = repr(exc)[:160]
-        time.sleep(3 * (k + 1))
+        time.sleep(espera)
     return {}, erro
 
 
 def baixar_varios(codigos, ini, fim, paralelo=8):
-    """{cod: registros}, {cod: erro}."""
-    with ThreadPoolExecutor(paralelo) as ex:
+    """{cod: registros}, {cod: erro}. paralelo=1 = em série (o recomendado se aparecer 429)."""
+    with ThreadPoolExecutor(max(1, paralelo)) as ex:
         res = list(ex.map(lambda c: (c, *baixar(c, ini, fim)), codigos))
     return {c: r for c, r, _ in res}, {c: e for c, _, e in res if e}
 

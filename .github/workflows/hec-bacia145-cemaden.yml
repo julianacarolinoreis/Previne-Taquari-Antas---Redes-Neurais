@@ -1,0 +1,71 @@
+name: HEC bacia 145 - coletor CEMADEN
+
+# Coletor do CEMADEN para a chuva ao vivo do HEC (bacia 145). O JSON público do CEMADEN só traz os acumulados até o
+# último dado (1, 3, 6 … 96 h), sem histórico: a cada 10 min uma leitura dos 66 postos da rede é anexada em
+# cemaden/AAAA-MM-DD.jsonl na branch órfã de dados cursor/hec-bacia145-sistema-dados (só dados, sem workflows: o
+# push nela não dispara nada). O ciclo ao vivo (hec-bacia145-aovivo.yml) lê essa pasta. PESQUISA.
+#  - schedule e workflow_dispatch só valem quando o arquivo estiver na branch padrão;
+#  - push na branch do sistema (cemaden.py ou este arquivo): uma coleta, para teste.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/10 * * * *"
+  push:
+    branches: ["cursor/hec-bacia145-sistema"]
+    paths:
+      - "calibracao_hec_bacia145/operacional/cemaden.py"
+      - ".github/workflows/hec-bacia145-cemaden.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hec-bacia145-cemaden
+  cancel-in-progress: false
+
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      DADOS: cursor/hec-bacia145-sistema-dados
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: calibracao_hec_bacia145/operacional
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --disable-pip-version-check requests
+      - name: Branch de dados
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir dados && cd dados
+          git init -q
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git fetch -q --depth 1 origin "$DADOS"; then
+            git checkout -q -b "$DADOS" FETCH_HEAD
+          else
+            git checkout -q --orphan "$DADOS"
+            printf '%s\n' "Dados ao vivo do HEC bacia 145 (coletor CEMADEN). Ver calibracao_hec_bacia145/operacional/LEIAME.md na branch cursor/hec-bacia145-sistema." > README.md
+            git add README.md
+          fi
+      - name: Coletar
+        run: |
+          cd calibracao_hec_bacia145/operacional
+          python -B cemaden.py coletar --pasta "$GITHUB_WORKSPACE/dados/cemaden"
+      - name: Gravar na branch de dados
+        run: |
+          cd dados
+          git add cemaden
+          git commit -q -m "cemaden $(date -u +%Y-%m-%dT%H:%MZ)" || exit 0
+          for i in 1 2 3 4 5; do
+            git push -q origin "HEAD:$DADOS" && exit 0
+            sleep $((i * 5))
+            git fetch -q --depth 20 origin "$DADOS" && git rebase -q FETCH_HEAD || true
+          done
+          exit 1
