@@ -1,0 +1,90 @@
+name: HEC bacia 145 - ciclo ao vivo
+
+# Um ciclo do HEC-HMS ao vivo (145 sub-bacias, lr-g8-c038) no GitHub (Linux): chuva observada da telemetria da ANA,
+# chuva prevista ECMWF/GFS (dados abertos, por byte-range), HEC por cenário, correção aditiva e nível.
+# PESQUISA — nada aqui é alerta oficial. Ver calibracao_hec_bacia145/operacional/LEIAME.md.
+#  - push na branch do sistema (pasta operacional/ ou este arquivo): roda um ciclo ao vivo;
+#  - workflow_dispatch e schedule só valem quando o arquivo estiver na branch padrão.
+
+on:
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: "aovivo | retro"
+        default: aovivo
+        type: string
+      t0:
+        description: "retro: hora de emissão local (AAAA-MM-DDTHH:MM)"
+        default: ""
+        type: string
+      horizonte:
+        description: "horizonte em horas (48 a 120)"
+        default: "120"
+        type: string
+      cenarios:
+        description: "cenários de chuva prevista"
+        default: "ecmwf,gfs,zero"
+        type: string
+  schedule:
+    - cron: "40 1,7,13,19 * * *"     # ~1 h depois das rodadas 00/06/12/18 UTC do ECMWF ficarem completas
+  push:
+    branches: ["cursor/hec-bacia145-sistema"]
+    paths:
+      - "calibracao_hec_bacia145/operacional/**"
+      - ".github/workflows/hec-bacia145-aovivo.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hec-bacia145-aovivo-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ciclo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      MODO: ${{ github.event.inputs.modo || 'aovivo' }}
+      T0: ${{ github.event.inputs.t0 || '' }}
+      HORIZONTE: ${{ github.event.inputs.horizonte || '120' }}
+      CENARIOS: ${{ github.event.inputs.cenarios || 'ecmwf,gfs,zero' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: calibracao_hec_bacia145
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Dependências
+        run: pip install --disable-pip-version-check numpy requests "eccodes==2.49.0" ecmwflibs
+      - name: Cache HEC-HMS 4.13
+        id: cache-hec
+        uses: actions/cache@v4
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+      - name: Baixar HEC-HMS 4.13
+        if: steps.cache-hec.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .hec
+          curl -L --fail --retry 3 --retry-delay 4 -o /tmp/HEC-HMS-4.13-linux64.tar.gz https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
+          tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
+      - name: Rodar o ciclo
+        run: |
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          test -n "$HEC_SH"
+          chmod +x "$HEC_SH"
+          python -c "import eccodes; print('eccodes', eccodes.codes_get_api_version())"
+          EXTRA=""
+          if [ "$MODO" = "retro" ]; then EXTRA="--t0 $T0"; fi
+          cd calibracao_hec_bacia145/operacional
+          python -B ciclo.py --modo "$MODO" $EXTRA --horizonte "$HORIZONTE" --cenarios "$CENARIOS" \
+            --hec-cmd "$HEC_SH" --trabalho "$RUNNER_TEMP/trabalho" --saida "$RUNNER_TEMP/saida"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hec-aovivo-${{ github.run_id }}
+          path: ${{ runner.temp }}/saida
+          retention-days: 7
+          if-no-files-found: warn
