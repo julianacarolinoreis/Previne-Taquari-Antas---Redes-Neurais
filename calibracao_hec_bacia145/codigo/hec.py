@@ -24,8 +24,8 @@ PASSO_MIN = 10
 NOS_EXTRA = []  # nós adicionais a extrair (diagnóstico)
 SAIDA = "Save Minimum"  # "Save All" grava ~55 MB/rodada
 BASIN_NAME = "Taquari-Antas 145 SB 105 R"
-# ET de referência mensal (mm/mês, jan..dez) aproximada para a Serra Gaúcha; só entra com a perda Deficit Constant,
-# que precisa secar o solo entre as chuvas das janelas de 2-3 semanas.
+# ET de referência mensal (mm/mês, jan..dez) aproximada para a Serra Gaúcha; só entra com as perdas Deficit Constant e
+# Soil Moisture Accounting, que precisam secar o solo entre as chuvas das janelas de 2-3 semanas.
 ET_MENSAL_MM = [130, 105, 95, 65, 45, 35, 40, 55, 70, 100, 120, 135]
 
 
@@ -267,7 +267,7 @@ def escrever_projeto(d: Path, sim: str, basin_text: str, tabelas: dict | None = 
               "     Variant: Variant-1", f"       Start Time: {data_longa(ini)}, {ini:%H:%M}",
               f"       End Time: {data_longa(fim)}, {fim:%H:%M}", "     End Variant: Variant-1", "End:", ""]
     (d / "proj.gage").write_text("\n".join(g), encoding="utf-8")
-    com_et = "LossRate: Deficit Constant" in basin_text
+    com_et = "LossRate: Deficit Constant" in basin_text or "LossRate: Soil Moisture Account" in basin_text
     m = ["Meteorology: Chuva ANA", "     Version: 4.13", "     Unit System: Metric",
          "     Set Missing Data to Default: No", "     Precipitation Method: Specified Average",
          "     Air Temperature Method: None", "     Atmospheric Pressure Method: None",

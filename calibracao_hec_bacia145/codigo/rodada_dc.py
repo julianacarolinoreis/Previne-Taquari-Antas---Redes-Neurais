@@ -6,6 +6,9 @@
   lrdc8 lrdc + n das encostas da seção de 8 pontos (nob; usar com --rota mc8 ou mc8st)
   lrdcv8 lrdcv + nob (Clark variável e seções de 8 pontos juntos)
   lrdcr lrdc + multiplicadores regionais de dmax, perc e fb (grupos T = Tainhas e B = Carreiro/Guaporé/baixo; PARAMS_LRDCR)
+  lrdcf  lrdc + só xfb_T/xfb_B (controle da perda que cresce com a cheia)
+  lrscsf SCS Curve Number + reservatório linear + xfb_T/xfb_B
+  lrsmaf Soil Moisture Accounting + reservatório linear + multiplicadores regionais da perda profunda
 
 Mesmas janelas e papéis das famílias g1/g2/g4/g6 (todos os eventos de calibração), para o J ser comparável com
 lib-A (Initial+Constant) e scs-A (SCS).
@@ -15,6 +18,9 @@ Uso:
   python rodada_dc.py viz  --familia lrdcv --rodada md-v0 --centro res.json:lr-g8-c038 --raio 0.15 --n 48 --saida ...
   (LHS na vizinhança de um candidato: ±raio no espaço unitário dos parâmetros que ele tem; os parâmetros novos da
    família varrem a faixa toda; o candidato 0 é o próprio centro, com os parâmetros novos neutros)
+  --livres a,b,c: esses parâmetros varrem a faixa toda mesmo que o centro os tenha; --sem-centro: sem o candidato 0
+  (comparação justa entre perdas: todas partem do mesmo centro para o resto e procuram a perda do zero)
+--forcamento forcamento_v3b: pasta de chuva gravada no PEDIDO (padrão do lote: forcamento_v3).
   python rodada_dc.py es   --rodada dc-g1 --resultados pasta [pasta ...] --lam 24 --mu 6 --sigma 0.15 --saida ...
   python rodada_dc.py top  --rodada dc-av --resultados pasta [pasta ...] --n 3 --janelas todas --saida ...
   python rodada_dc.py teste --rodada dc-teste --semente 1 --saida ...   (2 candidatos x 2 janelas: confere a sintaxe)
@@ -43,7 +49,7 @@ NEUTROS = {"ie": 5.0, "atc": 0.0, "ar": 0.0, "nob": 1.0, **{k: 1.0 for k in e3.P
 
 def to_unit(p):
     return {k: (math.log(p[k] / a) / math.log(b / a)) if s == "log" else (p[k] - a) / (b - a)
-            for k, (a, b, s) in P.items()}
+            for k, (a, b, s) in P.items() if k in p}
 
 
 def from_unit(u):
@@ -87,15 +93,23 @@ def gerar(a, fam, semente):
         return [from_unit(dict(zip(chaves, x))) for x in amostras], {}
     if a.modo == "viz":
         c0 = ler_centro(a.centro)
-        p0 = {k: c0["p"].get(k, NEUTROS.get(k)) for k in chaves}
+        livres = set(filter(None, a.livres.split(",")))
+        p0 = {k: c0["p"].get(k, NEUTROS.get(k)) for k in chaves if k not in livres and (k in c0["p"] or k in NEUTROS)}
         u0 = to_unit(p0)
-        amostras = qmc.LatinHypercube(d=len(chaves), seed=semente).random(a.n - 1)
-        cands = [p0]
+        if a.sem_centro:
+            cands = []
+        elif set(p0) == set(chaves):
+            cands = [p0]
+        else:
+            sys.exit(f"{fam}: o centro não define {sorted(set(chaves) - set(p0))}; use --sem-centro")
+        amostras = qmc.LatinHypercube(d=len(chaves), seed=semente).random(a.n - len(cands))
         for x in amostras:
-            u = {k: (u0[k] + a.raio * (2 * xi - 1)) if k in c0["p"] else
-                 (u0[k] + a.raio_novos * (2 * xi - 1)) if a.raio_novos > 0 else xi for k, xi in zip(chaves, x)}
+            u = {k: (u0[k] + a.raio * (2 * xi - 1)) if k in u0 and k in c0["p"] else
+                 (u0[k] + a.raio_novos * (2 * xi - 1)) if k in u0 and a.raio_novos > 0 else xi
+                 for k, xi in zip(chaves, x)}
             cands.append(from_unit(u))
-        return cands, {"centro": c0["id"], "raio": a.raio, "raio_novos": a.raio_novos}
+        return cands, {"centro": c0["id"], "raio": a.raio, "raio_novos": a.raio_novos, "livres": sorted(livres),
+                       "sem_centro": a.sem_centro}
     todos = sorted(ler_resultados(a.resultados, a.rota, a.objetivo), key=lambda c: c[a.objetivo])
     if not todos:
         sys.exit(f"{fam}: nenhum resultado com {a.objetivo} finito nas pastas indicadas")
@@ -130,10 +144,15 @@ def main():
     ap.add_argument("--raio", type=float, default=0.15)
     ap.add_argument("--raio-novos", type=float, default=0.0,
                     help="viz: parâmetros novos amostrados a ±raio-novos do valor neutro (0 = faixa toda)")
+    ap.add_argument("--livres", default="", help="viz: parâmetros sempre na faixa toda (separados por vírgula)")
+    ap.add_argument("--sem-centro", action="store_true", help="viz: não incluir o próprio centro como candidato 0")
+    ap.add_argument("--forcamento", default="", help="pasta de chuva do lote (ex.: forcamento_v3b)")
     ap.add_argument("--saida", default="")
     a = ap.parse_args()
     janelas = "S2023_09,S2023_11" if a.modo == "teste" else a.janelas
     cands, extra = [], {"familias": {}}
+    if a.forcamento:
+        extra["forcamento"] = a.forcamento
     for i, fam in enumerate(a.familia.split(",")):
         c, x = gerar(a, fam, a.semente + i)
         extra["familias"][fam] = {"de": len(cands), "ate": len(cands) + len(c) - 1, **x}
