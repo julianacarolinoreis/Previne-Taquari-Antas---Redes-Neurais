@@ -5,6 +5,7 @@
   lrdcv lrdc + Clark variável (Tc e R pela intensidade do excesso; PARAMS_LRDCV)
   lrdc8 lrdc + n das encostas da seção de 8 pontos (nob; usar com --rota mc8 ou mc8st)
   lrdcv8 lrdcv + nob (Clark variável e seções de 8 pontos juntos)
+  lrdcr lrdc + multiplicadores regionais de dmax, perc e fb (grupos T = Tainhas e B = Carreiro/Guaporé/baixo; PARAMS_LRDCR)
 
 Mesmas janelas e papéis das famílias g1/g2/g4/g6 (todos os eventos de calibração), para o J ser comparável com
 lib-A (Initial+Constant) e scs-A (SCS).
@@ -37,7 +38,7 @@ JANELAS_CAL = ("S2023_07,S2023_09,S2023_11,S2024_05,S2024_06,X20180721,X20180821
                "X20190525,X20191027,X20200626,X20200809,X20210125,X20210525,X20210622")
 PAPEIS = {"E18": "validacao", "E22": "validacao"}
 P = e3.PARAMS_DC   # trocado em main() conforme --familia
-NEUTROS = {"ie": 5.0, "atc": 0.0, "ar": 0.0, "nob": 1.0}
+NEUTROS = {"ie": 5.0, "atc": 0.0, "ar": 0.0, "nob": 1.0, **{k: 1.0 for k in e3.PARAMS_LRDCR if k.startswith("x")}}
 
 
 def to_unit(p):
@@ -91,9 +92,10 @@ def gerar(a, fam, semente):
         amostras = qmc.LatinHypercube(d=len(chaves), seed=semente).random(a.n - 1)
         cands = [p0]
         for x in amostras:
-            u = {k: (u0[k] + a.raio * (2 * xi - 1)) if k in c0["p"] else xi for k, xi in zip(chaves, x)}
+            u = {k: (u0[k] + a.raio * (2 * xi - 1)) if k in c0["p"] else
+                 (u0[k] + a.raio_novos * (2 * xi - 1)) if a.raio_novos > 0 else xi for k, xi in zip(chaves, x)}
             cands.append(from_unit(u))
-        return cands, {"centro": c0["id"], "raio": a.raio}
+        return cands, {"centro": c0["id"], "raio": a.raio, "raio_novos": a.raio_novos}
     todos = sorted(ler_resultados(a.resultados, a.rota, a.objetivo), key=lambda c: c[a.objetivo])
     if not todos:
         sys.exit(f"{fam}: nenhum resultado com {a.objetivo} finito nas pastas indicadas")
@@ -126,6 +128,8 @@ def main():
     ap.add_argument("--objetivo", default="J", choices=("J", "J_pico"))
     ap.add_argument("--centro", default="", help="resultado.json:id (modo viz)")
     ap.add_argument("--raio", type=float, default=0.15)
+    ap.add_argument("--raio-novos", type=float, default=0.0,
+                    help="viz: parâmetros novos amostrados a ±raio-novos do valor neutro (0 = faixa toda)")
     ap.add_argument("--saida", default="")
     a = ap.parse_args()
     janelas = "S2023_09,S2023_11" if a.modo == "teste" else a.janelas

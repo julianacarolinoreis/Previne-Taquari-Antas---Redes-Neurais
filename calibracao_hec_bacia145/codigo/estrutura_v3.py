@@ -95,8 +95,23 @@ VC_MIN, VC_MAX = 20.0, 400.0
 # n da calha entre os pontos 3 e 6 = N_BASE*mn; nas encostas = nob vezes isso (família lrdc8; sem nob, 1).
 PARAMS_LRDC8 = dict(PARAMS_LRDC, nob=(0.7, 3.0, "log"))
 PARAMS_LRDCV8 = dict(PARAMS_LRDCV, nob=PARAMS_LRDC8["nob"])
+# Multiplicadores regionais de volume (09/10, família lrdcr; _analise_volume/balanco.py): o coeficiente de escoamento
+# observado é menor em Tainhas (Campos de Cima da Serra) e cresce com o tamanho do evento nos vales, enquanto o simulado
+# fica em ~0,5 em toda a bacia. Três grupos: T = tainhas, A = alto+medio (usa os valores globais), B = carreiro+guapore+baixo.
+# dmax, perc e fb de T e B = valor global x multiplicador (fb limitado a 1); multiplicadores = 1 reproduzem o lrdc.
+GRUPO_VOL = {"tainhas": "T", "alto": "A", "medio": "A", "carreiro": "B", "guapore": "B", "baixo": "B"}
+PARAMS_LRDCR = dict(PARAMS_LRDC, **{f"x{k}_{g}": (lo, hi, "log") for g in ("T", "B")
+                                    for k, lo, hi in (("dmax", 1 / 3, 3.0), ("perc", 0.2, 5.0), ("fb", 0.5, 2.0))})
 FAMILIAS = {"dc": PARAMS_DC, "lric": PARAMS_LRIC, "lrdc": PARAMS_LRDC, "lrdcv": PARAMS_LRDCV, "lrdc8": PARAMS_LRDC8,
-            "lrdcv8": PARAMS_LRDCV8}
+            "lrdcv8": PARAMS_LRDCV8, "lrdcr": PARAMS_LRDCR}
+
+
+def p_regional(p, reg):
+    """Parâmetros de volume do grupo da região (família lrdcr); sem multiplicadores devolve p."""
+    g = GRUPO_VOL[reg]
+    if f"xdmax_{g}" not in p:
+        return p
+    return dict(p, dmax=p["dmax"] * p[f"xdmax_{g}"], perc=p["perc"] * p[f"xperc_{g}"], fb=min(1.0, p["fb"] * p[f"xfb_{g}"]))
 ROTAS_8PT = {"mc8st": ("R_208", "R_256", "R_201"), "mc8": None}
 _SECOES = None
 
@@ -244,9 +259,12 @@ def bloco_mc8(r, p):
 def bacia_v3(p, sim, rota="mc"):
     q0 = q0_controles(sim)
 
+    p_glob = p
+
     def sub(m):
         nome, corpo = m[1].strip(), m[2]
         reg = bi.REG[nome]
+        p = p_regional(p_glob, reg)
         v = p["v_alto"] if reg in GRUPO_ALTO else p["v_resto"]
         md = SUB_MDT[nome]
         if md["area"] > A_GRANDE:
