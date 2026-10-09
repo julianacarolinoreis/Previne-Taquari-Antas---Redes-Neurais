@@ -63,12 +63,19 @@ class V11Test(unittest.TestCase):
             with patch.object(V.R,'prever') as infer:p=V.forecast(self.levels,self.rain,self.now,c)
             self.assertEqual(p['status'],'BLOQUEADO_SHA256');infer.assert_not_called()
 
+    def test_carreiro_group_uses_only_ana_2851044(self):
+        self.assertEqual(self.contract['chuvas'][1]['estacoes'],['2851044'])
+        self.rain['A894']={self.base-i*V.HOUR:50.0 for i in range(30)}
+        self.rain['432040401A']={self.base-i*V.HOUR:50.0 for i in range(30)}
+        p=V.forecast(self.levels,self.rain,self.now,self.contract)
+        self.assertEqual(p['status'],'OK_SOMBRA');self.assertEqual(p['inputs'][15],15)
+
     def test_rain_hourly_average_partial_is_explicit_and_all_missing_blocks(self):
-        self.rain['A894'].clear()
+        self.rain['86472000'].clear()
         p=V.forecast(self.levels,self.rain,self.now,self.contract)
         self.assertTrue(p['disponivel']);self.assertEqual(p['status'],'OK_SOMBRA_CHUVA_PARCIAL')
         self.assertEqual(p['inputs'][14:16],[12,15])
-        self.assertEqual(p['cobertura_chuva'][1]['horas_por_posto']['A894'],0)
+        self.assertEqual(p['cobertura_chuva'][0]['horas_por_posto']['86472000'],0)
         for cod in self.contract['chuvas'][1]['estacoes']:self.rain[cod].pop(self.base,None)
         p=V.forecast(self.levels,self.rain,self.now,self.contract)
         self.assertFalse(p['disponivel']);self.assertIn(C.stamp(self.base),' '.join(p['inputs_faltantes']))
