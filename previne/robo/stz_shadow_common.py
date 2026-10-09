@@ -23,12 +23,24 @@ def stamp(t):
 def read(path, default=None):
     return json.loads(Path(path).read_text(encoding="utf-8")) if Path(path).exists() else default
 
-def write(path, data):
+def write(path, data, compact=False):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    layout = {"separators": (",", ":")} if compact else {"indent": 2}
+    tmp.write_text(json.dumps(data, ensure_ascii=False, allow_nan=False, **layout) + "\n", encoding="utf-8")
     tmp.replace(path)
+
+def chart_point(p):
+    """Somente o que o grafico usa; entradas completas ficam no historico e no arquivo de ciclo."""
+    obs = p.get("observado_cm")
+    return {"modelo_id": p["modelo_id"], "hora_alvo": p["hora_alvo"],
+            "nivel_previsto_cm": round(float(p["nivel_previsto_cm"]), 1),
+            "observado_cm": None if obs is None else round(float(obs), 1)}
+
+def history_paths(paths):
+    return [str(Path(f).resolve().relative_to(ROOT)).replace("\\", "/") for f in paths
+            if Path(f).resolve().is_relative_to(ROOT)]
 
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest().upper()

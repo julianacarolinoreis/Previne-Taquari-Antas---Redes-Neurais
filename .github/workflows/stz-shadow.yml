@@ -46,6 +46,7 @@ jobs:
             assets/mat/sombra_santa_tereza_v2
             assets/data/stz_user_models
             assets/data/stz_shadow_archive
+            assets/data/stz_shadow_history
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -76,12 +77,17 @@ jobs:
             previsao_sombra_stz_usuario.json
             historico_sombra_stz_usuario.json
             assets/data/stz_shadow_archive/
+            assets/data/stz_shadow_history/
       - name: Publicar somente feeds e historicos de sombra
         if: always() && steps.validar.outcome == 'success' && steps.inferencia.outcome != 'skipped'
         run: |
           git config user.name 'previne-robo'
           git config user.email 'previne-robo@users.noreply.github.com'
-          git add previsao_sombra_stz_n5.json historico_sombra_stz_n5.json previsao_sombra_stz_usuario.json historico_sombra_stz_usuario.json assets/data/stz_shadow_archive
+          git add previsao_sombra_stz_n5.json previsao_sombra_stz_usuario.json assets/data/stz_shadow_archive assets/data/stz_shadow_history
+          # Historico legado so sai do indice depois que o robo o migrou para as particoes mensais.
+          for legado in historico_sombra_stz_n5.json historico_sombra_stz_usuario.json; do
+            if [ -e "$legado" ]; then git add "$legado"; else git rm -q --cached --ignore-unmatch "$legado"; fi
+          done
           if git diff --staged --quiet; then exit 0; fi
           git commit -m 'bot: atualiza acompanhamento STZ em sombra [skip ci]'
           for tentativa in 1 2 3 4 5; do

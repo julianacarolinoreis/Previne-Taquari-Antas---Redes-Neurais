@@ -140,6 +140,72 @@ class StorageTest(unittest.TestCase):
             archived=json.loads(gzip.decompress(archive_path.read_bytes()))
             self.assertEqual(len(archived['alteracoes_historico']),52)
 
+    def multi_month_history(self):
+        rows=[]
+        for i,issued in enumerate(('2026-10-31T23:47:00','2026-11-01T00:17:00','2026-11-01T01:17:00')):
+            t=dt.datetime.fromisoformat(issued).replace(minute=0)
+            rows.append(dict(self.p,emitida_em=issued,hora_modelo=C.stamp(t),hora_alvo=C.stamp(t+dt.timedelta(hours=4)),
+                             nivel_previsto_cm=430+i,origem='emissao_prospectiva',observado_cm=None))
+        return {'schema_version':S.SCHEMA,'shadow_only':True,'registros':rows,'atualizado_em':'2026-11-01T01:17:00'}
+
+    def test_legacy_history_migrates_to_monthly_partitions_in_insertion_order(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);legacy=root/'historico.json';parts=root/'hist'
+            hist=self.multi_month_history();C.write(legacy,hist)
+            before=S.load(parts,legacy);self.assertEqual(before,hist)
+            files=S.save(parts,before,before,legacy)
+            self.assertEqual([f.name for f in files],['2026-10.json','2026-11.json'])
+            self.assertFalse(legacy.exists())
+            self.assertEqual(S.load(parts,legacy)['registros'],hist['registros'])
+            lines=(parts/'2026-11.json').read_text(encoding='utf-8').splitlines()
+            self.assertEqual(len(lines),4)  # cabecalho, dois registros, fechamento
+            with self.assertRaises(FileNotFoundError):S.load(root/'vazio',root/'nao_existe.json')
+
+    def test_partitions_never_drop_months_or_records(self):
+        with tempfile.TemporaryDirectory() as d:
+            parts=Path(d)/'hist';hist=self.multi_month_history()
+            S.save(parts,hist,hist)
+            fewer=copy.deepcopy(hist);fewer['registros']=fewer['registros'][1:]
+            with self.assertRaises(ValueError):S.save(parts,hist,fewer)
+            moved=copy.deepcopy(hist);moved['registros'][0]['emitida_em']='2026-11-01T00:00:00'
+            (parts/'2026-10.json').write_text(S.render_partition('2026-10',moved['registros'][:1],'x'),encoding='utf-8')
+            with self.assertRaises(ValueError):S.load(parts)
+
+    def test_publication_validator_reads_committed_partitions_after_migration(self):
+        import subprocess
+        from scripts.validate_stz_shadow_storage import git_history
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);legacy=root/'historico.json';parts=root/'hist'
+            git=lambda *a:subprocess.run(['git','-c','user.name=t','-c','user.email=t@t',*a],cwd=root,check=True,capture_output=True)
+            git('init','-q')
+            hist=self.multi_month_history();C.write(legacy,hist)
+            git('add','-A');git('commit','-qm','legado')
+            self.assertEqual(git_history(parts,legacy,root)['registros'],hist['registros'])
+            S.save(parts,S.load(parts,legacy),S.load(parts,legacy),legacy)
+            git('add','-A');git('commit','-qm','particoes')
+            self.assertFalse(legacy.exists())
+            before=git_history(parts,legacy,root)
+            self.assertEqual(before['registros'],hist['registros'])
+            S.preserve(before,S.load(parts,legacy))
+            git('rm','-rq','hist');git('commit','-qm','apaga')
+            with self.assertRaises(FileNotFoundError):git_history(parts,legacy,root)
+
+    def test_user_feed_is_slim_and_only_charts_current_model_versions(self):
+        from previne.robo import gerar_sombra_stz_usuario as U
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);history=root/'history.json';out=root/'feed.json'
+            old=dict(self.p,modelo_id='h4_Ridge',modelo_sha256='0'*64,emitida_em=C.stamp(self.data.now-dt.timedelta(hours=1)))
+            C.write(history,dict(self.empty,registros=[dict(old,origem='emissao_prospectiva',observado_cm=None)]))
+            with patch.object(U,'HISTORY',history),patch.object(U,'OUT',out),patch.object(S,'ARCHIVE',root/'archive'):
+                U.main((self.data.levels,self.data.rain),self.data.now)
+            text=out.read_text(encoding='utf-8');feed=json.loads(text)
+            self.assertNotIn('\n  ',text)
+            self.assertEqual(len(feed['serie_recente']),52)
+            self.assertTrue(all(set(r)=={'modelo_id','hora_alvo','nivel_previsto_cm','observado_cm'} for r in feed['serie_recente']))
+            self.assertTrue(all('mae_cm' in p['teste_historico'] for p in feed['modelos']))
+            self.assertNotIn('teste_historico',S.load(history)['registros'][-1])
+            self.assertEqual(feed['historico_registros_n'],53)
+
     def test_partial_failure_isolated_and_one_shared_collection(self):
         from previne.robo import executar_sombra_stz as E
         data=(self.data.levels,self.data.rain)

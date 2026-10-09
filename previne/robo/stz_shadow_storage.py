@@ -12,7 +12,9 @@ from pathlib import Path
 from . import stz_shadow_common as C
 
 ARCHIVE = C.ROOT / 'assets/data/stz_shadow_archive'
+HISTORY_ROOT = C.ROOT / 'assets/data/stz_shadow_history'
 SCHEMA = 'stz_shadow_history_v1'
+PARTITION_SCHEMA = 'stz_shadow_history_partition_v1'
 FROZEN = ('modelo_id','modelo_sha256','hora_modelo','hora_alvo','horizonte_h',
           'emitida_em','nivel_previsto_cm','nivel_base_cm','origem','inputs','inputs_horas')
 SCORED = ('observado_cm','conferido_em','erro_cm','erro_persistencia_cm')
@@ -41,10 +43,50 @@ def validate(history):
                 raise ValueError('Erro nao reconcilia com observacao')
     return history
 
-def load(path):
+def month(p):
+    # Particao pelo mes de emissao: a concatenacao mensal preserva a ordem de insercao.
+    return p['emitida_em'][:7]
+
+def validate_partition(name,part):
+    if (not isinstance(part,dict) or part.get('schema_version')!=PARTITION_SCHEMA or part.get('shadow_only') is not True
+            or part.get('mes')!=name or not isinstance(part.get('registros'),list) or not part['registros']):
+        raise ValueError(f'Particao mensal invalida: {name}')
+    if any(month(p)!=name for p in part['registros']):raise ValueError(f'Registro fora da particao {name}')
+    return part
+
+def combine(legacy,partitions):
+    """Historico unico em memoria: arquivo legado (se ainda existir) seguido das particoes mensais."""
+    if legacy is None and not partitions:raise FileNotFoundError('Historico de sombra ausente; nao reinicializar')
+    history={'schema_version':SCHEMA,'shadow_only':True,'registros':[]}
+    if legacy is not None:
+        validate(legacy);history['registros']=copy.deepcopy(legacy['registros'])
+        if 'atualizado_em' in legacy:history['atualizado_em']=legacy['atualizado_em']
+    positions={key(p):i for i,p in enumerate(history['registros'])}
+    for name,part in sorted(partitions):
+        validate_partition(name,part)
+        for p in part['registros']:
+            k=key(p)
+            if k in positions:history['registros'][positions[k]]=p
+            else:positions[k]=len(history['registros']);history['registros'].append(p)
+        if part.get('atualizado_em') and part['atualizado_em']>history.get('atualizado_em',''):history['atualizado_em']=part['atualizado_em']
+    return validate(history)
+
+def partition_files(path):
+    path=Path(path)
+    return sorted(path.glob('[0-9][0-9][0-9][0-9]-[0-9][0-9].json')) if path.is_dir() else []
+
+def load(path,legacy=None):
     # Estes arquivos ja foram inicializados e versionados na ativacao.
     # Um checkout incompleto nunca autoriza apagar sua historia.
-    return validate(json.loads(Path(path).read_text(encoding='utf-8')))
+    path=Path(path)
+    if path.suffix=='.json':return validate(json.loads(path.read_text(encoding='utf-8')))
+    old=json.loads(Path(legacy).read_text(encoding='utf-8')) if legacy and Path(legacy).exists() else None
+    return combine(old,[(f.stem,json.loads(f.read_text(encoding='utf-8'))) for f in partition_files(path)])
+
+def render_partition(name,rows,updated):
+    head=json.dumps({'schema_version':PARTITION_SCHEMA,'shadow_only':True,'mes':name,'atualizado_em':updated},ensure_ascii=False)[:-1]
+    lines=',\n'.join(json.dumps(p,ensure_ascii=False,allow_nan=False,separators=(',',':')) for p in rows)
+    return head+',"registros":[\n'+lines+'\n]}\n'
 
 def preserve(before,after):
     validate(before);validate(after)
@@ -56,9 +98,26 @@ def preserve(before,after):
         if old.get('observado_cm') is not None and any(old.get(n)!=new.get(n) for n in SCORED):
             raise ValueError('Primeira conferencia foi alterada')
 
-def save(path,before,after):
+def save(path,before,after,legacy=None):
     preserve(before,after)
-    C.write(path,after)
+    path=Path(path)
+    if path.suffix=='.json':
+        C.write(path,after);return [path]
+    groups={}
+    for p in after['registros']:groups.setdefault(month(p),[]).append(p)
+    stale={f.stem for f in partition_files(path)}-set(groups)
+    if stale:raise ValueError('Particao existente sem registros no novo historico: '+', '.join(sorted(stale)))
+    path.mkdir(parents=True,exist_ok=True)
+    for name,rows in sorted(groups.items()):
+        target=path/f'{name}.json'
+        if target.exists() and json.loads(target.read_text(encoding='utf-8')).get('registros')==rows:continue
+        tmp=target.with_suffix('.json.tmp')
+        tmp.write_text(render_partition(name,rows,after.get('atualizado_em')),encoding='utf-8');tmp.replace(target)
+    if legacy and Path(legacy).exists():
+        if combine(None,[(f.stem,json.loads(f.read_text(encoding='utf-8'))) for f in partition_files(path)])['registros']!=after['registros']:
+            raise ValueError('Particoes gravadas nao reproduzem o historico; legado mantido')
+        Path(legacy).unlink()
+    return partition_files(path)
 
 def archive(source,now,predictions,levels,rain,before,after,root=None):
     preserve(before,after)

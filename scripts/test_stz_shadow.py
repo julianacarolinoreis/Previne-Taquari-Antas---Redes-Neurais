@@ -99,6 +99,25 @@ class ShadowTest(unittest.TestCase):
         self.assertEqual(C.sha(C.ROOT/'assets/data/stz_user_models/training_n5.csv'),m['source_sha256'])
         self.assertEqual(C.sha(C.ROOT/'assets/data/stz_user_models/training_n5_meta.csv'),m['source_meta_sha256'])
 
+    def test_calibration_converged_and_svr_target_is_standardized(self):
+        import joblib
+        from sklearn.compose import TransformedTargetRegressor
+        m=C.read(C.ROOT/'assets/data/stz_user_models/manifest.json')
+        temporal=[p for p in m['models'] if p['family']=='temporal']
+        self.assertEqual(len(temporal),24)
+        for p in temporal:
+            candidates=p['validation_mse_scaled_candidates']
+            self.assertEqual(p['protocol'],min(candidates,key=candidates.get),p['id'])
+            if p['protocol']=='r2_minibatch':
+                self.assertTrue(p['stopped_by_validation'],p['id'])
+                self.assertLess(p['best_epoch'],m['temporal_training']['max_epochs']-m['temporal_training']['patience_epochs']+1,p['id'])
+        for p in m['models']:
+            if p['name']=='SVR':
+                self.assertIsInstance(joblib.load(C.ROOT/p['path']),TransformedTargetRegressor)
+        ref=m['reference_n5_test']
+        self.assertEqual(ref['n'],m['datasets']['4']['n_test'])
+        self.assertEqual(ref['modelo_sha256'],self.contract['horizontes']['4h']['modelos'][0]['modelo_sha256'])
+
     def test_public_and_user_interfaces_have_separate_panels(self):
         public=(C.ROOT/'santa_tereza_previsao_inundacao.html').read_text(encoding='utf-8')
         user=(C.ROOT/'santa_tereza_previsao_inundacao_usuario.html').read_text(encoding='utf-8')

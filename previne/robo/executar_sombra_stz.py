@@ -5,7 +5,7 @@ from . import gerar_sombra_stz_usuario as U
 
 def main():
     # Nao consultar a ANA se os historicos versionados estiverem ausentes.
-    N.S.load(N.HISTORY);U.S.load(U.HISTORY)
+    N.S.load(N.HISTORY,N.LEGACY);U.S.load(U.HISTORY,U.LEGACY)
     data=C.download();now=C.R.agora_brt()
     failures=[]
     for name,run in (('n5',N.main),('usuario',U.main)):
