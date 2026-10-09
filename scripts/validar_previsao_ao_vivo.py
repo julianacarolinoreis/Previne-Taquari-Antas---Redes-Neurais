@@ -128,7 +128,7 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
     if four.get("modelo_sha256") != FOUR_SHA or sha256(FOUR_MAT) != FOUR_SHA:
         raise SystemExit("hash do modelo 4h V11 nao confere")
     if four.get("principal") is not True or four.get("shadow_only") or four.get("fallback_ativo"):
-        raise SystemExit("4h V11 precisa ser o titular, sem sombra nem fallback")
+        raise SystemExit("4h V11 precisa ser o modelo principal, sem sombra nem fallback")
     if four.get("nivel_previsto_cm") is not None:
         cascade = four.get("cascata_2h") or {}
         if cascade.get("modelo") != P_ID or cascade.get("modelo_sha256") != P_SHA:
