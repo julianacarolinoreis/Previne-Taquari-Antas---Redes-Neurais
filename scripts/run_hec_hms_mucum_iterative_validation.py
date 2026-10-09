@@ -316,6 +316,35 @@ def memory_x_candidates(best):
       q=dict(b);q["x"]=x;q["memory_tau_h"]=tau;out.append(norm(q))
     return out
 
+def joint_wave_candidates(best):
+    """Search state+travel-time together, not only along one coordinate.
+
+    A fast current rising limb after a deep recession cannot be identified by
+    changing a constant baseflow term alone. The observed Antas/Carreiro waves
+    constrain travel time; wet-state flow and retention remain bounded HEC
+    state parameters. All candidates still face the unmodified full audit.
+    """
+    b=norm(best or previous_seed() or DEFAULT)
+    out=[]
+    for k1,k2,k3 in (
+        (0.75,0.75,0.75),(1.00,1.00,0.75),
+        (1.25,1.25,1.00),(1.80,1.80,1.25),
+        (2.50,2.50,1.00),(3.20,3.20,1.50)):
+        for fr in (8,18,30,42,52):
+            q=dict(b)
+            q.update(k1=k1,k2=k2,k3=k3,warmup_h=12,
+                     dn_flow_ratio_scale=fr)
+            out.append(norm(q))
+    # Joint adjustments of recession and routing; not vertical stage-shifting.
+    for k,fr,rec in ((0.75,8,0.75),(1.25,18,0.85),(1.80,25,0.85),
+                     (2.50,30,0.95),(3.20,45,0.95),
+                     (1.25,42,0.75),(2.50,52,0.75)):
+        q=dict(b)
+        q.update(k1=k,k2=k,k3=1.0,warmup_h=12,
+                 dn_flow_ratio_scale=fr,dn_recession_scale=rec)
+        out.append(norm(q))
+    return out
+
 def residual_state_candidates(best):
     """Search the live residual/baseflow state before retuning event physics.
 
@@ -405,6 +434,7 @@ def main():
 
     stage_builders=[
       lambda best: base_candidates(),
+      joint_wave_candidates,
       residual_state_candidates,
       lambda best: route_refine(best,0.15),
       memory_x_candidates,
