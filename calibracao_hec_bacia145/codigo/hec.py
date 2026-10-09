@@ -14,7 +14,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from comum import AREA_MUCUM_KM2, BASIN_BASE, CONTROLES, DADOS, FORC, HEC_CMD, MUCUM, SIMULACOES, corrige_relogio
+from comum import (AREA_MUCUM_KM2, BASIN_BASE, CONTROLES, DADOS, FORC, FORC_PREV, HEC_CMD, MUCUM, SIMULACOES,
+                   corrige_relogio, mae)
 
 MES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 MES_L = ["January", "February", "March", "April", "May", "June", "July", "August", "September",
@@ -43,10 +44,34 @@ def rodar_jython(script: Path, timeout=3600):
 
 
 # ---------------------------------------------------------------- chuva -> DSS
+def forcamento_derivado(sim: str):
+    """Chuva da janela derivada (comum.janela): a observada da mãe até a hora t0 inclusive; depois, a prevista pelo
+    modelo na emissão t0 (FORC_PREV/<mãe>__<modelo>.json, lista horária a partir de t0+1 h); 'zero' = sem chuva
+    depois de t0. Horas além do fim da previsão ficam sem chuva."""
+    cfg = SIMULACOES[sim]
+    f = json.loads((FORC / f"{cfg['mae']}.json").read_text(encoding="utf-8"))
+    prev = {}
+    if cfg["modelo"] != "zero":
+        p = json.loads((FORC_PREV / f"{cfg['mae']}__{cfg['modelo']}.json").read_text(encoding="utf-8"))
+        prev = p["emissoes"][f"{cfg['t0']:%Y%m%d%H}"]["chuva"]
+        assert set(prev) == set(f["chuva_por_subbacia"]), sim
+    for i, h in enumerate(f["horas"]):
+        k = round((datetime.fromisoformat(h) - cfg["t0"]).total_seconds() / 3600) - 1
+        if k >= 0:
+            for s, v in f["chuva_por_subbacia"].items():
+                serie = prev.get(s, [])
+                v[i] = serie[k] if k < len(serie) else 0.0
+    f["sim"] = sim
+    f.pop("chuva_media_bacia_mm", None)
+    (FORC / f"{sim}.json").write_text(json.dumps(f), encoding="utf-8")
+
+
 def dss_chuva(sim: str) -> Path:
     dss = FORC / f"{sim}.dss"
     if dss.exists():
         return dss
+    if "mae" in SIMULACOES[sim] and not (FORC / f"{sim}.json").exists():
+        forcamento_derivado(sim)
     f = json.loads((FORC / f"{sim}.json").read_text(encoding="utf-8"))
     ini = datetime.fromisoformat(f["horas"][0])
     csvp = FORC / f"{sim}_chuva.csv"
@@ -163,7 +188,7 @@ def observado(sim: str, cod: str) -> dict:
     key = (sim, cod)
     if key not in _OBS:
         out = {}
-        p = DADOS / "csv" / f"{cod}_{sim}.csv"
+        p = DADOS / "csv" / f"{cod}_{mae(sim)}.csv"
         if p.exists():
             for r in csv.DictReader(p.open(encoding="utf-8")):
                 if r["vazao_m3s"]:
@@ -180,7 +205,7 @@ def nivel(sim: str, cod: str) -> dict:
     key = (sim, cod)
     if key not in _NIV:
         out = {}
-        p = DADOS / "csv" / f"{cod}_{sim}.csv"
+        p = DADOS / "csv" / f"{cod}_{mae(sim)}.csv"
         if p.exists():
             for r in csv.DictReader(p.open(encoding="utf-8")):
                 if r["nivel_cm"]:

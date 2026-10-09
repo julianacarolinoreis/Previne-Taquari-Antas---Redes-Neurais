@@ -68,6 +68,14 @@ Achados da revisão das rodadas anteriores:
 - `nuvem_agregar.py` descartava as métricas de papel "teste" sem `--teste`, e a rodada teste1 saiu vazia. O fluxo agora
   passa `--teste` quando o PEDIDO traz `"abrir_teste": true`. Os eventos de teste continuam fechados.
 
+## Janelas derivadas com chuva prevista (09/10/2026)
+
+`<mãe>__<t0 AAAAMMDDHH>__<modelo>` (ex.: `S2023_09__2023090313__gfs`) é uma emissão de previsão: mesmo período,
+observados e estado inicial da janela-mãe; chuva observada até a hora t0 (hora local) e, depois, a do modelo
+(`gfs`, `ecmwf`: `dados/forcamento_prevista/<mãe>__<modelo>.json.gz`, 72 h horárias a partir de t0+1 h; além disso,
+zero) ou nenhuma (`zero`). Registradas por `comum.janela` quando listadas em `janelas` do PEDIDO; não têm eventos
+próprios (o `resultado.json` não muda). As janelas antigas não mudam.
+
 ## Regras
 
 - Uma física por vez; escolhas só com eventos de **calibração**; a validação só relata; o teste é aberto uma vez.

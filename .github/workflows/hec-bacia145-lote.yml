@@ -111,10 +111,12 @@ jobs:
       - name: Montar a pasta de trabalho
         run: |
           export W="$RUNNER_TEMP/w"
-          mkdir -p "$W/dados_ana/csv" "$W/forcamento_v3"
+          mkdir -p "$W/dados_ana/csv" "$W/forcamento_v3" "$W/forcamento_prevista"
           cp calibracao_hec_bacia145/codigo/*.py "$W/"
           cp calibracao_hec_bacia145/dados/catalogo_ampliado.json "$W/"
           for f in calibracao_hec_bacia145/dados/forcamento_v3/*.gz; do gunzip -c "$f" > "$W/forcamento_v3/$(basename "${f%.gz}")"; done
+          # chuva prevista das janelas derivadas <mãe>__<t0>__<modelo> (comum.janela); a pasta pode não existir
+          for f in calibracao_hec_bacia145/dados/forcamento_prevista/*.gz; do [ -e "$f" ] || continue; gunzip -c "$f" > "$W/forcamento_prevista/$(basename "${f%.gz}")"; done
           for f in calibracao_hec_bacia145/dados/observados/*.gz; do gunzip -c "$f" > "$W/dados_ana/csv/$(basename "${f%.gz}")"; done
           python3 - <<'PY'
           import json, os

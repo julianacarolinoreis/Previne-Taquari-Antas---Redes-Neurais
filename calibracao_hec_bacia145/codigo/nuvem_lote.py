@@ -17,7 +17,7 @@ import bacia_inteira as bi
 import buscar_v3 as bs
 import estrutura_v3 as e3
 import hec
-from comum import RUNS, SIMULACOES
+from comum import RUNS, SIMULACOES, janela
 
 
 def janelas(arg):
@@ -25,7 +25,7 @@ def janelas(arg):
         return list(bs.SIMS_CAL)
     if arg == "todas":
         return list(SIMULACOES)
-    return [s for s in arg.split(",") if s]
+    return [janela(s) for s in arg.split(",") if s]
 
 
 def main():
