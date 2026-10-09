@@ -35,6 +35,7 @@ RAIN_CATALOG = OUT / "pluviometria_g040.geojson"
 FLOW_CATALOG = OUT / "postos_g040.geojson"
 BASIN_PATH = ROOT / "assets/data/hec_hms_spatialized_mucum/watershed_86510000_srtm.geojson"
 ZONES_PATH = ROOT / "assets/data/hec_hms_spatialized_mucum/thiessen_zones_86510000.geojson"
+SUBBASIN_ZONES = OUT / "mucum_twin_subbasin_zones.geojson"
 CHUVAS = ROOT / "assets/data/chuvas_horarias.csv"
 LIVE_STZ = ROOT / "previsao_ao_vivo.json"
 LIVE_MUC = ROOT / "previsao_ao_vivo_mucum.json"
@@ -460,6 +461,16 @@ def main() -> int:
         query_start = max(start, end - timedelta(hours=8))
 
     basin, zones = basin_and_zones()
+    # Do not substitute a basin-average observed rain gauge in all residuals:
+    # rasterize the same five non-overlapping nested subbasins used for IFS.
+    if not SUBBASIN_ZONES.exists():
+        raise FileNotFoundError(f"Observed rainfall requires nested subbasins: {SUBBASIN_ZONES}")
+    sub_features=load(SUBBASIN_ZONES).get("features") or []
+    subbasins={str(feat["properties"]["subbasin_id"]):shape(feat["geometry"])
+               for feat in sub_features}
+    required_sub={"SB_CARREIRO_7866","SB_STZ_RESIDUAL","SB_INC_MUCUM"}
+    if not required_sub.issubset(subbasins):
+        raise RuntimeError(f"Residual observed rainfall zones missing: {required_sub-set(subbasins)}")
     rain_catalog = catalog_map(RAIN_CATALOG, basin)
     flow_catalog = catalog_map(FLOW_CATALOG, basin)
 
@@ -769,6 +780,9 @@ def main() -> int:
 
     # Hourly areal rainfall by exact HEC zones.
     grids = {"basin": grid(basin), **{code: grid(geom) for code, geom in zones.items()}}
+    sub_grids={code:grid(geom) for code,geom in subbasins.items()}
+    if any(not g for g in sub_grids.values()):
+        raise RuntimeError("At least one observed subbasin rain grid is empty")
     hours = []
     t = start
     while t <= end.replace(minute=0, second=0, microsecond=0):
@@ -790,6 +804,8 @@ def main() -> int:
         }
         for code in zones:
             row[f"zone_{code}_mm"] = idw_mean(grids[code], rain_stations, values)
+        for code in subbasins:
+            row[f"subbasin_{code}_mm"] = idw_mean(sub_grids[code], rain_stations, values)
         areal_rows.append(row)
 
     with RAIN_CSV.open("w", encoding="utf-8", newline="") as fh:
@@ -799,6 +815,7 @@ def main() -> int:
             "valid_station_codes",
             "basin_mean_mm",
             *[f"zone_{code}_mm" for code in zones],
+            *[f"subbasin_{code}_mm" for code in subbasins],
         ]
         writer = csv.DictWriter(fh, fieldnames=fields)
         writer.writeheader()
@@ -1011,7 +1028,7 @@ def main() -> int:
                 for net in ("ANA", "INMET", "CEMADEN")
             },
             "spatial_method": (
-                "IDW^2 por hora em grade 0.05° sobre a bacia e zonas HEC; "
+                "IDW^2 por hora em grade 0.05° sobre a bacia, zonas HEC e cinco sub-bacias aninhadas; "
                 "usa todos os postos com observação válida; ausência permanece ausente, nunca zero"
             ),
             "accumulations": accum_audit,
