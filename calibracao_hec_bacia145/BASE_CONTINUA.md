@@ -15,16 +15,18 @@ se intercalam no mesmo mês. O teste começa em 18/09/2026 06h, e LV2026 termina
 
 | janela | período | papel | eventos dentro |
 |---|---|---|---|
-| LC2018 | 20/06–15/11/2018 | calibração | X03–X09 |
-| LC2019 | 05/05–20/11/2019 | calibração | X12, X13, X16–X18 |
+| LC2018 | 21/06–15/11/2018 | calibração | X03–X09 |
+| LC2019 | 13/06–20/11/2019 | calibração | X16–X18 |
 | LC2020 | 05/06–30/09/2020 | calibração | X19–X22 |
 | LC2021 | 05/01–10/07/2021 | calibração | X23–X25 |
-| LV2022 | 05/04–15/07/2022 | validação | X27–X31 |
-| LV2025 | 01/06–25/11/2025 | validação | E27, E28, X61, X65 |
+| LV2022 | 20/04–15/07/2022 | validação | X27–X31 |
+| LV2025 | 14/06–25/11/2025 | validação | E27, E28, X61, X65 |
 | LV2026 | 20/05–15/09/2026 | validação | X67, E36, E37, X71, X73 |
 
 Os primeiros 20 dias de cada janela são aquecimento e ficam fora das métricas. A janela começa no q0 observado,
-como as de evento.
+como as de evento, mas sempre num dia de vazão baixa em Muçum (perto do percentil 20 da janela). O estoque inicial do
+GW-2 sai do q0; começar na descida de uma cheia (LC2019 com 518 m³/s, LV2022 com 802 m³/s) deixaria a busca
+sustentar a base com a condição inicial (k2 alto) em vez da recarga.
 
 ## Forçamento (`dados/forcamento_v3b/L*.json.gz`)
 
@@ -37,8 +39,8 @@ A janela longa é processada em blocos de 15 dias e os blocos são concatenados.
 `forcamento_v3.main`, com a sua cobertura e o seu QC, como as janelas de evento de 6–24 dias; o IDW é hora a hora e
 sem estado. Com a janela inteira de uma vez, a regra de cobertura de 50% em 5 meses tirava postos com falhas longas
 que entram nas janelas de evento: a chuva ficava até 12% menor em X20181028. Com os blocos, a chuva média da bacia
-fica entre 0,94 e 1,07 do v3b em 11 das 12 janelas de evento de calibração sobrepostas, com correlação horária
-≥ 0,994. A exceção é X20200626 (0,90; correlação 0,94): no bloco de 05–19/07/2020, o QC tirou por excesso os
+fica entre 0,94 e 1,05 do v3b em 10 das 11 janelas de evento de calibração sobrepostas (correlação horária ≥ 0,994)
+e entre 0,98 e 1,06 nas 10 de validação (correlação ≥ 0,998). A exceção é X20200626 (0,90; correlação 0,94): no bloco de 05–19/07/2020, o QC tirou por excesso os
 pluviômetros das três UHEs e o INMET A813, que entram na janela do evento. É o mesmo QC numa janela diferente; o J de
 eventos continua no v3b das janelas de evento, e as longas só entram no termo de base. O código de geração
 fica fora do repositório (`_analise_base/`: `baixar_longas.py`, `forcamento_longas.py`, `empacotar.py`), como o do v3b.
