@@ -111,7 +111,8 @@ def _inmet():
         cod = cab["Codigo Estacao"]
         d = pd.read_csv(f, sep=";", skiprows=10, encoding="latin-1", decimal=",", usecols=[0, 1, 2])
         d.columns = ["data", "hora", "mm"]
-        d["hora"] = pd.to_numeric(d.hora.astype(str).str[:2], errors="coerce")
+        # a hora vem como HHMM (inteiro 100 ou texto "0100 UTC"): sem o zfill, 100 vira 10 h
+        d["hora"] = pd.to_numeric(d.hora.astype(str).str.extract(r"(\d+)")[0].str.zfill(4).str[:2], errors="coerce")
         t = pd.to_datetime(d.data, format="%d/%m/%Y", errors="coerce") + pd.to_timedelta(d.hora, unit="h") - timedelta(hours=3)
         s = pd.Series(pd.to_numeric(d.mm, errors="coerce").values, index=t).dropna()
         s = s[(s >= 0) & (s < 200)]
