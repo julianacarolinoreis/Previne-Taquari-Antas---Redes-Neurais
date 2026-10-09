@@ -102,16 +102,23 @@ PARAMS_LRDCV8 = dict(PARAMS_LRDCV, nob=PARAMS_LRDC8["nob"])
 GRUPO_VOL = {"tainhas": "T", "alto": "A", "medio": "A", "carreiro": "B", "guapore": "B", "baixo": "B"}
 PARAMS_LRDCR = dict(PARAMS_LRDC, **{f"x{k}_{g}": (lo, hi, "log") for g in ("T", "B")
                                     for k, lo, hi in (("dmax", 1 / 3, 3.0), ("perc", 0.2, 5.0), ("fb", 0.5, 2.0))})
+# Base-contínua (09/10, família lrdcb): lrdcr + k2 regional (aquífero do planalto x vales), k2 efetivo limitado a
+# K2_EF (6 a 250 dias). A perda profunda é a fração 1 - fb da percolação.
+PARAMS_LRDCB = dict(PARAMS_LRDCR, xk2_T=(1 / 3, 3.0, "log"), xk2_B=(1 / 3, 3.0, "log"))
+K2_EF = (150.0, 6000.0)
 FAMILIAS = {"dc": PARAMS_DC, "lric": PARAMS_LRIC, "lrdc": PARAMS_LRDC, "lrdcv": PARAMS_LRDCV, "lrdc8": PARAMS_LRDC8,
-            "lrdcv8": PARAMS_LRDCV8, "lrdcr": PARAMS_LRDCR}
+            "lrdcv8": PARAMS_LRDCV8, "lrdcr": PARAMS_LRDCR, "lrdcb": PARAMS_LRDCB}
 
 
 def p_regional(p, reg):
-    """Parâmetros de volume do grupo da região (família lrdcr); sem multiplicadores devolve p."""
+    """Parâmetros de volume do grupo da região (famílias lrdcr e lrdcb); sem multiplicadores devolve p."""
     g = GRUPO_VOL[reg]
     if f"xdmax_{g}" not in p:
         return p
-    return dict(p, dmax=p["dmax"] * p[f"xdmax_{g}"], perc=p["perc"] * p[f"xperc_{g}"], fb=min(1.0, p["fb"] * p[f"xfb_{g}"]))
+    out = dict(p, dmax=p["dmax"] * p[f"xdmax_{g}"], perc=p["perc"] * p[f"xperc_{g}"], fb=min(1.0, p["fb"] * p[f"xfb_{g}"]))
+    if f"xk2_{g}" in p:
+        out["k2"] = min(K2_EF[1], max(K2_EF[0], p["k2"] * p[f"xk2_{g}"]))
+    return out
 ROTAS_8PT = {"mc8st": ("R_208", "R_256", "R_201"), "mc8": None}
 _SECOES = None
 

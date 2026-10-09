@@ -6,6 +6,7 @@
   lrdc8 lrdc + n das encostas da seção de 8 pontos (nob; usar com --rota mc8 ou mc8st)
   lrdcv8 lrdcv + nob (Clark variável e seções de 8 pontos juntos)
   lrdcr lrdc + multiplicadores regionais de dmax, perc e fb (grupos T = Tainhas e B = Carreiro/Guaporé/baixo; PARAMS_LRDCR)
+  lrdcb lrdcr + k2 regional (xk2_T, xk2_B; PARAMS_LRDCB), para a base-contínua (objetivo J_bc = J + J_base)
 
 Mesmas janelas e papéis das famílias g1/g2/g4/g6 (todos os eventos de calibração), para o J ser comparável com
 lib-A (Initial+Constant) e scs-A (SCS).
@@ -38,7 +39,7 @@ JANELAS_CAL = ("S2023_07,S2023_09,S2023_11,S2024_05,S2024_06,X20180721,X20180821
                "X20190525,X20191027,X20200626,X20200809,X20210125,X20210525,X20210622")
 PAPEIS = {"E18": "validacao", "E22": "validacao"}
 P = e3.PARAMS_DC   # trocado em main() conforme --familia
-NEUTROS = {"ie": 5.0, "atc": 0.0, "ar": 0.0, "nob": 1.0, **{k: 1.0 for k in e3.PARAMS_LRDCR if k.startswith("x")}}
+NEUTROS = {"ie": 5.0, "atc": 0.0, "ar": 0.0, "nob": 1.0, **{k: 1.0 for k in e3.PARAMS_LRDCB if k.startswith("x")}}
 
 
 def to_unit(p):
@@ -125,7 +126,7 @@ def main():
     ap.add_argument("--sigma", type=float, default=0.15)
     ap.add_argument("--janelas", default=JANELAS_CAL)
     ap.add_argument("--rota", default="mc", choices=("mc", *e3.ROTAS_8PT))
-    ap.add_argument("--objetivo", default="J", choices=("J", "J_pico"))
+    ap.add_argument("--objetivo", default="J", choices=("J", "J_pico", "J_bc"))
     ap.add_argument("--centro", default="", help="resultado.json:id (modo viz)")
     ap.add_argument("--raio", type=float, default=0.15)
     ap.add_argument("--raio-novos", type=float, default=0.0,

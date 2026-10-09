@@ -8,6 +8,7 @@ cands.json: lista de {"id": "c000", "rota": "mc", "p": {parâmetros de estrutura
 Saída: <saida>/<id>/<janela>/vazao.csv (+ erro.txt se a rodada falhar).
 """
 import argparse
+import csv
 import json
 import shutil
 import sys
@@ -26,6 +27,23 @@ def janelas(arg):
     if arg == "todas":
         return list(SIMULACOES)
     return [janela(s) for s in arg.split(",") if s]
+
+
+def horaria(orig, dest):
+    """Janela longa (meses): média horária, rótulo H = média de (H-60 min, H]; o csv de 10 min teria ~10 MB por janela."""
+    acc = {}
+    with open(orig, encoding="utf-8", newline="") as h:
+        r = csv.reader(h)
+        cab = next(r)
+        for node, tv, q in r:
+            a = acc.setdefault((node, (int(tv) + 59) // 60 * 60), [0.0, 0])
+            a[0] += float(q)
+            a[1] += 1
+    with open(dest, "w", encoding="utf-8", newline="") as h:
+        w = csv.writer(h)
+        w.writerow(cab)
+        for (node, tv), (s, n) in acc.items():
+            w.writerow([node, tv, f"{s / n:.4f}"])
 
 
 def main():
@@ -56,6 +74,8 @@ def main():
         if isinstance(r, Exception):
             falhas += 1
             (alvo / "erro.txt").write_text(str(r)[:2000], encoding="utf-8")
+        elif SIMULACOES[s].get("longa"):
+            horaria(d / "vazao.csv", alvo / "vazao.csv")
         else:
             shutil.copy2(d / "vazao.csv", alvo / "vazao.csv")
     print(f"concluído: {len(meus) - falhas} ok, {falhas} falhas", flush=True)

@@ -112,6 +112,8 @@ if os.environ.get("HEC_CATALOGO"):
     _c = _json.loads((AQUI / os.environ["HEC_CATALOGO"]).read_text(encoding="utf-8"))
     for _s in _c["simulacoes"]:
         SIMULACOES[_s["sim"]] = dict(ini=T(_s["ini"]), fim=T(_s["fim"]))
+        if _s.get("longa"):      # janela longa e contínua, sem eventos: só o termo de base (base_continua.py)
+            SIMULACOES[_s["sim"]]["longa"] = _s["longa"]
     for _e in _c["eventos"]:
         EVENTOS[_e["id"]] = dict(sim=_e["sim"], ini=T(_e["ini"]), fim=T(_e["fim"]), papel=_e.get("papel", "novo"))
     for _k, _p in _c.get("papeis_antigos", {}).items():
