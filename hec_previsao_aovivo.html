@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PREVINE · Previsão HEC-HMS ao vivo (pesquisa) — Muçum e Encantado</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="assets/hec_aovivo.css">
+</head>
+<body>
+<header>
+  <span class="mark"></span>
+  <div><h1>Previsão hidrológica HEC-HMS ao vivo</h1><div class="loc">Muçum · Encantado · Linha José Júlio · bacia Taquari-Antas</div></div>
+  <span class="tag">PESQUISA · NÃO É ALERTA OFICIAL</span>
+</header>
+
+<div class="hec-wrap">
+  <div class="hec-research" role="note">
+    <b>Pesquisa PREVINE — não é alerta oficial.</b> Modelo hidrológico HEC-HMS da bacia Taquari-Antas rodado com
+    chuva observada e chuva prevista (ECMWF, GFS e um cenário sem chuva). Os números servem para estudo e
+    comparação. Em situação de cheia, siga a <b>Defesa Civil (199)</b>, o <b>SGB/SACE</b> e os avisos oficiais do município.
+    Dados atrasados ou incompletos aparecem como <b>sem previsão recente</b>, nunca como “não vai encher”.
+  </div>
+
+  <div class="hec-status none" id="hec-status" role="status" aria-live="polite">
+    <span class="dot"></span><span id="hec-status-text">Carregando a previsão do HEC-HMS…</span>
+    <span class="sp" id="hec-status-sp"></span>
+  </div>
+
+  <section class="hec-card" aria-labelledby="hec-chart-title">
+    <span class="eyebrow">Nível do rio · observado e previsto por cenário de chuva</span>
+    <h2 id="hec-chart-title">—</h2>
+    <p class="sub" id="hec-chart-sub">O traço azul é o observado (ANA) até a emissão; depois, cada cenário de chuva prevista gera uma
+      previsão já corrigida pelo último observado. ECMWF é o cenário principal, GFS o segundo e “sem chuva” é o piso
+      (o rio só com a água que já caiu).</p>
+    <div class="hec-controls">
+      <div class="seg" id="hec-pontos" role="tablist" aria-label="Posto"></div>
+      <div class="seg" id="hec-var" aria-label="Grandeza">
+        <button data-var="nivel" class="on" aria-pressed="true">Nível (m)</button>
+        <button data-var="vazao" aria-pressed="false">Vazão (m³/s)</button>
+      </div>
+    </div>
+    <div class="chart-shell">
+      <svg id="hec-chart" viewBox="0 0 960 360" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="hec-chart-title hec-chart-acc"></svg>
+      <div class="chart-empty show" id="hec-chart-empty"><div><b>Carregando…</b></div></div>
+      <div class="chart-tip" id="hec-tip"></div>
+    </div>
+    <div class="legend" id="hec-legend" aria-hidden="true"></div>
+    <p class="sr-only" id="hec-chart-acc" aria-live="polite"></p>
+    <div class="metrics" id="hec-metrics"></div>
+  </section>
+
+  <section class="hec-card" id="hec-cotas-card" aria-labelledby="hec-cotas-title" hidden>
+    <span class="eyebrow">Cotas de referência em Muçum · régua 86510000</span>
+    <h2 id="hec-cotas-title">Quando cada cota seria cruzada, por cenário</h2>
+    <p class="sub">Primeiro horário previsto em que o nível passa da cota, com a antecedência em relação à emissão.
+      Acima de <b>15 m</b> a curva-chave de Muçum perde validade: a cota de 18 m é só <b>indicativa</b>.</p>
+    <div class="table-scroll"><table class="cotas" id="hec-cotas"></table></div>
+  </section>
+
+  <section class="hec-card" aria-labelledby="hec-qual-title">
+    <span class="eyebrow">Qualidade desta rodada</span>
+    <h2 id="hec-qual-title">Avisos de validade, chuva e rodadas</h2>
+    <div class="grid2">
+      <div>
+        <ul class="avisos" id="hec-avisos"><li class="info">Carregando…</li></ul>
+      </div>
+      <div class="box">
+        <h3>Chuva observada (entrada do modelo)</h3>
+        <div id="hec-chuva-obs"></div>
+        <div id="hec-chuva-prev">
+          <h3 style="margin-top:12px">Chuva prevista acumulada na bacia</h3>
+          <div class="chart-shell" style="border-radius:10px"><svg id="hec-chuva" viewBox="0 0 480 170" role="img" aria-label="Chuva acumulada na bacia por cenário"></svg></div>
+        </div>
+        <div id="hec-rodadas"></div>
+      </div>
+    </div>
+    <details class="tech"><summary>Detalhes técnicos da rodada</summary><div class="body" id="hec-tech"></div></details>
+  </section>
+
+  <section class="hec-card" id="hec-st" aria-labelledby="hec-st-title">
+    <span class="eyebrow">Mancha de Santa Tereza a partir do HEC · experimental</span>
+    <h2 id="hec-st-title">Até onde a água chegaria em Santa Tereza?</h2>
+    <div id="hec-st-body"><p class="sub">Carregando…</p></div>
+  </section>
+
+  <p class="foot">
+    Como ler: “previsto” = vazão simulada pelo HEC-HMS (145 sub-bacias) + correção aditiva pelo último observado,
+    que decai em 1 a 3 dias; o nível sai da curva nível × vazão da própria telemetria. ECMWF IFS e GFS são previsões
+    determinísticas abertas, baixadas a cada ciclo; “sem chuva” supõe que não chove mais depois da última hora
+    observada. Fonte dos observados: ANA HidroTelemetria. Este painel é um protótipo de pesquisa do PREVINE e pode
+    ficar sem atualização sem aviso.
+    <br><a href="index.html">← Voltar ao PREVINE</a>
+  </p>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="assets/hec_aovivo.js" defer></script>
+</body>
+</html>

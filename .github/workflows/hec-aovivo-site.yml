@@ -1,0 +1,89 @@
+name: HEC ao vivo - publicar no site
+
+# PESQUISA — não é alerta oficial. Leva a última rodada do HEC-HMS ao vivo (artefato do workflow
+# "HEC bacia 145 - ciclo ao vivo") para assets/data/hec_aovivo/latest.json, lido por hec_previsao_aovivo.html.
+# DESLIGADO por padrão: o job só roda com a variável de repositório HEC_SITE_PUBLICAR=true.
+# Ver assets/data/hec_aovivo/README.md (o que ligar, permissões e segredos).
+
+on:
+  workflow_run:
+    workflows: ["HEC bacia 145 - ciclo ao vivo"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "id da execução do HEC (vazio = última com sucesso na main)"
+        default: ""
+        type: string
+  # Alternativa se o HEC rodar em OUTRO repositório (workflow_run não cruza repositórios):
+  # schedule:
+  #   - cron: "10 3,9,15,21 * * *"   # ~1 h 30 depois do cron do HEC (40 1,7,13,19)
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: hec-aovivo-site
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    if: >-
+      vars.HEC_SITE_PUBLICAR == 'true' &&
+      (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ secrets.HEC_ARTIFACT_TOKEN || github.token }}
+      HEC_REPO: ${{ vars.HEC_REPO || github.repository }}
+      RUN_EVENTO: ${{ github.event.workflow_run.id }}
+      RUN_ENTRADA: ${{ github.event.inputs.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Escolher a rodada do HEC
+        run: |
+          RUN="${RUN_EVENTO:-$RUN_ENTRADA}"
+          if [ -z "$RUN" ]; then
+            RUN="$(gh run list -R "$HEC_REPO" --workflow hec-bacia145-aovivo.yml --branch main \
+                   --status success --limit 1 --json databaseId -q '.[0].databaseId')"
+          fi
+          case "$RUN" in
+            ''|*[!0-9]*) echo "run id inválido: '$RUN'"; exit 1 ;;
+          esac
+          echo "RUN=$RUN" >> "$GITHUB_ENV"
+      - name: Baixar o artefato
+        run: gh run download "$RUN" -R "$HEC_REPO" -n "hec-aovivo-$RUN" -D "$RUNNER_TEMP/hec"
+      - name: Validar e publicar
+        run: |
+          git config user.name  "previne-robo"
+          git config user.email "previne-robo@users.noreply.github.com"
+
+          git pull --rebase --autostash origin main
+          python codigo_python/01_previsao_ao_vivo/publicar_hec_aovivo.py "$RUNNER_TEMP/hec" \
+            --origem "$HEC_REPO run $RUN"
+          git add assets/data/hec_aovivo/latest.json assets/data/hec_aovivo/indice.json
+          if git diff --staged --quiet; then
+            echo "sem mudanca neste ciclo"
+          else
+            git commit -m "bot: atualiza hec_aovivo/latest.json (run $RUN) [skip ci]"
+            publicado=0
+            for tentativa in 1 2 3 4 5; do
+              if git pull --rebase --autostash origin main && git push origin HEAD:main; then
+                publicado=1
+                break
+              fi
+              echo "push rejeitado (${tentativa}), rebase..."
+              sleep 3
+            done
+            if [ "$publicado" != "1" ]; then
+              echo "falha ao publicar hec_aovivo/latest.json"
+              exit 1
+            fi
+          fi
