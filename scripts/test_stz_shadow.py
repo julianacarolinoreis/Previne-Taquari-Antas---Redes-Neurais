@@ -121,7 +121,7 @@ class ShadowTest(unittest.TestCase):
     def test_public_and_user_interfaces_have_separate_panels(self):
         public=(C.ROOT/'santa_tereza_previsao_inundacao.html').read_text(encoding='utf-8')
         user=(C.ROOT/'santa_tereza_previsao_inundacao_usuario.html').read_text(encoding='utf-8')
-        self.assertIn('id="stz-shadow-v11"',public)
+        self.assertNotIn('id="stz-shadow-v11"',public)
         self.assertNotIn('id="stz-shadow-n5"',public)
         self.assertNotIn('id="stz-shadow-user"',public)
         self.assertIn('id="stz-shadow-user"',user)
