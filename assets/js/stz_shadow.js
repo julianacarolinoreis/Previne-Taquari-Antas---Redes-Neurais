@@ -55,6 +55,12 @@
     const m=n5.avaliacao?.[win]||{},t=feed.referencia_n5_teste||{},ok=current(n5,p);
     return `<tr class="is-reference"><th scope="row">N5 · MATLAB (comparativa pública)</th><td title="${esc((p.inputs_faltantes||[]).join('; ')||p.status)}">${ok?'Em acompanhamento':'Sem previsão futura'}</td><td>${ok?meters(p.nivel_previsto_cm):'—'}</td><td>${ok?when(p.hora_alvo):'—'}</td><td>${m.n||0}</td><td>${error(m.mae_cm)}</td><td>${error(m.rmse_cm)}</td><td>${error(m.vies_cm)}</td><td>${error(m.mae_persistencia_cm)}</td><td>${error(t.mae_cm)}</td></tr>`;
   }
+  function v11Panel(el,feed){
+    const p=feed.previsao||{},ok=current(feed,p),m=feed.avaliacao?.total||{},two=p.cascata_2h||{};
+    const coverage=(p.cobertura_chuva||[]).map(c=>`${c.janela_h} h: ${Object.entries(c.horas_por_posto||{}).map(([cod,n])=>`${cod}: ${n}/${c.janela_h} horas`).join(' · ')}`).join('; ');
+    const partial=ok&&(p.cobertura_chuva||[]).some(c=>c.parcial);
+    el.innerHTML=`<span class="shadow-tag">Comparativa em sombra · 4 h</span><h3>V11 · cascata 2 h → 4 h</h3><p>A RNA principal de 2 h fornece a variação e o nível futuro usados nas duas últimas entradas da V11.</p><strong class="shadow-number">${ok?meters(p.nivel_previsto_cm):'Aguardando dados'}</strong><p class="shadow-status">${ok?'Para '+when(p.hora_alvo)+' · base '+when(p.hora_modelo):'Sem previsão futura com todas as entradas necessárias neste ciclo.'}</p>${ok?'<p class="shadow-note">Passo de 2 h: '+meters(two.nivel_previsto_cm)+' para '+when(two.hora_alvo)+'. Antecedência restante da V11: '+cm.format((date(p.hora_alvo)-new Date())/3600000)+' h.</p>':''}${partial?'<p class="shadow-warning">Cobertura de chuva parcial: a média usa os postos com leitura em cada hora. Ausências não são substituídas por zero.</p>':''}<div class="shadow-metrics"><span>Conferidas<b>${m.n||0}</b></span><span>MAE<b>${error(m.mae_cm)}</b></span><span>RMSE<b>${error(m.rmse_cm)}</b></span></div><p class="shadow-note">${m.n?'Erros calculados com leituras observadas após os horários-alvo.':'Avaliação prospectiva iniciada nesta ativação. Aguardando horários-alvo e leituras ANA.'}</p>${chart(feed.serie_recente||[],ok?p:null)}${saved(feed,'historico_sombra_stz_v11.json')}<details><summary>Entradas e limites da V11</summary><p>Níveis e diferenças de Santa Tereza e Linha José Júlio; chuva média acumulada de 12 h no grupo local e 15 h no grupo 2851044, INMET A894 e CEMADEN 432040401A.</p><p>${esc(coverage||'Cobertura ainda indisponível.')}</p>${!ok?'<p>'+esc((p.inputs_faltantes||[]).join('; ')||p.status||'Aguardando coleta')+'</p>':''}<p>${esc(feed.limite_cientifico)}</p><p>As duas redes usam a mesma hora-base. O passo de 2 h é calculado antes de seu horário-alvo, sem utilizar observação futura.</p></details><p class="shadow-note">Azul: observado. Roxo: previsão emitida. Atualização: ${when(feed.gerado_em)}. Pesquisa experimental; não é alerta oficial.</p>`;
+  }
   function userPanel(el,feed,n5){
     let h=Number(el.dataset.horizon||4),win=el.dataset.window||'168',selected=el.dataset.model||'';
     const models=(feed.modelos||[]).filter(p=>p.horizonte_h===h);
@@ -71,14 +77,15 @@
   const unavailable='<span class="shadow-tag">Comparativa em sombra</span><p class="shadow-warning">Os dados de acompanhamento estão indisponíveis. A avaliação será exibida quando o feed voltar.</p>';
   function render(){
     if(!cache.loaded)return;
-    const pub=document.getElementById('stz-shadow-n5'),user=document.getElementById('stz-shadow-user');
+    const pub=document.getElementById('stz-shadow-n5'),v11=document.getElementById('stz-shadow-v11'),user=document.getElementById('stz-shadow-user');
     if(pub){if(cache.n5)publicPanel(pub,cache.n5);else pub.innerHTML=unavailable;}
+    if(v11){if(cache.v11)v11Panel(v11,cache.v11);else v11.innerHTML=unavailable;}
     if(user){if(cache.user)userPanel(user,cache.user,cache.n5);else user.innerHTML=unavailable;}
   }
   async function refresh(){
-    const pub=document.getElementById('stz-shadow-n5'),user=document.getElementById('stz-shadow-user');
-    const [n5,feed]=await Promise.all([pub||user?fetchFeed('previsao_sombra_stz_n5.json').catch(()=>null):null,user?fetchFeed('previsao_sombra_stz_usuario.json').catch(()=>null):null]);
-    cache.n5=n5;cache.user=feed;cache.loaded=true;render();
+    const pub=document.getElementById('stz-shadow-n5'),v11=document.getElementById('stz-shadow-v11'),user=document.getElementById('stz-shadow-user');
+    const [n5,feed,third]=await Promise.all([pub||user?fetchFeed('previsao_sombra_stz_n5.json').catch(()=>null):null,user?fetchFeed('previsao_sombra_stz_usuario.json').catch(()=>null):null,v11?fetchFeed('previsao_sombra_stz_v11.json').catch(()=>null):null]);
+    cache.n5=n5;cache.user=feed;cache.v11=third;cache.loaded=true;render();
   }
   function openUser(){document.getElementById('mode-p')?.click();document.getElementById('stz-shadow-user')?.scrollIntoView({behavior:'smooth',block:'start'});}
   document.getElementById('stz-shadow-open')?.addEventListener('click',openUser);

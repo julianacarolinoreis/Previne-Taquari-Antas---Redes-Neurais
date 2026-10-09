@@ -41,7 +41,7 @@ def recover(root,source):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--archive-root',type=Path,default=S.ARCHIVE)
-    parser.add_argument('--source',choices=('n5','usuario'),required=True)
+    parser.add_argument('--source',choices=('n5','usuario','v11'),required=True)
     parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args()
     history=recover(args.archive_root,args.source)
