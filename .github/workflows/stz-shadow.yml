@@ -1,4 +1,4 @@
-name: Santa Tereza - N5 publica e arquiteturas do usuario em sombra
+name: Santa Tereza - N5, V11 e arquiteturas do usuario em sombra
 
 on:
   push:
@@ -13,6 +13,9 @@ on:
       - 'assets/mat/sombra_santa_tereza_v2/**'
       - 'assets/data/stz_user_models/**'
       - 'assets/data/stz_n5_sombra_contrato.json'
+      - 'assets/data/stz_v11_sombra_contrato.json'
+      - 'previne/assets/mat/RNAPREV__SANTA_TEREZA__04h__ALT__18inputs_37hiddens_VFINAL_20260806__V11.mat'
+      - 'santa_tereza_previsao_inundacao.html'
       - '.github/workflows/stz-shadow.yml'
       - 'scripts/test_stz_shadow*.py'
       - 'scripts/validate_stz_shadow_storage.py'
@@ -40,6 +43,7 @@ jobs:
           fetch-depth: 1
           sparse-checkout: |
             previne/robo
+            previne/assets/mat
             scripts
             assets/js
             assets/models/stz_user_shadow
@@ -47,18 +51,20 @@ jobs:
             assets/data/stz_user_models
             assets/data/stz_shadow_archive
             assets/data/stz_shadow_history
+            assets/data/chuvas_horarias.csv
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Instalar runtime dos modelos congelados
         run: |
-          pip install numpy==2.4.6 scipy==1.17.1 scikit-learn==1.9.0 xgboost==3.4.1 joblib==1.5.3
+          pip install numpy==2.4.6 scipy==1.17.1 scikit-learn==1.9.0 xgboost==3.4.1 joblib==1.5.3 h5py==3.16.0
           pip install torch==2.10.0 --index-url https://download.pytorch.org/whl/cpu
       - name: Verificar contratos e historico prospectivo
         run: |
-          python -B -m unittest scripts.test_stz_shadow scripts.test_stz_shadow_storage
+          python -B -m unittest scripts.test_stz_shadow scripts.test_stz_shadow_storage scripts.test_stz_shadow_v11
           node scripts/test_stz_shadow_ui.js
-      - name: Executar N5 publica e modelos do usuario com uma coleta ANA
+          node scripts/test_stz_v11_ui.js
+      - name: Executar N5, V11 em cascata e modelos do usuario
         id: inferencia
         continue-on-error: true
         run: timeout --signal=TERM --kill-after=20s 480s python -B -m previne.robo.executar_sombra_stz
@@ -76,6 +82,8 @@ jobs:
             historico_sombra_stz_n5.json
             previsao_sombra_stz_usuario.json
             historico_sombra_stz_usuario.json
+            previsao_sombra_stz_v11.json
+            historico_sombra_stz_v11.json
             assets/data/stz_shadow_archive/
             assets/data/stz_shadow_history/
       - name: Publicar somente feeds e historicos de sombra
@@ -83,9 +91,9 @@ jobs:
         run: |
           git config user.name 'previne-robo'
           git config user.email 'previne-robo@users.noreply.github.com'
-          git add previsao_sombra_stz_n5.json previsao_sombra_stz_usuario.json assets/data/stz_shadow_archive assets/data/stz_shadow_history
+          git add previsao_sombra_stz_n5.json previsao_sombra_stz_usuario.json previsao_sombra_stz_v11.json assets/data/stz_shadow_archive assets/data/stz_shadow_history
           # Historico legado so sai do indice depois que o robo o migrou para as particoes mensais.
-          for legado in historico_sombra_stz_n5.json historico_sombra_stz_usuario.json; do
+          for legado in historico_sombra_stz_n5.json historico_sombra_stz_usuario.json historico_sombra_stz_v11.json; do
             if [ -e "$legado" ]; then git add "$legado"; else git rm -q --cached --ignore-unmatch "$legado"; fi
           done
           if git diff --staged --quiet; then exit 0; fi

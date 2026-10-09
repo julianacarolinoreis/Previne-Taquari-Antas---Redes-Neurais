@@ -7,7 +7,7 @@ import json
 import math
 import os
 import sys
-from importlib.metadata import version
+from importlib.metadata import version, PackageNotFoundError
 from pathlib import Path
 from . import stz_shadow_common as C
 
@@ -16,7 +16,8 @@ HISTORY_ROOT = C.ROOT / 'assets/data/stz_shadow_history'
 SCHEMA = 'stz_shadow_history_v1'
 PARTITION_SCHEMA = 'stz_shadow_history_partition_v1'
 FROZEN = ('modelo_id','modelo_sha256','hora_modelo','hora_alvo','horizonte_h',
-          'emitida_em','nivel_previsto_cm','nivel_base_cm','origem','inputs','inputs_horas')
+          'emitida_em','nivel_previsto_cm','nivel_base_cm','origem','inputs','inputs_horas',
+          'cascata_2h','cobertura_chuva','contrato_sha256')
 SCORED = ('observado_cm','conferido_em','erro_cm','erro_persistencia_cm')
 
 def key(p):
@@ -35,6 +36,16 @@ def validate(history):
             raise ValueError('Horario/origem invalida no historico prospectivo')
         for n in ('nivel_previsto_cm','nivel_base_cm'):
             if not isinstance(p.get(n),(int,float)) or not math.isfinite(p[n]):raise ValueError('Nivel invalido no historico')
+        cascade=p.get('cascata_2h')
+        if cascade is not None:
+            if (cascade.get('hora_modelo')!=p['hora_modelo']
+                    or dt.datetime.fromisoformat(cascade['hora_alvo'])!=base+dt.timedelta(hours=2)
+                    or not issued<dt.datetime.fromisoformat(cascade['hora_alvo'])
+                    or cascade.get('origem')!='inferencia_2h_mesma_base_sem_observacao_futura'):
+                raise ValueError('Cascata de 2 h com base/origem/antecedencia invalida')
+            if (p['inputs'][-2:]!=[cascade['delta_previsto_cm'],cascade['nivel_previsto_cm']]
+                    or abs(cascade['nivel_previsto_cm']-p['nivel_base_cm']-cascade['delta_previsto_cm'])>1e-8):
+                raise ValueError('Entradas da cascata nao reconciliam')
         if p.get('observado_cm') is not None:
             obs=p['observado_cm']
             if not math.isfinite(obs) or dt.datetime.fromisoformat(p['conferido_em'])<target:
@@ -119,7 +130,14 @@ def save(path,before,after,legacy=None):
         Path(legacy).unlink()
     return partition_files(path)
 
-def archive(source,now,predictions,levels,rain,before,after,root=None):
+def runtime_versions():
+    packages={}
+    for name in ('numpy','scipy','scikit-learn','torch','xgboost','joblib','h5py'):
+        try:packages[name]=version(name)
+        except PackageNotFoundError:packages[name]=None
+    return packages
+
+def archive(source,now,predictions,levels,rain,before,after,root=None,provenance=None):
     preserve(before,after)
     root=Path(root or ARCHIVE)
     run='-'.join(os.environ.get(n,'local') for n in ('GITHUB_RUN_ID','GITHUB_RUN_ATTEMPT'))
@@ -140,9 +158,10 @@ def archive(source,now,predictions,levels,rain,before,after,root=None):
              'historico_n':len(after['registros']),
              'historico_sha256_canonico':hashlib.sha256(json.dumps(after,sort_keys=True,ensure_ascii=False,allow_nan=False).encode()).hexdigest().upper(),
              'historico_inicial':before if not any(a['fonte']==source for a in index['arquivos']) else None,
-             'contrato_sha256':C.sha(C.ROOT/'assets/data/stz_n5_sombra_contrato.json'),
+             'contrato_sha256':(provenance or {}).get('contrato_sha256') or C.sha(C.ROOT/'assets/data/stz_n5_sombra_contrato.json'),
              'manifesto_sha256':C.sha(C.ROOT/'assets/data/stz_user_models/manifest.json'),
-             'runtime':{'python':sys.version,'pacotes':{n:version(n) for n in ('numpy','scipy','scikit-learn','torch','xgboost','joblib')}},
+             'runtime':{'python':sys.version,'pacotes':runtime_versions()},
+             'proveniencia':provenance,
              'coleta_ana':copy.deepcopy(C.DOWNLOAD_EVIDENCE),
              'nivel_apos_qc':{cod:{C.stamp(t):v for t,v in sorted(series.items())} for cod,series in C.qc_levels(levels,C.read(C.ROOT/'assets/data/stz_n5_sombra_contrato.json')['limites_estacao_cm']).items()},
              'telemetria':{kind:{cod:{C.stamp(t):v for t,v in sorted(series.items())} for cod,series in data.items()} for kind,data in (('nivel',levels),('chuva_horaria',rain))}}

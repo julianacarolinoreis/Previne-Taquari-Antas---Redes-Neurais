@@ -209,10 +209,11 @@ class StorageTest(unittest.TestCase):
     def test_partial_failure_isolated_and_one_shared_collection(self):
         from previne.robo import executar_sombra_stz as E
         data=(self.data.levels,self.data.rain)
-        with patch.object(S,'load',return_value=self.empty),patch.object(C,'download',return_value=data) as download,patch.object(N,'main',side_effect=RuntimeError('failure')) as n5,patch.object(E.U,'main',return_value=0) as user:
+        with patch.object(S,'load',return_value=self.empty),patch.object(C,'download',return_value=data) as download,patch.object(N,'main',side_effect=RuntimeError('failure')) as n5,patch.object(E.V,'main',return_value=0) as v11,patch.object(E.U,'main',return_value=0) as user:
             self.assertEqual(E.main(),1)
             self.assertEqual(download.call_count,1)
             self.assertEqual(n5.call_args.args,user.call_args.args)
+            self.assertEqual(v11.call_args.args,user.call_args.args)
         with patch.object(S,'load',side_effect=FileNotFoundError('history')),patch.object(C,'download') as download:
             with self.assertRaises(FileNotFoundError):E.main()
             download.assert_not_called()

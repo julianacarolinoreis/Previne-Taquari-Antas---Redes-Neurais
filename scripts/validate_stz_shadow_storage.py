@@ -8,6 +8,7 @@ from previne.robo import stz_shadow_storage as S
 from previne.robo import stz_shadow_common as C
 from previne.robo import gerar_sombra_stz_n5 as N
 from previne.robo import gerar_sombra_stz_usuario as U
+from previne.robo import gerar_sombra_stz_v11 as V
 
 def git_json(path,root=C.ROOT):
     path=str(Path(path).relative_to(root)).replace('\\','/')
@@ -21,7 +22,7 @@ def git_history(directory,legacy,root=C.ROOT):
     return S.combine(git_json(legacy,root),parts)
 
 def main():
-    for directory,legacy in ((N.HISTORY,N.LEGACY),(U.HISTORY,U.LEGACY)):
+    for directory,legacy in ((N.HISTORY,N.LEGACY),(U.HISTORY,U.LEGACY),(V.HISTORY,V.LEGACY)):
         before=git_history(directory,legacy)
         after=S.load(directory,legacy);S.preserve(before,after)
     path=S.ARCHIVE/'index.json'
