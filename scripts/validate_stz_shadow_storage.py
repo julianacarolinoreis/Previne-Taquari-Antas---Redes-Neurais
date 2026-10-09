@@ -9,16 +9,16 @@ from previne.robo import stz_shadow_common as C
 from previne.robo import gerar_sombra_stz_n5 as N
 from previne.robo import gerar_sombra_stz_usuario as U
 
-def git_json(path):
-    path=str(Path(path).relative_to(C.ROOT)).replace('\\','/')
-    done=subprocess.run(['git','show','HEAD:'+path],cwd=C.ROOT,capture_output=True)
+def git_json(path,root=C.ROOT):
+    path=str(Path(path).relative_to(root)).replace('\\','/')
+    done=subprocess.run(['git','show','HEAD:'+path],cwd=root,capture_output=True)
     return json.loads(done.stdout) if done.returncode==0 else None
 
-def git_history(directory,legacy):
-    rel=str(Path(directory).relative_to(C.ROOT)).replace('\\','/')
-    names=subprocess.check_output(['git','ls-tree','--name-only','HEAD',rel+'/'],cwd=C.ROOT,text=True).split()
-    parts=[(Path(n).stem,git_json(C.ROOT/n)) for n in names if n.endswith('.json')]
-    return S.combine(git_json(legacy),parts)
+def git_history(directory,legacy,root=C.ROOT):
+    rel=str(Path(directory).relative_to(root)).replace('\\','/')
+    names=subprocess.check_output(['git','ls-tree','-r','--name-only','HEAD','--',rel+'/'],cwd=root,text=True).split()
+    parts=[(Path(n).stem,git_json(root/n,root)) for n in names if n.endswith('.json')]
+    return S.combine(git_json(legacy,root),parts)
 
 def main():
     for directory,legacy in ((N.HISTORY,N.LEGACY),(U.HISTORY,U.LEGACY)):

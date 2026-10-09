@@ -171,6 +171,25 @@ class StorageTest(unittest.TestCase):
             (parts/'2026-10.json').write_text(S.render_partition('2026-10',moved['registros'][:1],'x'),encoding='utf-8')
             with self.assertRaises(ValueError):S.load(parts)
 
+    def test_publication_validator_reads_committed_partitions_after_migration(self):
+        import subprocess
+        from scripts.validate_stz_shadow_storage import git_history
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);legacy=root/'historico.json';parts=root/'hist'
+            git=lambda *a:subprocess.run(['git','-c','user.name=t','-c','user.email=t@t',*a],cwd=root,check=True,capture_output=True)
+            git('init','-q')
+            hist=self.multi_month_history();C.write(legacy,hist)
+            git('add','-A');git('commit','-qm','legado')
+            self.assertEqual(git_history(parts,legacy,root)['registros'],hist['registros'])
+            S.save(parts,S.load(parts,legacy),S.load(parts,legacy),legacy)
+            git('add','-A');git('commit','-qm','particoes')
+            self.assertFalse(legacy.exists())
+            before=git_history(parts,legacy,root)
+            self.assertEqual(before['registros'],hist['registros'])
+            S.preserve(before,S.load(parts,legacy))
+            git('rm','-rq','hist');git('commit','-qm','apaga')
+            with self.assertRaises(FileNotFoundError):git_history(parts,legacy,root)
+
     def test_user_feed_is_slim_and_only_charts_current_model_versions(self):
         from previne.robo import gerar_sombra_stz_usuario as U
         with tempfile.TemporaryDirectory() as d:
