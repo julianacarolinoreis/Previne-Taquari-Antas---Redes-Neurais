@@ -63,7 +63,7 @@ if os.environ.get("HEC_PERDA") == "scs":
 PARAMS_DC = {k: v for k, v in PARAMS.items() if k not in ("ia_max", "f", "s0", "imp")}
 PARAMS_DC.update({
     "dmax": (20.0, 300.0, "log"), "perc": (0.2, 12.0, "log"), "imp": (0.0, 0.05, "lin"),
-    "qstar": (0.002, 0.10, "log"), "mr": (0.4, 8.0, "log"),
+    "qstar": (0.002, 0.10, "log"), "mr": (0.4, 12.0, "log"),   # lr-g5 encostou em mr=7 com teto 8
 })
 CANOPY_MM, SUPERFICIE_MM = 3.0, 5.0
 
