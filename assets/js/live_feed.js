@@ -95,13 +95,13 @@
     const parseLocal = function (value) {
       if (!value) return NaN;
       const raw = String(value);
-      return Date.parse(/[zZ]|[+-]\\d{2}:?\\d{2}$/.test(raw) ? raw : raw + '-03:00');
+      return Date.parse(/[zZ]|[+-]\d{2}:?\d{2}$/.test(raw) ? raw : raw + '-03:00');
     };
     const usable = function (model) {
       if (!model || model.disponivel === false || model.shadow_only ||
           !Number.isFinite(Number(model.nivel_previsto_cm)) ||
           model.nivel_previsto_cm === null ||
-          !/^ok\\b/i.test(String(model.status || '')) ||
+          !/^ok\b/i.test(String(model.status || '')) ||
           !Number.isFinite(parseLocal(model.hora_modelo)) ||
           !(parseLocal(model.hora_alvo) > Date.now())) return false;
       const audit = model.auditoria || {};
