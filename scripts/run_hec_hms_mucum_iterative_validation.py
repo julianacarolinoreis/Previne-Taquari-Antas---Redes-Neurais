@@ -20,6 +20,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from datetime import datetime, timezone, timedelta
 
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/"assets/data/estudo_bacia_taquari_antas"
@@ -38,6 +39,11 @@ LIMITS={
     "min_rain_stations": 40,
     "min_flow_q_stations": 30,
     "max_boundary_age_h": 2.0,
+    "max_live_obs_age_minutes": 45.0,
+    "max_live_t0_lag_minutes": 15.0,
+    "max_latest_stage_error_cm": 10.0,
+    "max_live_boundary_age_h": 2.0,
+    "max_ifs_age_h": 15.0,
 }
 MAX_CANDIDATES=240
 
@@ -106,6 +112,46 @@ def boundary_age_h(pkg, key):
     except Exception:
         return 999.0
 
+
+def latest_live_audit(pkg):
+    """Post-run audit: independently recheck fresh Muçum, upstream and IFS inputs."""
+    result={"live_obs_age_minutes":999.0,"t0_lag_minutes":999.0,
+            "latest_stage_error_cm":999.0,"ljj_age_h_live":999.0,
+            "carreiro_age_h_live":999.0,"ifs_age_h":999.0,
+            "rain_antecedent_representative":False,"spatial_residual_rain":False}
+    try:
+        live=json.loads((ROOT/"previsao_ao_vivo_mucum.json").read_text(encoding="utf-8"))
+        future=json.loads((OUT/"hec_twin_ifs_spatial_forcing_5d_latest.json").read_text(encoding="utf-8"))
+        latest=datetime.fromisoformat(str(live["telemetria_ultima_em"]))
+        at_t0=datetime.fromisoformat(str((pkg.get("current") or {})["observed_time_local"]))
+        now=datetime.now(timezone.utc)
+        local_now=now.astimezone(timezone(timedelta(hours=-3))).replace(tzinfo=None)
+        age=(local_now-latest).total_seconds()/60.0
+        if age < -15.0: return result
+        result["live_obs_age_minutes"]=max(0.0,age)
+        result["t0_lag_minutes"]=abs((latest-at_t0).total_seconds())/60.0
+        result["spatial_residual_rain"]=bool((pkg.get("observed_network_audit") or {}).get("rain_future_by_residual_subbasin"))
+        result["rain_antecedent_representative"]=bool((future.get("antecedent_rain") or {}).get("representative"))
+        ifs_at=datetime.fromisoformat(str(future["generated_at_utc"]).replace("Z","+00:00"))
+        result["ifs_age_h"]=max(0.0,(now-ifs_at).total_seconds()/3600.0)
+        for source,key in (("linha_jose_julio","ljj_age_h_live"),("passo_carreiro","carreiro_age_h_live")):
+            b=(pkg.get("boundary_audit") or {}).get(source) or {}
+            when=datetime.fromisoformat(str(b["last_observed_local"]))
+            result[key]=max(0.0,(latest-when).total_seconds()/3600.0)
+        times=[datetime.fromisoformat(t) for t in pkg.get("times_local") or []]
+        stages=pkg.get("stage_cm_raw") or []
+        if len(times)==len(stages) and times and times[0]<=latest<=times[-1]:
+            if latest in times:
+                mod=float(stages[times.index(latest)])
+            else:
+                i=next(i for i in range(len(times)-1) if times[i]<latest<times[i+1])
+                w=(latest-times[i]).total_seconds()/(times[i+1]-times[i]).total_seconds()
+                mod=float(stages[i])*(1-w)+float(stages[i+1])*w
+            result["latest_stage_error_cm"]=abs(mod-float(live["telemetria_ultima_nivel_cm"]))
+    except (ValueError,KeyError,TypeError,IndexError,OSError,StopIteration):
+        return result
+    return result
+
 def checks(pkg):
     cur=pkg.get("current") or {}
     fit6=pkg.get("recent_fit_6h") or {}
@@ -125,6 +171,7 @@ def checks(pkg):
       "flow_q_station_count":int(net.get("flow_stations_with_q") or 0),
       "ljj_age_h":boundary_age_h(pkg,"linha_jose_julio"),
       "carreiro_age_h":boundary_age_h(pkg,"passo_carreiro"),
+      **latest_live_audit(pkg),
     }
     passed={
       "stage":values["abs_stage_error_cm"]<=LIMITS["abs_stage_error_cm"],
@@ -139,6 +186,14 @@ def checks(pkg):
       "flow_network":values["flow_q_station_count"]>=LIMITS["min_flow_q_stations"],
       "ljj_fresh":values["ljj_age_h"]<=LIMITS["max_boundary_age_h"],
       "carreiro_fresh":values["carreiro_age_h"]<=LIMITS["max_boundary_age_h"],
+      "live_observation_fresh":values["live_obs_age_minutes"]<=LIMITS["max_live_obs_age_minutes"],
+      "t0_is_latest":values["t0_lag_minutes"]<=LIMITS["max_live_t0_lag_minutes"],
+      "latest_observed_stage_match":values["latest_stage_error_cm"]<=LIMITS["max_latest_stage_error_cm"],
+      "ljj_fresh_live":values["ljj_age_h_live"]<=LIMITS["max_live_boundary_age_h"],
+      "carreiro_fresh_live":values["carreiro_age_h_live"]<=LIMITS["max_live_boundary_age_h"],
+      "ifs_fresh":values["ifs_age_h"]<=LIMITS["max_ifs_age_h"],
+      "rain_antecedent_representative":values["rain_antecedent_representative"],
+      "spatial_residual_rain":values["spatial_residual_rain"],
     }
     return values,passed,all(passed.values())
 
@@ -156,7 +211,10 @@ def score(pkg):
         s += 45.0*(LIMITS["min_nse12h"]-values["nse12h"])
     # Data freshness is not calibrated away; penalize it so the audit remains
     # obvious, but never modify observations to make the model pass.
-    for k in ("rain_network","flow_network","ljj_fresh","carreiro_fresh","lag_corr","lag_rmse"):
+    for k in ("rain_network","flow_network","ljj_fresh","carreiro_fresh","lag_corr","lag_rmse",
+              "live_observation_fresh","t0_is_latest","latest_observed_stage_match",
+              "ljj_fresh_live","carreiro_fresh_live","ifs_fresh",
+              "rain_antecedent_representative","spatial_residual_rain"):
         if not passed[k]: s += 25.0
     return s
 
@@ -340,6 +398,10 @@ def main():
     if len(sys.argv)<2: raise SystemExit("usage: iterative_validation /path/to/hec-hms.sh")
     hec=sys.argv[1]
     all_rows=[];accepted=[];seen=set()
+    data_blocked=False
+    input_gates=("live_observation_fresh","t0_is_latest","ljj_fresh_live",
+                 "carreiro_fresh_live","ifs_fresh","rain_antecedent_representative",
+                 "spatial_residual_rain")
 
     stage_builders=[
       lambda best: base_candidates(),
@@ -363,10 +425,16 @@ def main():
             seen.add(k)
             row=run_one(hec,cand);row["stage"]=stage_i
             stage_rows.append(row);all_rows.append(row)
+            if row.get("ok") and any(not row["passed"].get(k,False) for k in input_gates):
+                data_blocked=True
+                print("BLOCKED_INPUTS="+json.dumps({
+                    "failed":[k for k in input_gates if not row["passed"].get(k,False)],
+                    "values":row.get("values")},ensure_ascii=False))
+                break
             if row.get("accepted"):
                 accepted.append(row)
                 break
-        if accepted or len(all_rows)>=MAX_CANDIDATES:
+        if accepted or data_blocked or len(all_rows)>=MAX_CANDIDATES:
             break
         best_so_far=best_executed(all_rows)
         print("CALIBRATION_CONTINUES="+json.dumps({
@@ -380,7 +448,8 @@ def main():
 
     pkg=rerun_selected(hec,selected)
     values,passed,accepted_now=checks(pkg)
-    final_status="VALIDATED" if accepted_now else "RECALIBRATING"
+    final_status=("BLOCKED_INPUTS" if data_blocked else
+                  ("VALIDATED" if accepted_now else "RECALIBRATING"))
 
     selected_payload={
       "k1_h":selected["k1"],"k2_h":selected["k2"],"k3_h":selected["k3"],
@@ -408,7 +477,22 @@ def main():
       "next_cycle_action":None if accepted_now else "resume from best candidate with fresh observations and re-optimize",
       "candidates":all_rows,
     }
-    pkg["publishable"]=bool(accepted_now)
+    pkg["publishable"]=bool(accepted_now and not data_blocked)
+    if data_blocked:
+        pkg["last_unvalidated_peak_for_audit"]=pkg.pop("peak",None)
+        pkg["peak"]=None
+        pkg["warning_pt"]="HEC bloqueado por telemetria/chuva ou fronteira de montante defasada: nenhuma previsão liberada."
+    pkg["interdisciplinary_audit"]={
+        "hydrometeorology":{"rain_representative":values["rain_antecedent_representative"],
+            "spatial_residual_rain":values["spatial_residual_rain"],"ifs_fresh":passed["ifs_fresh"]},
+        "upstream_hydrology":{"ljj_fresh":passed["ljj_fresh_live"],
+            "carreiro_fresh":passed["carreiro_fresh_live"],"lag_corr":values["lag_corr"]},
+        "forecast_validation":{"latest_observation_fresh":passed["live_observation_fresh"],
+            "t0_is_latest":passed["t0_is_latest"],
+            "stage_matches_latest_obs":passed["latest_observed_stage_match"],
+            "nse6h":values["nse6h"],"nse12h":values["nse12h"]},
+        "all_gates_passed":bool(accepted_now and not data_blocked),
+    }
     RESULT.write_text(json.dumps(pkg,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
 
     print("OPERATIONAL_VALIDATION="+json.dumps({
