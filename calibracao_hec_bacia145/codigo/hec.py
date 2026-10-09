@@ -223,14 +223,40 @@ def razao_inicial(sim: str) -> float:
     return cand[0] / AREA_MUCUM_KM2
 
 
+# ---------------------------------------------------------------- tabelas (paired data)
+# tabelas: {nome: {"tipo": rótulo do .pdata, "c": parte C do DSS, "xu", "yu": unidades, "x": [...], "y": [...]}}.
+# O .pdata aponta para tabelas.dss, que a própria JVM do lote grava a partir de tabelas.txt antes de abrir o projeto.
+TIPO_SECAO = dict(tipo="Distance-Elevation", c="DISTANCE-ELEVATION", xu="M", yu="M")
+TIPO_PERCENTUAL = dict(tipo="Percent Graph", c="PERCENT GRAPH", xu="%", yu="%")
+
+
+def caminho_tabela(nome, t):
+    return f"/TAQUARI_ANTAS/{nome}/{t['c']}///TABLE/"
+
+
+def escrever_tabelas(d: Path, tabelas: dict):
+    p = ["Paired Data Manager: proj", "     Version: 4.13", "     Filepath Separator: \\", "End:", ""]
+    linhas = []
+    for nome, t in tabelas.items():
+        p += [f"Table: {nome}", f"     Table Type: {t['tipo']}", f"     X-Units: {t['xu']}", f"     Y-Units: {t['yu']}",
+              "     Use External DSS File: YES", "     DSS File: tabelas.dss",
+              f"     Pathname: {caminho_tabela(nome, t)}", "End:", ""]
+        linhas.append(";".join([caminho_tabela(nome, t), t["xu"], t["yu"], ",".join(f"{v:.6g}" for v in t["x"]),
+                                ",".join(f"{v:.6g}" for v in t["y"])]))
+    (d / "proj.pdata").write_text("\n".join(p), encoding="utf-8")
+    (d / "tabelas.txt").write_text("\n".join(linhas) + "\n", encoding="utf-8")
+
+
 # ---------------------------------------------------------------- projeto e lote
-def escrever_projeto(d: Path, sim: str, basin_text: str):
+def escrever_projeto(d: Path, sim: str, basin_text: str, tabelas: dict | None = None):
     d.mkdir(parents=True, exist_ok=True)
     cfg = SIMULACOES[sim]
     ini, fim = cfg["ini"], cfg["fim"]
     dss = dss_chuva(sim)
     shutil.copy2(dss, d / "chuva.dss")
     (d / "bacia.basin").write_text(basin_text, encoding="utf-8")
+    if tabelas:
+        escrever_tabelas(d, tabelas)
     subs = re.findall(r"(?m)^Subbasin: ([^\n]+)", basin_text)
     g = ["Gage Manager: chuva", "     Version: 4.13", "     Filepath Separator: \\", "End:", ""]
     for s in subs:
@@ -278,8 +304,32 @@ def _lote_jvm(dirs: list[Path], script: Path):
     nodes = repr([n for n, _ in CONTROLES.values()] + list(NOS_EXTRA))
     script.write_text(f"""from hms.model.JythonHms import *
 from hec.heclib.dss import HecDss
+from hec.io import PairedDataContainer
+import os
+def gravar_tabelas(d):
+    dss = HecDss.open(d + '/tabelas.dss')
+    for linha in open(d + '/tabelas.txt').read().splitlines():
+        if not linha.strip():
+            continue
+        cam, xu, yu, xs, ys = linha.split(';')
+        x = [float(v) for v in xs.split(',')]
+        y = [float(v) for v in ys.split(',')]
+        c = PairedDataContainer()
+        c.fullName = cam
+        c.xOrdinates = x
+        c.yOrdinates = [y]
+        c.numberOrdinates = len(x)
+        c.numberCurves = 1
+        c.xunits = xu
+        c.yunits = yu
+        c.xtype = 'UNT'
+        c.ytype = 'UNT'
+        dss.put(c)
+    dss.close()
 for d in {lst}:
     try:
+        if os.path.exists(d + '/tabelas.txt'):
+            gravar_tabelas(d)
         OpenProject('proj', d)
         Compute('Rodada')
         dss = HecDss.open(d + '/output.dss')
@@ -311,24 +361,24 @@ def ler_vazao(d: Path) -> dict:
     return out
 
 
-def rodar_lote(jobs: list[tuple[Path, str, str]], paralelo=12, por_jvm=6) -> dict:
-    """jobs: (dir, sim, basin_text). Retorna {dir: {node: {t: q}}} (ou exceção registrada)."""
+def rodar_lote(jobs: list[tuple], paralelo=12, por_jvm=6) -> dict:
+    """jobs: (dir, sim, basin_text[, tabelas]). Retorna {dir: {node: {t: q}}} (ou exceção registrada)."""
     pend = []
-    for d, sim, txt in jobs:
+    for d, sim, txt, *tab in jobs:
         if (d / "ok.txt").exists():
             continue
         if d.exists():
             shutil.rmtree(d)
-        escrever_projeto(d, sim, txt)
+        escrever_projeto(d, sim, txt, tab[0] if tab else None)
         pend.append(d)
     grupos = [pend[i:i + por_jvm] for i in range(0, len(pend), por_jvm)]
     with ThreadPoolExecutor(paralelo) as ex:
         list(ex.map(lambda ig: _lote_jvm(ig[1], ig[1][0].parent / f"_lote_{ig[0]}_{ig[1][0].name}.py"), enumerate(grupos)))
     res = {}
-    for d, _, _ in jobs:
+    for d, *_ in jobs:
         if (d / "ok.txt").exists():
             res[d] = ler_vazao(d)
-            for f in ("output.dss", "chuva.dss", "proj.dss"):
+            for f in ("output.dss", "chuva.dss", "proj.dss", "tabelas.dss"):
                 (d / f).unlink(missing_ok=True)  # economiza disco; CSV de vazão fica
         else:
             err = (d / "erro.txt").read_text() if (d / "erro.txt").exists() else "sem saída"

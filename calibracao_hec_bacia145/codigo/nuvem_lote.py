@@ -44,11 +44,12 @@ def main():
     meus = todos[a.shard::a.shards]
     print(f"shard {a.shard}/{a.shards}: {len(meus)} simulações de {len(todos)} ({len(cands)} candidatos x {len(sims)} janelas)", flush=True)
     hec.NOS_EXTRA = sorted({c[1] for c in bi.CONTROLES.values()})
-    jobs = [(RUNS / c["id"] / s, s, e3.bacia_v3(c["p"], s, c.get("rota", "mc"))) for c, s in meus]
+    jobs = [(RUNS / c["id"] / s, s, e3.bacia_v3(c["p"], s, c.get("rota", "mc")), e3.tabelas_v3(c["p"], c.get("rota", "mc")))
+            for c, s in meus]
     res = hec.rodar_lote(jobs, paralelo=a.paralelo, por_jvm=a.por_jvm)
     saida = Path(a.saida)
     falhas = 0
-    for (c, s), (d, _, _) in zip(meus, jobs):
+    for (c, s), (d, *_) in zip(meus, jobs):
         alvo = saida / c["id"] / s
         alvo.mkdir(parents=True, exist_ok=True)
         r = res[d]

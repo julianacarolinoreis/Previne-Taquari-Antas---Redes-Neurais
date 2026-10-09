@@ -80,7 +80,52 @@ PARAMS_LRIC = {k: v for k, v in PARAMS.items() if k not in ("rec", "thr", "s0")}
 PARAMS_LRIC.update({"ia_max": (0.0, 90.0, "lin"), "f": (0.5, 20.0, "log"), "imp": (0.0, 0.15, "lin"), **PARAMS_LR})
 PARAMS_LRDC = {k: v for k, v in PARAMS_DC.items() if k not in ("rec", "thr")}
 PARAMS_LRDC.update(PARAMS_LR)
-FAMILIAS = {"dc": PARAMS_DC, "lric": PARAMS_LRIC, "lrdc": PARAMS_LRDC}
+
+# Clark variável (09/10, família lrdcv): Tc e R de cada intervalo variam com a intensidade do excesso i (HEC-HMS
+# "Clark Method: Variable"). Tc e R do candidato valem na intensidade-índice ie (mm/h); fora dela, por curvas
+# percentuais iguais para todas as sub-bacias: Tc(i) = Tc * (i/ie)^-atc e R(i) = R * (i/ie)^-ar (onda cinemática:
+# expoente ~0,4), limitadas a [VC_MIN, VC_MAX]%. atc = ar = 0 reproduz o Clark padrão.
+PARAMS_LRDCV = dict(PARAMS_LRDC, ie=(0.5, 20.0, "log"), atc=(0.0, 0.6, "lin"), ar=(0.0, 0.6, "lin"))
+VC_X = [0, 5, 10, 25, 50, 100, 200, 400, 800, 1600, 5000]   # % da intensidade-índice
+VC_MIN, VC_MAX = 20.0, 400.0
+
+# Seção de 8 pontos no Muskingum-Cunge (09/10, rotas mc8st / mc8): seções de dados/secoes_mc.json, extraídas do MDT de
+# Santa Tereza (mosaico 2 m; R_208, R_256, R_201) e do SRTM 30 m (demais trechos da calha), com o leito abaixo da
+# lâmina ajustado à curva-chave de LJJ (_analise_modelo/secoes). mc8st: só os 3 trechos do mosaico; mc8: os 17.
+# n da calha entre os pontos 3 e 6 = N_BASE*mn; nas encostas = nob vezes isso (família lrdc8; sem nob, 1).
+PARAMS_LRDC8 = dict(PARAMS_LRDC, nob=(0.7, 3.0, "log"))
+FAMILIAS = {"dc": PARAMS_DC, "lric": PARAMS_LRIC, "lrdc": PARAMS_LRDC, "lrdcv": PARAMS_LRDCV, "lrdc8": PARAMS_LRDC8}
+ROTAS_8PT = {"mc8st": ("R_208", "R_256", "R_201"), "mc8": None}
+_SECOES = None
+
+
+def secoes():
+    global _SECOES
+    if _SECOES is None:
+        _SECOES = json.loads((MDT.parent / "secoes_mc.json").read_text(encoding="utf-8"))["trechos"]
+    return _SECOES
+
+
+def usa_8pt(r, rota):
+    return rota in ROTAS_8PT and r in MC_REACHES and (ROTAS_8PT[rota] is None or r in ROTAS_8PT[rota])
+
+
+def curva_vc(a):
+    return [min(VC_MAX, max(VC_MIN, 100.0 * (max(x, VC_X[1]) / 100.0) ** (-a))) for x in VC_X]
+
+
+def tabelas_v3(p, rota="mc"):
+    """Tabelas (paired data) que a bacia do candidato usa: seções de 8 pontos e curvas do Clark variável."""
+    tab = {}
+    if rota in ROTAS_8PT:
+        for r in MC_REACHES:
+            if usa_8pt(r, rota):
+                pts = secoes()[r]["pontos"]
+                tab["XS_" + r] = dict(hec.TIPO_SECAO, x=[q[0] for q in pts], y=[q[1] for q in pts])
+    if "ie" in p:
+        tab["VC_TC"] = dict(hec.TIPO_PERCENTUAL, x=VC_X, y=curva_vc(p["atc"]))
+        tab["VC_R"] = dict(hec.TIPO_PERCENTUAL, x=VC_X, y=curva_vc(p["ar"]))
+    return tab
 
 
 def bloco_lr(p, qloc):
@@ -180,6 +225,20 @@ def bloco_mc(r, mn):
             f"     Index Flow: {QIDX[reg]}\n     Space-Time Method: Automatic DX and DT\n     Channel Loss: None\n")
 
 
+def bloco_mc8(r, p):
+    reg = bi.REG[r]
+    L_m = float(ATT[r]["length_km"]) * 1000 / 1.10
+    sec = secoes()[r]
+    S = sec["decl_m_km"] / 1000 if sec.get("decl_m_km") else max(float(ATT[r]["slope_m_per_km"]) / 1000, S_MIN[reg])
+    n = N_BASE * p["mn"]
+    nob = n * p.get("nob", 1.0)
+    return ("     Route: Muskingum Cunge\n     Initial Variable: Combined Inflow\n     Channel: 8-point\n"
+            f"     Length: {L_m:.1f}\n     Energy Slope: {S:.6f}\n     Mannings n: {n:.4f}\n"
+            f"     Left Mannings n: {nob:.4f}\n     Right Mannings n: {nob:.4f}\n     Cross Section Name: XS_{r}\n"
+            "     Index Parameter Type: Index Flow\n"
+            f"     Index Flow: {QIDX[reg]}\n     Space-Time Method: Automatic DX and DT\n     Channel Loss: None\n")
+
+
 def bacia_v3(p, sim, rota="mc"):
     q0 = q0_controles(sim)
 
@@ -219,6 +278,12 @@ def bacia_v3(p, sim, rota="mc"):
         rep("Percent Impervious Area", f"{100 * p['imp']:.3f}")
         rep("Time of Concentration", f"{tc * v:.5f}")
         rep("Storage Coefficient", f"{r * v * p['mr']:.5f}")
+        if "ie" in p:
+            rep("Clark Method", "Variable")
+            corpo, n = re.subn(r"(?m)^(\s*)(Time Area Method: [^\n]+\n)",
+                               lambda mm: (f"{mm[1]}Index Excess: {p['ie']:.4f}\n{mm[1]}Excess-Tc Percentage Curve: VC_TC\n"
+                                           f"{mm[1]}Excess-R Percentage Curve: VC_R\n{mm[1]}{mm[2]}"), corpo)
+            assert n == 1, (nome, "Clark variável")
         if "k1" in p:
             corpo, n = re.subn(r"(?ms)^[ \t]*Baseflow: Recession\n.*?^[ \t]*Threshold Flow to Peak Ratio: [^\n]+\n",
                                lambda mm: bloco_lr(p, qloc), corpo, count=1)
@@ -231,8 +296,9 @@ def bacia_v3(p, sim, rota="mc"):
 
     def rea(m):
         nome, corpo = m[1].strip(), m[2]
-        if rota == "mc" and nome in MC_REACHES:
-            corpo = re.sub(r"(?ms)^\s*Route: Muskingum\n.*?^\s*Channel Loss: None\n", bloco_mc(nome, p["mn"]), corpo)
+        if rota in ("mc", *ROTAS_8PT) and nome in MC_REACHES:
+            bloco = bloco_mc8(nome, p) if usa_8pt(nome, rota) else bloco_mc(nome, p["mn"])
+            corpo = re.sub(r"(?ms)^\s*Route: Muskingum\n.*?^\s*Channel Loss: None\n", lambda mm: bloco, corpo)
             assert "Muskingum Cunge" in corpo, nome
             return f"Reach: {m[1]}\n{corpo}End:"
         reg = bi.REG[nome]

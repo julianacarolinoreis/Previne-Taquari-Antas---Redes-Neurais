@@ -14,9 +14,10 @@ from pathlib import Path
 
 import bacia_inteira as bi
 import buscar_v3 as bs
+import metricas
 from comum import EVENTOS, SIMULACOES
 
-CAMPOS = ("evento", "papel", "controle", "nse", "vol", "erro_pico", "lag_h", "pen", "passa")
+CAMPOS = ("evento", "papel", "controle", "nse", "vol", "erro_pico", "lag_h", "pen", "passa", "pico_obs")
 
 
 def ler(p):
@@ -42,6 +43,7 @@ def main():
         achados[(f.parent.parent.name, f.parent.name)] = f
     cal = sorted(e for e, v in EVENTOS.items() if v["papel"] == "calibracao")
     out = []
+    pesos = None
     for c in cands:
         mets, faltam = [], []
         for s in sims:
@@ -55,7 +57,10 @@ def main():
         J_ev = {e: bi.J_evento(mets, e) for e in cal}
         fin = [v for v in J_ev.values() if math.isfinite(v)]
         J = sum(fin) / len(fin) if fin and not faltam else float("inf")
-        out.append({"id": c["id"], "rota": c.get("rota", "mc"), "p": c["p"], "J": J, "faltam": faltam,
+        if pesos is None and not faltam:
+            pesos = metricas.pesos_por_pico(mets, set(cal))
+        J_pico = metricas.J_ponderado(J_ev, pesos) if pesos and not faltam else float("inf")
+        out.append({"id": c["id"], "rota": c.get("rota", "mc"), "p": c["p"], "J": J, "J_pico": J_pico, "faltam": faltam,
                     "J_ev": {k: (v if math.isfinite(v) else None) for k, v in J_ev.items()},
                     "metricas": [{k: m[k] for k in CAMPOS} for m in mets]})
     Path(a.saida).write_text(json.dumps(out, indent=1, default=str), encoding="utf-8")

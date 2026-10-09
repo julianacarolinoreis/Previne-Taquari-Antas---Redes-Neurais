@@ -108,6 +108,31 @@ def penalidade(m):
     return j
 
 
+def pesos_por_pico(mets, eventos, expoente=1.0):
+    """Opção (09/10): peso de cada evento pelo tamanho da cheia OBSERVADA, para um J com mais peso nas cheias grandes.
+    Para cada controle, pico_obs / mediana do pico_obs do controle nos eventos dados (só picos com magnitude válida,
+    erro_pico definido); o tamanho do evento é a média dessas razões, elevada ao expoente; normalizado para média 1.
+    Evento sem pico válido fica com peso 1. Só usa observados: o peso é o mesmo para qualquer candidato."""
+    por_ctrl = {}
+    for m in mets:
+        if m["evento"] in eventos and m.get("pico_obs") and m.get("erro_pico") is not None:
+            por_ctrl.setdefault(m["controle"], {})[m["evento"]] = float(m["pico_obs"])
+    med = {c: sorted(v.values())[len(v) // 2] for c, v in por_ctrl.items()}
+    tam = {}
+    for e in eventos:
+        r = [v[e] / med[c] for c, v in por_ctrl.items() if e in v]
+        tam[e] = (sum(r) / len(r)) ** expoente if r else None
+    ok = [t for t in tam.values() if t is not None]
+    media = sum(ok) / len(ok) if ok else 1.0
+    return {e: (t / media if t is not None else 1.0) for e, t in tam.items()}
+
+
+def J_ponderado(J_ev, pesos):
+    """Média dos J_evento finitos ponderada por pesos (pesos_por_pico). Não substitui o J padrão (média simples)."""
+    par = [(pesos.get(e, 1.0), j) for e, j in J_ev.items() if j is not None and math.isfinite(j)]
+    return sum(w * j for w, j in par) / sum(w for w, _ in par) if par else float("inf")
+
+
 def eventos_da_sim(sim):
     return [e for e, v in EVENTOS.items() if v["sim"] == sim]
 
