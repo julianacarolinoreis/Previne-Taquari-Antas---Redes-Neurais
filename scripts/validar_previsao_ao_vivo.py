@@ -17,13 +17,14 @@ P_MAT = ROOT / "previne/assets/mat/009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21.ma
 P_SHA = "9446EA5582F7EAFBFC1417AADA610AF258318EE1198A1E4D5C5A2C3FDECC685D"
 P_WORKBOOK = ROOT / "assets/audit_workbooks/2H_ALT__009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21.xlsx"
 P_WORKBOOK_SHA = "33487BF862AEA460C336BF098BBB3DEFE5DD2A0F1BD49396CFB78A18A34371E2"
-FOUR_MAT = ROOT / "assets/mat/4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000.mat"
-FOUR_SHA = "951394B8B8B3F2C45EE90379F85FE79EC274069692467DFDCF8222B58E281632"
-FOUR_WORKBOOK = ROOT / "assets/audit_workbooks/4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000.xlsx"
-FOUR_WORKBOOK_SHA = "EE1E3B4A06C35A61C7EAEFBB1128D61C47FC4582113C5CB65EA53BB5EBF57724"
-FOUR_ID = "4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000"
-FOUR_FB_ID = "4H_ALT_PRIO_12478"
-FOUR_FB_MAT = ROOT / "previne/assets/mat/RNAPREV__SANTA_TEREZA__04h__ALT__prio_12478.mat"
+P_ID = "009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21"
+FOUR_MAT = ROOT / "previne/assets/mat/RNAPREV__SANTA_TEREZA__04h__ALT__18inputs_37hiddens_VFINAL_20260806__V11.mat"
+FOUR_SHA = "97DD30036C6434AC615520276EBB16686ADD485FCE8F01DF8C8589FE39840829"
+FOUR_ID = "STZ_4H_V11_CASCATA"
+FOUR_RAIN_SOURCES = {
+    "Psoma12h_LOCAL": ["86472600", "86472000"],
+    "Psoma15h_CARREIRO_2851044": ["2851044"],
+}
 EIGHT_V1_MAT = ROOT / "previne/assets/mat/RNAPREV__SANTA_TEREZA__08h__ALT__V001__31inputs_63hiddens_20260821.mat"
 EIGHT_V1_SHA = "CDA80F39A2A81644F7969984AD6AF262694508D5D56C3EB00CE4BF12B67A9571"
 EIGHT_V1_ID = "STZ_H8_ALT_V001_31IN_63NH"
@@ -48,7 +49,7 @@ EIGHT_FORMULAS = {
 REQUIRED = {"2h", "2h_versao_b", "4h", "8h", "8h_v002"}
 REQUIRED_FIELDS = {"horizonte", "horizonte_h", "modelo", "tipo", "status"}
 EXPECTED_HOURS = {"2h": 2, "2h_versao_b": 2, "4h": 4, "8h": 8, "8h_v002": 8}
-EXPECTED_INPUTS = {"2h": 15, "2h_versao_b": 15, "4h": 26, "8h": 31, "8h_v002": 28}
+EXPECTED_INPUTS = {"2h": 15, "2h_versao_b": 15, "4h": 18, "8h": 31, "8h_v002": 28}
 
 
 def sha256(path: Path) -> str:
@@ -90,8 +91,10 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
     keys = set(horizons)
     if keys != REQUIRED:
         raise SystemExit(f"horizontes inesperados: {sorted(keys)}; esperado {sorted(REQUIRED)}")
-    if "cascata" in json.dumps(data, ensure_ascii=False).lower():
-        raise SystemExit("feed ainda contem referencia legada a cascata")
+    for key in REQUIRED:
+        modelo = str((horizons[key] or {}).get("modelo") or "") if isinstance(horizons[key], dict) else ""
+        if "cascata" in modelo.lower() and modelo != FOUR_ID:
+            raise SystemExit(f"feed ainda contem cascata legada em {key}: {modelo}")
     for key in REQUIRED:
         if not isinstance(horizons[key], dict):
             raise SystemExit(f"{key} precisa ser objeto")
@@ -120,22 +123,29 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
                 raise SystemExit(f"hash da referencia auditavel do {label} nao confere")
 
     four = horizons["4h"]
-    if four.get("modelo") == FOUR_ID:
-        if four.get("modelo_sha256") != FOUR_SHA or sha256(FOUR_MAT) != FOUR_SHA:
-            raise SystemExit("hash do modelo 4h preferencial nao confere")
-        if four.get("referencia_auditavel") != FOUR_WORKBOOK.relative_to(ROOT).as_posix():
-            raise SystemExit("referencia auditavel do 4h preferencial nao confere")
-        if four.get("referencia_auditavel_sha256") != FOUR_WORKBOOK_SHA or sha256(FOUR_WORKBOOK) != FOUR_WORKBOOK_SHA:
-            raise SystemExit("hash da referencia auditavel do 4h preferencial nao confere")
-    elif four.get("modelo") == FOUR_FB_ID:
-        if four.get("modelo_sha256") != sha256(FOUR_FB_MAT):
-            raise SystemExit("hash do fallback 4h nao confere")
-        if four.get("fallback_ativo") is not True:
-            raise SystemExit("fallback 4h precisa declarar fallback_ativo=true")
-        if four.get("status_publicacao") != "fallback_operacional_experimental":
-            raise SystemExit("fallback 4h sem status_publicacao explicito")
-    else:
+    if four.get("modelo") != FOUR_ID:
         raise SystemExit("modelo 4h nao autorizado no feed")
+    if four.get("modelo_sha256") != FOUR_SHA or sha256(FOUR_MAT) != FOUR_SHA:
+        raise SystemExit("hash do modelo 4h V11 nao confere")
+    if four.get("principal") is not True or four.get("shadow_only") or four.get("fallback_ativo"):
+        raise SystemExit("4h V11 precisa ser o titular, sem sombra nem fallback")
+    if four.get("nivel_previsto_cm") is not None:
+        cascade = four.get("cascata_2h") or {}
+        if cascade.get("modelo") != P_ID or cascade.get("modelo_sha256") != P_SHA:
+            raise SystemExit("cascata do 4h V11 nao usa a RNA 2h principal")
+        if cascade.get("hora_modelo") != four.get("hora_modelo"):
+            raise SystemExit("cascata do 4h V11 fora da mesma hora-base")
+        vals = four.get("input_values_cm") or []
+        if len(vals) == EXPECTED_INPUTS["4h"]:
+            if abs(float(vals[16]) - float(cascade.get("delta_previsto_cm"))) > 0.01:
+                raise SystemExit("x17 do 4h V11 difere do delta da RNA 2h")
+            if abs(float(vals[17]) - (float(vals[0]) + float(vals[16]))) > 0.01:
+                raise SystemExit("x18 do 4h V11 difere de N(t) + x17")
+        four_audit = four.get("auditoria_inputs") or {}
+        if four_audit.get("fontes_chuva") != FOUR_RAIN_SOURCES:
+            raise SystemExit("4h V11 com postos de chuva divergentes do contrato")
+        if four_audit.get("ausencia_chuva_vira_zero") is not False:
+            raise SystemExit("4h V11 nao prova tratamento seguro de chuva ausente")
 
     eight = horizons["8h"]
     if eight.get("modelo") == EIGHT_V1_ID:
@@ -209,9 +219,7 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
             raise SystemExit(f"{key} publicou inputs interpolados/vizinhos")
         vals = item.get("input_values_cm") or []
         expected_inputs = EXPECTED_INPUTS[key]
-        if key == "4h" and item.get("modelo") == FOUR_FB_ID:
-            expected_inputs = 5
-        elif key == "8h" and item.get("modelo") == EIGHT_FB_ID:
+        if key == "8h" and item.get("modelo") == EIGHT_FB_ID:
             expected_inputs = 10
         elif key == "8h_v002" and item.get("modelo") == EIGHT_V2_FB_ID:
             expected_inputs = 10
