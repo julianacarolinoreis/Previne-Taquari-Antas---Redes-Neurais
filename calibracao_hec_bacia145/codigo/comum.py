@@ -21,6 +21,7 @@ MDT_SUBBACIAS = Path(os.environ.get("HEC_MDT_SUB", str(
     CODEX / "modelo_bacia_taquari_antas_reconstruido_20260920" / "atributos_mdt_bacia_full_20260920" / "mdt_subbacias_atributos.csv")))
 DADOS = AQUI / "dados_ana"
 FORC = AQUI / os.environ.get("HEC_FORC", "forcamento")          # forcamento_v3 = todos os pluviômetros
+FORC_PREV = AQUI / os.environ.get("HEC_FORC_PREV", "forcamento_prevista")   # chuva prevista das janelas derivadas
 RESULT = AQUI / os.environ.get("HEC_RESULT", "resultados")    # pasta de saída das avaliações
 RUNS = Path(os.environ.get("HEC_RUNS", r"C:\Users\Usuario\hec_calibracao_rodadas_20261005"))  # SSD: DSS no HD (D:) é ~25x mais lento
 
@@ -126,3 +127,16 @@ if os.environ.get("HEC_PAPEIS"):
     for _k, _p in _json2.loads(_pp.read_text(encoding="utf-8")).items():
         if _k in EVENTOS and EVENTOS[_k]["papel"] != "teste" and _p != "teste":
             EVENTOS[_k]["papel"] = _p
+
+
+def janela(nome):
+    """Registra a janela derivada '<mãe>__<t0 AAAAMMDDHH>__<modelo>' (emissão de previsão): mesmo período, observados
+    e estado inicial da mãe; chuva observada até t0 e a do modelo depois (hec.dss_chuva). Sem eventos próprios."""
+    if nome not in SIMULACOES and "__" in nome:
+        mae, t0, modelo = nome.split("__")
+        SIMULACOES[nome] = dict(SIMULACOES[mae], mae=mae, t0=datetime.strptime(t0, "%Y%m%d%H"), modelo=modelo)
+    return nome
+
+
+def mae(sim):
+    return SIMULACOES.get(sim, {}).get("mae", sim)
