@@ -70,3 +70,28 @@ Por controle do objetivo e janela longa, nas médias diárias (elas também apag
 Os demais parâmetros que governam a base continuam livres nas faixas físicas de antes: k2 (150–4000 h), fb (0,3–1;
 a perda profunda é 1 − fb), p1 (0,02–0,98), s1 e perc, mais os multiplicadores regionais de fb e perc.
 Multiplicadores = 1 reproduzem a lrdcr.
+
+## Resultado (out/2026)
+
+Busca evolutiva a partir de vo-rp5-c041/vo-val-c008, com duas linhas de mesmo orçamento e mesma semente-base: uma
+com o termo de base no objetivo e um controle só de eventos. O candidato de cada linha é o primeiro pelo objetivo de
+calibração; a validação não escolhe nada, e o teste (X20260918, X75, X76) não entrou.
+
+Primeira rodada, com objetivo J (linhas B = J + J_base, C = J): as duas linhas melhoram eventos pequenos e pioram
+médios e grandes. O controle também piora na validação (J val 6,04 contra 5,84 do c008), então o defeito é o
+objetivo J, não o termo de base. Mexer só nos parâmetros de base em volta do c008 (bc-bs0) não serve: o melhor por
+J + J_base tem J val 8,94, porque os parâmetros de evento precisam se reajustar junto.
+
+Segunda rodada, com objetivo J_pico (o critério da linhagem do c008: linha D = J_pico + J_base, controle E = J_pico):
+
+| candidato | J cal | J val | J_pico val | J_base val | fim de recessão LV (Muçum / Encantado) | grandes val: pico Muçum / Encantado |
+|---|---|---|---|---|---|---|
+| vo-val-c008 | 6,112 | 5,838 | 6,039 | 3,11 | 0,54 / 0,38 | −26% / −31% |
+| D: bc-B5-c004 | 6,134 | 5,715 | 6,222 | 0,99 | 1,05 / 1,21 | −30% / −33% |
+| E: bc-E3-c014 | 5,830 | 5,729 | 6,067 | 1,74 | 0,70 / 0,66 | −26% / −31% |
+
+Com o termo de base, o fim das recessões nas janelas longas passa de 0,3–0,5 para 0,9–1,2 do observado, e o volume
+nas recessões de validação vai de 0,58–0,80 para 0,88–1,16. O J val não piora; o J_pico val sobe 0,16–0,18, e o
+pico das cheias grandes fica 2–4 pontos mais baixo. Na calibração, bc-D1-c002 empata com bc-B5-c004 no objetivo
+(6,785 contra 6,784). Os parâmetros dos três estão em `rodadas/bc_candidatos.json`. Nenhum vira padrão sem decisão
+explícita; para operar, o `-sistema` precisaria do xk2 regional da família lrdcb e de um τ(h) próprio.
