@@ -15,10 +15,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FEED = ROOT / "previsao_ao_vivo_mucum.json"
 HISTORY = ROOT / "historico_previsoes_ao_vivo_mucum.json"
-REQUIRED = {"2h", "4h", "4h_versao_b", "8h", "8h_versao_b"}
+REQUIRED = {"2h", "4h", "8h", "8h_versao_b"}
+MUCUM_4H_MODEL = "015_alt_MUC_H04_V15_LJJ_AUDITADO_SEM32_R07_T8-21_V11-18-31"
 REQUIRED_FIELDS = {"horizonte", "horizonte_h", "modelo", "tipo", "status", "modelo_papel", "disponivel"}
-EXPECTED_HOURS = {"2h": 2, "4h": 4, "4h_versao_b": 4, "8h": 8, "8h_versao_b": 8}
-EXPECTED_INPUTS = {"2h": 14, "4h": 15, "4h_versao_b": 15, "8h": 26, "8h_versao_b": 28}
+EXPECTED_HOURS = {"2h": 2, "4h": 4, "8h": 8, "8h_versao_b": 8}
+EXPECTED_INPUTS = {"2h": 14, "4h": 15, "8h": 26, "8h_versao_b": 28}
 
 
 def validate_data(data: dict) -> None:
@@ -58,15 +59,17 @@ def validate_data(data: dict) -> None:
             raise SystemExit(f"horizonte inconsistente em {key}")
         if not str(item.get("modelo") or "").strip() or not str(item.get("tipo") or "").strip():
             raise SystemExit(f"modelo/tipo ausente em {key}")
+        if key == "4h" and item.get("modelo") != MUCUM_4H_MODEL:
+            raise SystemExit("RNA 4h de Muçum precisa ser exclusivamente a versão B 015")
         if item.get("nivel_previsto_cm") is not None and not item.get("status"):
             raise SystemExit(f"status ausente em {key} com previsão publicada")
         if key in {"4h", "8h"} and item.get("modelo_papel") != "principal":
             raise SystemExit(f"{key} precisa ser o modelo principal")
-        if key in {"4h_versao_b", "8h_versao_b"} and item.get("modelo_papel") != "comparativo":
+        if key == "8h_versao_b" and item.get("modelo_papel") != "comparativo":
             raise SystemExit(f"{key} precisa ser o modelo comparativo")
         if key in {"4h", "8h"} and item.get("selection_rank") != 1:
             raise SystemExit(f"{key} precisa declarar selection_rank=1")
-        if key in {"4h_versao_b", "8h_versao_b"} and item.get("selection_rank") != 2:
+        if key == "8h_versao_b" and item.get("selection_rank") != 2:
             raise SystemExit(f"{key} precisa declarar selection_rank=2")
         if item.get("inputs_total") is not None and int(item["inputs_total"]) <= 0:
             raise SystemExit(f"inputs_total inválido em {key}")

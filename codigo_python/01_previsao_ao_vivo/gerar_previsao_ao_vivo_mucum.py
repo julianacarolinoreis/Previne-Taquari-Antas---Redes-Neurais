@@ -74,7 +74,7 @@ ANA_TIMEOUT_NIVEL_S = 15
 ANA_TIMEOUT_CHUVA_S = 12
 ANA_RETRIES_NIVEL = 2
 ANA_RETRIES_CHUVA = 2
-HORIZONTES_AO_VIVO = {"2h", "4h", "4h_versao_b", "8h", "8h_versao_b"}
+HORIZONTES_AO_VIVO = {"2h", "4h", "8h", "8h_versao_b"}
 HOURLY_BASE_WARN_LAG_H = 1.0
 HOURLY_BASE_STALE_LAG_H = 2.0
 LIVE_WARN_MAE_24H_CM = 30.0
@@ -138,7 +138,7 @@ def _cfg(m, hh):
     return cfg
 
 def carregar_modelos():
-    """Carrega 2h e os dois melhores 4h/8h com chave própria no feed.
+    """Carrega 2h, somente a RNA B em 4h e os dois candidatos de 8h.
 
     O arquivo separado é deliberadamente uma lista operacional auditável: os
     candidatos possuem MAT, Excel e séries ponto a ponto reconciliados. Os
@@ -961,9 +961,17 @@ def filtrar_historico_modelos(registros, modelos):
     ativos = {}
     for cfg in modelos:
         ativos.setdefault(cfg["horizonte"], set()).add(cfg["modelo"])
+    # A versão B passou da chave comparativa para a única saída de 4h.
+    # Migra os confrontos prospectivos já auditados, sem perder o MAE histórico.
+    modelo_b = next((cfg["modelo"] for cfg in modelos if cfg["horizonte"] == "4h"), None)
+    for r in registros:
+        if r.get("horizonte") == "4h_versao_b" and r.get("modelo") == modelo_b:
+            r["horizonte"] = "4h"
+            r["id"] = f"{r.get('local', 'Muçum')}|4h|{modelo_b}|{r.get('hora_modelo', '')}"
+    # Não misturar nem exibir o modelo 006 retirado ou o antigo alias comparativo.
     return [
         r for r in registros
-        if r.get("horizonte") not in ativos or r.get("modelo") in ativos[r.get("horizonte")]
+        if r.get("horizonte") in ativos and r.get("modelo") in ativos[r["horizonte"]]
     ]
 
 

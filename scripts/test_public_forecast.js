@@ -42,36 +42,29 @@ for (const city of ['santa_tereza', 'mucum']) {
 console.log('OK público: alvo futuro, zero válido, falta de dados, replay e modelos comparativos');
 
 
-// Seleção de +4 h apenas na interface pública de Muçum.
-// Dados do robô e interface _usuario continuam com as chaves originais.
-const selectPublic4h = require('../assets/js/live_feed.js').selectPublicMucum4h;
-const verifiedRows = Array.from({length: 12}, (_, i) => ({erro_abs_cm: i + 1}));
-const make4h = (id, mae, level, status = 'NORMAL') => ({
-  modelo: id, horizonte: id === '006' ? '4h' : '4h_versao_b',
-  disponivel: true, status: 'ok', nivel_previsto_cm: level,
-  hora_modelo: '2035-10-09T09:00:00', hora_alvo: '2035-10-09T13:00:00',
-  auditoria: {n_conferidas: 289, ultimas_conferidas: verifiedRows},
-  qualidade_ao_vivo: {status, mae_24h_cm: mae}
-});
-const example = {local:'Muçum', horizontes:{
-  '2h': {modelo:'2h'},
-  '4h': make4h('006', 40.7, 472, 'ATENCAO'),
-  '4h_versao_b': make4h('015', 23.5, 423)
+// A versão B é a única RNA de 4h em ambas as páginas de Muçum.
+const normalize4h = require('../assets/js/live_feed.js').selectPublicMucum4h;
+const old = {modelo:'006', horizonte:'4h', disponivel:true, nivel_previsto_cm:472};
+const versionB = {modelo:'015', horizonte:'4h_versao_b', disponivel:true,
+  nivel_previsto_cm:423, qualidade_ao_vivo:{status:'NORMAL', mae_24h_cm:23}};
+const previous = {local:'Muçum', horizontes:{
+  '2h':{modelo:'2h'}, '4h':old, '4h_versao_b':versionB, '8h':{modelo:'8h'}
 }};
-const chosen = selectPublic4h(example, true);
-assert.equal(chosen.horizontes['4h'].modelo, '015');
-assert.equal(chosen.horizontes['4h'].nivel_previsto_cm, 423);
-assert.equal(chosen.horizontes['4h'].horizonte, '4h');
-assert.equal(chosen.horizontes['4h_versao_b'].modelo, '015');
-assert.equal(chosen.selecao_publica_4h.mae_cm, 23.5);
-assert.equal(example.horizontes['4h'].modelo, '006', 'feed original não pode ser alterado');
-assert.strictEqual(selectPublic4h(example, false), example, 'interface do usuário não seleciona');
-const worse = {horizontes:{'4h':make4h('006', 10, 472), '4h_versao_b':make4h('015', 23.5, 423)}};
-assert.strictEqual(selectPublic4h(worse, true), worse, 'não escolher RNA com MAE maior');
-const stale = {horizontes:{'4h':make4h('006', 40.7, 472), '4h_versao_b':{...make4h('015', 23.5, 423), hora_modelo:'2035-10-09T08:00:00'}}};
-assert.strictEqual(selectPublic4h(stale, true), stale, 'não misturar horas-base diferentes');
-const noAudit = {horizontes:{'4h':make4h('006', 40.7, 472), '4h_versao_b':{...make4h('015', 23.5, 423), auditoria:{n_conferidas:2,ultimas_conferidas:[]}}}};
-assert.strictEqual(selectPublic4h(noAudit, true), noAudit, 'sem histórico suficiente não promover');
-const warning = {horizontes:{'4h':make4h('006', 40.7, 472), '4h_versao_b':make4h('015', 23.5, 423, 'ATENCAO')}};
-assert.strictEqual(selectPublic4h(warning, true), warning, 'RNA alternativa em atenção não promove');
-console.log('OK público Muçum: menor MAE +4h e proteções sem modificar o feed bruto ou página _usuario');
+const bothPages = normalize4h(previous, true);
+assert.equal(bothPages.horizontes['4h'].modelo, '015');
+assert.equal(bothPages.horizontes['4h'].nivel_previsto_cm, 423);
+assert.equal(bothPages.horizontes['4h'].modelo_papel, 'principal');
+assert.equal(bothPages.horizontes['4h'].horizonte, '4h');
+assert.equal(bothPages.horizontes['4h_versao_b'], undefined);
+assert.equal(bothPages.horizontes['2h'].modelo, '2h');
+assert.equal(bothPages.horizontes['8h'].modelo, '8h');
+assert.equal(previous.horizontes['4h'].modelo, '006', 'feed original imutável');
+const unavailable = normalize4h({horizontes:{'4h':old,'4h_versao_b':{
+  ...versionB, disponivel:false, nivel_previsto_cm:null, status:'indisponivel'
+}}}, true);
+assert.equal(unavailable.horizontes['4h'].modelo,'015');
+assert.equal(unavailable.horizontes['4h'].disponivel,false,'nunca reativar 006');
+assert.strictEqual(normalize4h(previous,false),previous,'outras cidades não alteradas');
+const current = {horizontes:{'4h':{modelo:'015',horizonte:'4h'}}};
+assert.strictEqual(normalize4h(current,true),current,'feed novo não precisa de cópia');
+console.log('OK Muçum público e usuário: somente 4h versão B, inclusive com feed legado.');

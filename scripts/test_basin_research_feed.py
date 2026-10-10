@@ -94,15 +94,9 @@ class BasinResearchFeedTests(unittest.TestCase):
         else:
             self.assertEqual(primary_4h["input_audit_status"], "ATENCAO")
             self.assertGreater(primary_4h["inputs_missing"], 0)
-        comparative_4h = by_key["4h_versao_b"]
-        self.assertEqual(comparative_4h["role"], "comparativo")
-        if comparative_4h["available"]:
-            self.assertEqual(comparative_4h["input_audit_status"], "NORMAL")
-            self.assertEqual(comparative_4h["inputs_missing"], 0)
-            self.assertEqual(comparative_4h["inputs_exact"], comparative_4h["inputs_total"])
-        else:
-            self.assertEqual(comparative_4h["input_audit_status"], "ATENCAO")
-            self.assertGreater(comparative_4h["inputs_missing"], 0)
+        # A versão B deve ocupar sozinha a chave pública/usuário de 4h.
+        self.assertEqual(primary_4h["role"], "principal")
+        self.assertNotIn("4h_versao_b", by_key)
 
         santa = builder.live_horizon_audit(builder.load(ROOT / "previsao_ao_vivo.json", {}))
         santa_by_key = {row["key"]: row for row in santa}
