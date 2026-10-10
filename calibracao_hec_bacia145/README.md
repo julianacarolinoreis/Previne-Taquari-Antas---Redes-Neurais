@@ -102,6 +102,29 @@ O conjunto G superestima eventos pequenos (+30% a +45% de pico quando usado nele
  "s1": 0.3285, "xdmax_T": 1.0, "xperc_T": 1.0, "xfb_T": 0.7046, "xdmax_B": 1.0, "xperc_B": 1.0, "xfb_B": 1.0935}
 ```
 
+### G robusto (branch `cursor/hec-bacia145-porte-r`) e modo ao vivo (branch `cursor/hec-bacia145-porte-av`)
+
+`rodada_dc.py --eventos-pen/--peso-pen/--teto-pen`: objetivo = J nos 6 grandes de calibração + 0,5 × J médio nos 15
+pequenos/médios de calibração (cada evento limitado a 20). Na calibração a regra só erra 1 evento (X19), por isso a
+penalidade vai em todos os pequenos/médios, com peso menor. Mesmo orçamento: po-r0 (G, b0, 8 pontos no segmento b0→G e
+19 vizinhos de cada) + po-r1..r4. Melhor: `po-r4-c008` (J grandes 3,79; peq/méd 6,66; G 3,14 / 10,49; b0 4,21 / 6,27).
+
+Validação (po-valr, 28 eventos): regra com G robusto J 5,77 (pequenos 6,17, médios 4,79, grandes 6,14) contra regra com
+G 5,79 (7,35 / 4,85 / 4,71) e b0 5,84. Os 6 alarmes falsos passam a custar ΔJ +1,2 (G: +14,6), mas o ganho nas
+grandes quase some (pico Muçum −0,20, Encantado −0,26). perc 11,1 e mr 11,6: perto do teto (12), sem encostar; o 2º e o
+3º da linha estão em perc = 12.
+
+Modo ao vivo (po-av1 = G, po-av2 = G robusto, mesmas 789 janelas da hb-r1): a regra com G em cada emissão dobra os
+alarmes falsos de Muçum (10 m: 7 → 12 emissões; 15 m: 1 → 6); com G robusto + d_piv reajustado na calibração empata com
+b0 + d_piv (IC contém zero). Recomendação: b0 + d_piv titular; regra (G robusto) + d_piv reajustado em sombra.
+
+```json
+{"qstar": 0.02048, "mr": 11.59642, "v_alto": 0.84532, "v_resto": 0.47588, "mn": 0.94238, "mk": 0.59802,
+ "v_grandes": 1.01624, "ks": 0.3857, "dmax": 59.59059, "perc": 11.11197, "imp": 0.04259, "k1": 27.13366, "k2": 622.11401,
+ "fb": 0.61198, "p1": 0.90191, "s1": 0.32854, "xdmax_T": 1.0, "xperc_T": 1.0, "xfb_T": 0.7711, "xdmax_B": 1.0,
+ "xperc_B": 1.0, "xfb_B": 1.18431}
+```
+
 ## Regras
 
 - Uma física por vez; escolhas só com eventos de **calibração**; a validação só relata; o teste é aberto uma vez.
