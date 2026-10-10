@@ -107,6 +107,21 @@ gerações de ES (λ 48, μ 8). Depois, 3 gerações a mais só para controle e 
 - Fora dos eventos (dentro das janelas, partindo da vazão observada), SCS e SMA sobem a vazão de recessão
   ~7–12% sobre o controle. A tendência é aumentar o excesso do sistema ao vivo, não reduzir.
 
+Segunda rodada justa (10/10): `lrsmar` = `lrsmaf` + multiplicadores T/B de zona de tensão, zona gravitacional,
+infiltração e percolação do solo (`dmax + sup` ≤ 1499 mm), a partir do pc-sma8-c027. O controle `lrdcf` parte do
+pc-f8-c025. Cada linha: g0 = 48 vizinhos + 6 gerações de ES iguais (forcamento_v3b, J_pico; branches `-e` e `-f`).
+
+| Candidato | J cal | J_pico cal | J val | J_pico val | passa val |
+|---|---|---|---|---|---|
+| pc-f8-c025 (referência) | 5,92 | 5,12 | 5,68 | 5,91 | 17/144 |
+| pr-f6-c007 (`lrdcf`) | 5,85 | **5,07** | 5,83 | 5,89 | 18/144 |
+| pr-smar6-c004 (`lrsmar`) | 6,40 | 5,13 | 6,41 | 6,16 | 8/144 |
+
+A linha SMA fica encerrada: perde na calibração e na validação. Os multiplicadores regionais não tiram o excesso de
+Tainhas (C das cheias grandes 0,63 contra 0,44 observado; NSE 0,05–0,45). Contando só os picos dentro da curva-chave,
+o pico grande em Muçum é igual ao do controle (−22%). O ganho aparente vem dos picos acima da curva, onde o SMA passa
+do valor (mai/2024 +46%, jul/2020 +39%).
+
 Análises: `_analise_perda/` (não versionada).
 
 ## Janelas derivadas com chuva prevista (09/10/2026)
