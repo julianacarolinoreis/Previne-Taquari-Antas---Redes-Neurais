@@ -94,6 +94,36 @@ def publication_shell(writer: str) -> str:
     return "\n".join(line[10:] if line.startswith("          ") else line for line in body.splitlines()) + "\n"
 
 
+def validate_rain_git_attributes(root: Path, *, cached: bool = False,
+                                 env: dict[str, str] | None = None) -> None:
+    """Require effective byte-preserving attributes, not a one-line file.
+
+    Git resolves precedence, patterns, nested rules and info/attributes. Check
+    both worktree and index at the workflow gate so unrelated model rules are
+    allowed but an override/clean filter/encoding cannot silently change CSV.
+    """
+    command = ["git", "--no-optional-locks", "check-attr", "-z"]
+    if cached:
+        command.append("--cached")
+    command.extend(["text", "filter", "working-tree-encoding", "--", CSV])
+    result = subprocess.run(command, cwd=root, env=env, capture_output=True, timeout=30)
+    if result.returncode:
+        raise ValueError("Não foi possível verificar atributos Git da chuva")
+    fields = result.stdout.split(b"\0")
+    if len(fields) != 10 or fields[-1] != b"":
+        raise ValueError("Resposta inválida ao verificar atributos Git da chuva")
+    resolved = {}
+    for offset in range(0, 9, 3):
+        path, attribute, value = fields[offset:offset + 3]
+        if path != CSV.encode() or attribute in resolved:
+            raise ValueError("Resposta incompatível de atributos Git da chuva")
+        resolved[attribute] = value
+    if (resolved.get(b"text") != b"unset"
+            or any(resolved.get(attribute) not in (b"unspecified", b"unset")
+                   for attribute in (b"filter", b"working-tree-encoding"))):
+        raise ValueError("Atributos Git podem alterar os bytes da chuva; publicação bloqueada")
+
+
 class PairValidationTests(unittest.TestCase):
     def test_valid_exact_bytes(self):
         payload = b"a,b\r\n1,0\r\n"
@@ -126,7 +156,8 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn("/.github/workflows/basin-station-forecast.yml", sparse)
         self.assertIn("/.github/workflows/chuvas-horarias.yml", sparse)
         self.assertNotIn("/index.html", sparse)
-        self.assertEqual((ROOT / ".gitattributes").read_text(encoding="utf-8").strip(), CSV + " -text")
+        for cached in (False, True):
+            validate_rain_git_attributes(ROOT, cached=cached)
 
     def test_both_writers_gate_worktree_and_commit_and_never_rebase(self):
         for writer in ("chuvas-horarias", "basin-station-forecast"):
@@ -385,6 +416,55 @@ git() {
         self.git(self.worker, "restore", "--worktree", "--", CSV)
         self.assertEqual((self.worker / CSV).read_bytes(), csv_bytes)
         self.assertEqual(validate_publication(self.worker), metadata["csv_sha256"])
+
+    def test_effective_attributes_accept_unrelated_training_rules(self):
+        self.write(self.worker, ".gitattributes", CSV + " -text\n"
+                   "assets/data/stz_user_models/training_n5*.csv -text\n"
+                   "assets/models/stz_user_shadow/** binary\n"
+                   "assets/data/stz_shadow_archive/**/*.gz binary\n")
+        self.git(self.worker, "add", ".gitattributes")
+        for cached in (False, True):
+            validate_rain_git_attributes(self.worker, cached=cached, env=self.env)
+
+    def test_effective_attributes_reject_missing_and_later_overrides(self):
+        for rules in ("other.csv -text\n", CSV + " -text\n*.csv text\n",
+                      CSV + " -text\nassets/data/*.csv text=auto\n",
+                      CSV + " -text\n" + CSV + " !text\n"):
+            with self.subTest(rules=rules):
+                self.write(self.worker, ".gitattributes", rules)
+                self.git(self.worker, "add", ".gitattributes")
+                for cached in (False, True):
+                    with self.assertRaises(ValueError):
+                        validate_rain_git_attributes(self.worker, cached=cached, env=self.env)
+
+    def test_effective_attributes_reject_nested_and_info_overrides(self):
+        for relative in ("assets/data/.gitattributes", ".git/info/attributes"):
+            with self.subTest(relative=relative):
+                self.write(self.worker, relative, "chuvas_horarias.csv text\n" if relative.startswith("assets/") else CSV + " text\n")
+                if relative.startswith("assets/"):
+                    self.git(self.worker, "add", "--sparse", relative)
+                for cached in (False, True):
+                    with self.assertRaises(ValueError):
+                        validate_rain_git_attributes(self.worker, cached=cached, env=self.env)
+                self.write(self.worker, relative, "# cleared fixture override\n")
+                if relative.startswith("assets/"):
+                    self.git(self.worker, "add", "--sparse", relative)
+
+    def test_effective_attributes_reject_filters_encoding_and_staged_divergence(self):
+        for transform in ("filter=example", "working-tree-encoding=UTF-16"):
+            with self.subTest(transform=transform):
+                self.write(self.worker, ".gitattributes", CSV + " -text " + transform + "\n")
+                self.git(self.worker, "add", ".gitattributes")
+                for cached in (False, True):
+                    with self.assertRaises(ValueError):
+                        validate_rain_git_attributes(self.worker, cached=cached, env=self.env)
+        # A valid worktree cannot conceal an unsafe already-staged rule.
+        self.write(self.worker, ".gitattributes", CSV + " text\n")
+        self.git(self.worker, "add", ".gitattributes")
+        self.write(self.worker, ".gitattributes", CSV + " -text\n")
+        validate_rain_git_attributes(self.worker, env=self.env)
+        with self.assertRaises(ValueError):
+            validate_rain_git_attributes(self.worker, cached=True, env=self.env)
 
     def test_legacy_unchanged_only_and_committed_pair_gate(self):
         self.git(self.worker, "rm", META)
