@@ -5,8 +5,11 @@ ciclo de previsão: chuva observada até agora, chuva prevista (ECMWF principal,
 referência) depois, correção aditiva pelo último observado, conversão para nível e cotas de Muçum. Acima de 15 m em
 Muçum o nível é só indicativo (fim da validade da curva-chave).
 
-Parâmetros padrão: **`md-val2-c002`** (família lrdc pura, calha trapezoidal em Muskingum-Cunge, J cal 6,73 / val
-7,00; branch `cursor/hec-bacia145-modelo`). `lr-g8-c038` continua disponível (`--parametros parametros/lr-g8-c038.json`),
+**Padrão desde 10/10/2026: `pc-f8-c025` + `d_piv` `so_curva` publicado** em LJJ/Muçum/Encantado (ver "Titular"
+abaixo). Rollback para a saída anterior: `--modelo md-val2-c002 --pos aditiva`.
+
+Antes: **`md-val2-c002`** (família lrdc pura, calha trapezoidal em Muskingum-Cunge, J cal 6,73 / val
+7,00; branch `cursor/hec-bacia145-modelo`). `lr-g8-c038` continua disponível (`--modelo lr-g8-c038`),
 e também `vo-val-c008` (família lrdcr: `vo-rp5-c041` só com o fb regional, xfb_T 0,815 / xfb_B 1,245; J val 5,89; branch
 `cursor/hec-bacia145-volume`), com τ(h) próprio (`correcao_horaria.py` nas vazões da rodada vo-val, escolha só na
 calibração; na validação, MAE corrigido igual ao do τ do c002 até +24 h e ±2,5% em +48 h). Contra o c002 com o τ dele,
@@ -52,7 +55,9 @@ $py = "D:\PREVINE\repo_hec_calib\_analise_bacia145\chuva_prevista\.venv312\Scrip
 & $py -B experimento_estado.py --janelas S2025_06,S2024_05
 ```
 
-Opções úteis do `ciclo.py`: `--horizonte` (48–120 h), `--cenarios`, `--pos-chuva fator:1.2`, `--parametros`,
+Opções úteis do `ciclo.py`: `--modelo ID` (padrão `pc-f8-c025`, ou `$HEC_MODELO`), `--pos hibrido|aditiva` (padrão
+`hibrido`, ou `$HEC_POS`), `--porte auto|nao|sempre|ARQUIVO` (sombra da regra por porte; `$HEC_PORTE`),
+`--horizonte` (48–120 h), `--cenarios`, `--pos-chuva fator:1.2`, `--parametros ARQUIVO` (substitui `--modelo`),
 `--fonte-obs rede|ana|arquivo` (padrão `rede`), `--cemaden DIR` (histórico do coletor; padrão `$HEC_CEMADEN_DIR` ou
 `~\hec_aovivo_estado\cemaden`), `--estado DIR` (loja de estados; padrão `$HEC_ESTADO_DIR` ou desligado),
 `--assimilar nao|previsao` (padrão `nao`), `--sombra auto|nao|ARQUIVO` (híbrido em sombra; padrão `$HEC_SOMBRA`
@@ -85,16 +90,18 @@ O fluxo de lote (`hec-bacia145-lote.yml`) não dispara nesta branch.
 | `inmet.py` | cliente do apitempo do INMET (só com `INMET_TOKEN`) |
 | `chuva_prevista.py` | `FonteChuvaPrevista` → `[Cenario]`; ECMWF/GFS por byte-range, `SemChuva`, `ArquivoPrevista`; pós-processadores |
 | `vazao_observada.py` | `FonteObservados` dos postos de controle (estado inicial e correção) |
-| `posproc.py` | correção aditiva, curva nível × vazão, cotas de Muçum, resumo de conjunto; híbrido `d_piv` em sombra |
-| `teste_posproc.py` | testes da fórmula do `d_piv` e da ligação parâmetros ↔ modelo (`python -B teste_posproc.py`) |
+| `posproc.py` | correção aditiva, curva nível × vazão, cotas de Muçum, resumo de conjunto; `d_piv` titular e em sombra |
+| `porte.py` | sombra da regra por porte: índice S (chuva na bacia de Muçum) e parâmetros `parametros/porte_*.json` |
+| `teste_posproc.py` | testes do `d_piv`, titular/sombra, ligação parâmetros ↔ modelo e índice S (`python -B teste_posproc.py`) |
 | `telemetria_ana.py`, `geo.py` | cliente do HidroTelemetria (com espera em HTTP 429); sub-bacias, UTM 22S, pesos de grade |
 | `validar_parametros.py` | roda um `parametros/*.json` numa janela e compara com a `vazao.csv` de uma rodada da nuvem |
 | `experimento_estado.py` | experimento retroativo do estado entre ciclos (V0–V3) |
 | `conferir_retro.py` | compara uma retroativa com `nuvem/cp-r1` e com o estudo `correcao/horaria` |
 | `preparar_dados.py` | gera `dados/` e `parametros/` a partir das fontes do PC (`c002`, `rede`; só quando elas mudarem) |
 | `dados/` | sub-bacias, 130 postos ANA (fase 1), `postos_rede.json` (rede ao vivo), curvas da telemetria, τ(h) do c038 |
-| `parametros/*.json` | `md-val2-c002` (padrão, com o τ(h) próprio em `correcao`) e `lr-g8-c038` |
-| `parametros/hibrido_<id>.json` | parâmetros do híbrido em sombra do conjunto `<id>` (hoje só `vo-val-c008`) |
+| `parametros/*.json` | `pc-f8-c025` (padrão), `md-val2-c002` (rollback), `vo-val-c008`, `lr-g8-c038`; τ(h) em `correcao` |
+| `parametros/hibrido_<id>.json` | `d_piv` do conjunto `<id>` (`pc-f8-c025`, `vo-val-c008`): `so_curva` publicada, `todos_picos` em sombra |
+| `parametros/porte_po-r4-c008.json` | regra por porte (limiar, sub-bacias de Muçum), conjunto G robusto e `d_piv` reajustado |
 | `exemplos/` | JSON da fase 1 (ao vivo 09/10/2026 13h, retroativa 10/05/2024 14h) |
 
 ### Ponto de encaixe dos parâmetros
@@ -103,7 +110,7 @@ Um conjunto é um arquivo `parametros/<id>.json` com `id`, `familia`, `rota`, `g
 `estrutura_v3.bacia_v3`, que recebe `(p, sim, rota)` e devolve o `.basin`), `p`, `sha256_p` e, opcionalmente,
 `correcao` (`tau_h` por ponto; sem ela vale `dados/correcao.json`). Trocar de modelo (ex.: recalibração do volume a
 jusante, chuva de calibração com a hora do INMET corrigida) = gerar o novo JSON (como `preparar_dados.py c002`),
-conferir com `validar_parametros.py` e mudar o padrão de `--parametros` no `ciclo.py`. A loja de estados é separada por
+conferir com `validar_parametros.py` e mudar o padrão de `--modelo` no `ciclo.py`. A loja de estados é separada por
 `id` + `sha256_p`, então a troca começa uma cadeia nova (partida a frio no primeiro ciclo).
 
 ## O que um ciclo faz
@@ -137,9 +144,34 @@ conferir com `validar_parametros.py` e mudar o padrão de `--parametros` no `cic
    o estado do fim do observado é escalado pela razão obs/sim por região de controle e os cenários partem dele
    (`estado.assimilar`; detalhes e resultado abaixo). A loja guarda só a cadeia pura.
 6. **Pós-processamento** (LJJ, Muçum, Encantado; Estrela só simulado e observado): Q = S + e(tv)·exp(−(t − tv)/τ(h)),
-   τ(h) do conjunto de parâmetros; com assimilação, sem correção aditiva (ela dobraria o ajuste). Nível pela curva da
-   telemetria; cotas de Muçum 5/10/15/18 m.
-7. **Híbrido em sombra** (só se houver `parametros/hibrido_<id>.json`; ver abaixo): série extra, não publicada.
+   τ(h) do conjunto de parâmetros; com assimilação, sem correção aditiva (ela dobraria o ajuste). Com `--pos hibrido`
+   (padrão) e `parametros/hibrido_<id>.json`, o publicado em LJJ/Muçum/Encantado é o `d_piv` `so_curva` e a aditiva
+   fica em `pontos.*.aditiva`. Nível pela curva da telemetria; cotas de Muçum 5/10/15/18 m.
+7. **Híbrido em sombra** (só se houver `parametros/hibrido_<id>.json`; ver abaixo): a variante não publicada.
+8. **Sombra da regra por porte** (`--porte auto`, só com `--pos hibrido`): se S ≥ 83,4 mm, roda também o HEC com o G
+   robusto; ver "Titular".
+
+## Titular: `pc-f8-c025` + `d_piv` (10/10/2026)
+
+- **Modelo base** `pc-f8-c025` (família lrdcf do branch `cursor/hec-bacia145-perda-cheia`: DC + Linear Reservoir +
+  xfb_T/xfb_B) = a lrdcr do sistema com xdmax = xperc = 1; `.basin` idêntico ao do branch de perda (S2023_11, S2024_05,
+  X20200626). τ(h) da aditiva escolhido na calibração (rodada pc-valx).
+- **Publicado**: `d_piv` `so_curva` (`parametros/hibrido_pc-f8-c025.json`, ajuste só na calibração, rodada hb-f8 =
+  mesmas 386 emissões da hb-r1) em LJJ/Muçum/Encantado; nos demais pontos, como antes. `todos_picos` em
+  `pontos.*.hibrido_sombra`. Muçum `so_curva`: q0 2601, b 0,99, qmax 4728, τd 24 h (≈ aditiva); Encantado 3042 /
+  1,31 / 5463 / 24; LJJ 1944 / 1,37 / 3700 / 12. `curva_extrapolada` marcada no pico (> limite da curva).
+- **Validação** (ECMWF, médias+grandes, erro de pico 1–6/7–12/13–24 h): Muçum −5/−7/−17 % (c008+d_piv −6/−8/−18);
+  Encantado −1/−7/−14 (−2/−7/−14); LJJ −6/−6/−7 (−5/−7/−10). MAE +6…+48 h igual ao c008+d_piv (±3 %). Alarme 15 m
+  em Muçum: 11 acertos / 0 falsos (c008: 9 / 0). Tabelas: `_analise_hibrido/comparar_f8.md`.
+- **Rollback**: `--modelo md-val2-c002 --pos aditiva` → JSON idêntico ao do código anterior (retro maio/2024: 0
+  diferenças fora `emitido_em`/`tempos_s`; ao vivo 10/10 11h: pontos idênticos refazendo com o `posproc.py` antigo).
+  `--pos aditiva` com o pc-f8 publica a aditiva com o τ(h) novo.
+- **Sombra da regra por porte** (`porte.py`, frente `cursor/hec-bacia145-porte`): S = chuva das 24 h até t0 +
+  prevista 48 h (ECMWF; GFS se faltar), média na bacia de Muçum (87 sub-bacias). S ≥ 83,4 mm → HEC com `po-r4-c008`
+  (G robusto) + `d_piv` reajustado → `pontos.*.porte_sombra` (S, decisão, simulado, série corrigida, pico). S <
+  limiar → nada extra (só o bloco `porte_sombra` do topo com S e a decisão). Desligada com estado salvo ou
+  assimilação. Custo quando dispara: +1 rodada do HEC (≈ +19 s ao vivo com 3 cenários; +32 s no retro maio/2024).
+  `--porte sempre` força a rodada (teste), `--porte nao` desliga.
 
 ## Híbrido `d_piv` em sombra
 
@@ -152,8 +184,8 @@ da correção aditiva e **não muda nada do que é publicado** (`corrigido`, `ni
 
 - Abaixo de q0 (mediana dos picos simulados da calibração) é a correção aditiva com τd constante; acima de qmax (maior
   pico simulado da amostra de ajuste) o fator fica congelado. Sem observado válido em 72 h: só F(S).
-- Só LJJ, Muçum e Encantado, ligado ao `vo-val-c008` (o arquivo confere `modelo` e `sha256_p`; outro conjunto, como o
-  c002 padrão, não gera sombra). Desligado com `--assimilar previsao` (avaliado sem assimilação).
+- Só LJJ, Muçum e Encantado, ligado ao conjunto do arquivo (`pc-f8-c025`, `vo-val-c008`; confere `modelo` e
+  `sha256_p`; o c002 não gera sombra). Com o `d_piv` titular, a sombra traz só a variante não publicada. Desligado com `--assimilar previsao` (avaliado sem assimilação).
 - Duas variantes: `todos_picos` (b com todos os picos de calibração; Muçum b 1,20, fator máx. 1,28; Encantado 1,41 /
   1,63; LJJ 1,47 / 1,90) e `so_curva` (só picos com nível dentro da curva: Muçum ≤ 15 m, LJJ ≤ 18 m, Encantado
   ≤ 19,2 m; Muçum b 1,04 / 1,02; Encantado 1,35 / 1,22; LJJ 1,47 / 1,32).
@@ -178,6 +210,11 @@ fora `hibrido_sombra`, `emitido_em` e `tempos_s`. Com o c002 a sombra não sai.
 
 Campo **`versao`** (e `versao_esquema`, igual): **2**. Histórico:
 
+- **2** + titular (10/10/2026): com `--pos hibrido`, `corrigido`/`nivel_previsto_cm`/`erro_em_tv_m3s` de
+  LJJ/Muçum/Encantado passam a ser o `d_piv` (`pontos.*.correcao` diz qual); a aditiva vai para `pontos.*.aditiva`;
+  novas chaves `pos_processamento` (topo e por ponto: método, variante, q0, b, qmax, τd, pico com
+  `curva_extrapolada`) e `porte_sombra` (topo: S, limiar, decisão, tempo; por ponto só quando S ≥ limiar). Com
+  `--pos aditiva` nada disso aparece.
 - **2** + sombra: novas chaves `hibrido_sombra` (topo) e `pontos.*.hibrido_sombra` (só com parâmetros do híbrido);
   nenhum campo existente mudou.
 - **2** (fase 2): `versao`; `parametros` ganhou `rota`, `J_cal`, `J_val`, `arquivo`, `correcao{fonte, tau_h_6h}`;
