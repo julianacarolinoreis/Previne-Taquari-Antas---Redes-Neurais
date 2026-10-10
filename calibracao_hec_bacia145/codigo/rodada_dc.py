@@ -63,7 +63,17 @@ def j_eventos(c, eventos):
     return sum(v) / len(v) if v and all(x is not None and math.isfinite(x) for x in v) else None
 
 
-def ler_resultados(pastas, rota="mc", objetivo="J", eventos=None):
+def j_porte(c, eventos, pen=None, peso=0.0, teto=math.inf):
+    """J médio nos eventos + peso × J médio (cada evento limitado ao teto) nos eventos de penalidade."""
+    j = j_eventos(c, eventos)
+    if j is None or not pen:
+        return j
+    jp = j_eventos({"J_ev": {e: min(v, teto) if v is not None else None
+                             for e, v in c.get("J_ev", {}).items()}}, pen)
+    return None if jp is None else j + peso * jp
+
+
+def ler_resultados(pastas, rota="mc", objetivo="J", eventos=None, pen=None, peso=0.0, teto=math.inf):
     vistos, out = set(), []
     for pasta in pastas:
         for f in Path(pasta).rglob("resultado.json"):
@@ -72,7 +82,7 @@ def ler_resultados(pastas, rota="mc", objetivo="J", eventos=None):
                     continue
                 vistos.add(c["id"])
                 if eventos:
-                    c["J_porte"] = j_eventos(c, eventos)
+                    c["J_porte"] = j_porte(c, eventos, pen, peso, teto)
                 out.append(c)
     return [c for c in out if c.get(objetivo) is not None and math.isfinite(c[objetivo])]
 
@@ -110,7 +120,9 @@ def gerar(a, fam, semente):
         return cands, {"centro": c0["id"], "raio": a.raio, "raio_novos": a.raio_novos, "livres": sorted(livres)}
     obj = "J_porte" if a.eventos else a.objetivo
     eventos = a.eventos.split(",") if a.eventos else None
-    todos = sorted(ler_resultados(a.resultados, a.rota, a.objetivo, eventos), key=lambda c: c[obj])
+    pen = a.eventos_pen.split(",") if a.eventos_pen else None
+    todos = sorted(ler_resultados(a.resultados, a.rota, a.objetivo, eventos, pen, a.peso_pen, a.teto_pen),
+                   key=lambda c: c[obj])
     if not todos:
         sys.exit(f"{fam}: nenhum resultado com {obj} finito nas pastas indicadas")
     if a.modo == "top":
@@ -125,6 +137,7 @@ def gerar(a, fam, semente):
               for _ in range(a.lam)]
     return filhos, {"melhor_ate_aqui": {"id": elite[0]["id"], "J": elite[0]["J"], obj: elite[0][obj]},
                     "sigma": a.sigma, "n_avaliados": len(todos), "objetivo": obj, "eventos": eventos,
+                    **({"eventos_pen": pen, "peso_pen": a.peso_pen, "teto_pen": a.teto_pen} if pen else {}),
                     "livres": sorted(livres)}
 
 
@@ -147,6 +160,9 @@ def main():
     ap.add_argument("--raio-novos", type=float, default=0.0,
                     help="viz: parâmetros novos amostrados a ±raio-novos do valor neutro (0 = faixa toda)")
     ap.add_argument("--eventos", default="", help="objetivo = média de J_ev nesses eventos (J_porte)")
+    ap.add_argument("--eventos-pen", default="", help="J_porte += peso-pen × média de min(J_ev, teto-pen) nesses eventos")
+    ap.add_argument("--peso-pen", type=float, default=0.0)
+    ap.add_argument("--teto-pen", type=float, default=math.inf)
     ap.add_argument("--livres", default="", help="parâmetros que variam (padrão: todos da família)")
     ap.add_argument("--forcamento", default="", help="pasta de chuva do lote (ex.: forcamento_v3b)")
     ap.add_argument("--saida", default="")
