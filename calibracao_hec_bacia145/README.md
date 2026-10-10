@@ -76,6 +76,32 @@ observados e estado inicial da janela-mãe; chuva observada até a hora t0 (hora
 zero) ou nenhuma (`zero`). Registradas por `comum.janela` quando listadas em `janelas` do PEDIDO; não têm eventos
 próprios (o `resultado.json` não muda). As janelas antigas não mudam.
 
+## Parâmetros por porte de cheia (branches `cursor/hec-bacia145-porte`, `-porte-m`, `-porte-k`, 09/10/2026)
+
+`rodada_dc.py --eventos` (objetivo = J só nos eventos de um porte), `--livres` (só esses parâmetros variam) e
+`--forcamento`. Regra congelada só com eventos de calibração, antes de validar: em td = pico de Muçum − 24 h,
+S = chuva observada nas 24 h anteriores + chuva prevista (ECMWF) nas 48 h seguintes, média na bacia de Muçum;
+**S ≥ 83,4 mm → conjunto de cheia grande `po-g4-c008`; senão, `vo-rp5-c041` só com fb (b0)**.
+
+Busca com o mesmo orçamento (po-0 + 4 gerações de ES, 48 por geração, forcamento_v3b): G = J nos 6 grandes de
+calibração (4,21 → 3,14); M = médios + grandes (4,35 → 4,12); controle K = J_pico em todos (5,292 → 5,287, sem ganho).
+Validação (po-val, 28 eventos, teste fora): nenhuma cheia grande perdida; 6 alarmes falsos (2 pequenos, 4 médios).
+
+| validação, mediana | b0 sempre | regra |
+|---|---|---|
+| J todos / pequenos / médios / grandes | 5,84 / 6,17 / 4,64 / 6,49 | 5,79 / 7,35 / 4,85 / 4,71 |
+| grandes: pico Muçum (3 abaixo de 15 m) / Encantado (5) | −0,26 / −0,31 | −0,03 / −0,11 |
+| grandes: volume Muçum / Encantado | −0,10 / −0,20 | −0,04 / −0,11 |
+| grandes: NSE Muçum / Encantado | 0,74 / 0,46 | 0,86 / 0,83 |
+
+O conjunto G superestima eventos pequenos (+30% a +45% de pico quando usado neles); perc e mr encostam no teto (12).
+
+```json
+{"qstar": 0.0145, "mr": 12.0, "v_alto": 0.8318, "v_resto": 0.5694, "mn": 0.8884, "mk": 0.598, "v_grandes": 0.9415,
+ "ks": 0.3857, "dmax": 69.0104, "perc": 12.0, "imp": 0.0443, "k1": 23.6927, "k2": 622.114, "fb": 0.6598, "p1": 0.9681,
+ "s1": 0.3285, "xdmax_T": 1.0, "xperc_T": 1.0, "xfb_T": 0.7046, "xdmax_B": 1.0, "xperc_B": 1.0, "xfb_B": 1.0935}
+```
+
 ## Regras
 
 - Uma física por vez; escolhas só com eventos de **calibração**; a validação só relata; o teste é aberto uma vez.
