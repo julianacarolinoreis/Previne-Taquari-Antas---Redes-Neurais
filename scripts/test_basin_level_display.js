@@ -62,8 +62,9 @@ assert.equal(rejectedTrend.value, null);
 assert.equal(rejectedTrend.label, null);
 assert.equal(rejectedTrend.raw_value, -24650);
 assert.equal(JSON.stringify(legacyMixed), original, 'do not mutate raw snapshot');
-assert.ok(html.includes('const levelTrend=basinLevelTrend(level);'));
-assert.ok(html.includes("levelNote+levelTrendNote,observedLevelUsable?'complete':'unavailable'"));
+assert.ok(html.includes('const trend=basinLevelTrend(level);'));
+assert.ok(html.includes('const levelNote=basinLevelObservedNote(level);'));
+assert.ok(html.includes("levelNote,observedLevelUsable?'complete':'unavailable','level'"));
 assert.ok(!html.includes('observedLevelUsable&&level.trend_label'));
 const validTrend = {...legacyMixed, series: [
   {time:'2026-10-02T13:00Z',cm:350}, // deliberately unsorted

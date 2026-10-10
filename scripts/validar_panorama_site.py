@@ -230,7 +230,7 @@ def main() -> None:
     validar_geojson("assets/data/mucum_inundacao/contornos_extravasamento.json")
     validar_arquivos_protegidos()
     validar_deploy_pages()
-    for teste in ("test_fmt_quando.js", "test_live_feed.js"):
+    for teste in ("test_fmt_quando.js", "test_live_feed.js", "test_basin_level_display.js", "test_basin_freshness_display.js"):
         proc = subprocess.run(
             ["node", str(RAIZ / "scripts" / teste)],
             cwd=RAIZ,
