@@ -56,7 +56,7 @@ def main():
     ap.add_argument("--shards", type=int, default=1)
     ap.add_argument("--saida", required=True)
     ap.add_argument("--paralelo", type=int, default=4)
-    ap.add_argument("--por-jvm", type=int, default=2)
+    ap.add_argument("--por-jvm", type=int, default=6)
     a = ap.parse_args()
     cands = json.loads(Path(a.candidatos).read_text(encoding="utf-8"))
     sims = janelas(a.janelas)

@@ -75,8 +75,8 @@ _FATORES = None
 
 def aplicar_fatores(f: dict, cfg: dict):
     """Multiplica a chuva por região (bacia_inteira.REG) conforme FATORES_CHUVA[tag]:
-    horas observadas t0 − L < h <= t0 por o[região]; horas h > t0 (prevista, ou observada se modelo 'obs') por
-    1 + (p[região] − 1)·exp(−(h − t0 − 1)/tp) (tp ausente = fator constante). Região ausente = 1."""
+    horas observadas t0 − L < h <= t0 − L0 (L0 padrão 0) por o[região]; horas h > t0 (prevista, ou observada se
+    modelo 'obs') por 1 + (p[região] − 1)·exp(−(h − t0 − 1)/tp) (tp ausente = fator constante). Região ausente = 1."""
     global _REG_CHUVA, _FATORES
     if _REG_CHUVA is None:
         import bacia_inteira as bi
@@ -84,7 +84,7 @@ def aplicar_fatores(f: dict, cfg: dict):
     if _FATORES is None:
         _FATORES = json.loads(FATORES_CHUVA.read_text(encoding="utf-8"))
     spec = _FATORES[cfg["tag"]]
-    L, fo, fp, tp = spec.get("L", 96), spec.get("o", {}), spec.get("p", {}), spec.get("tp")
+    L, L0, fo, fp, tp = spec.get("L", 96), spec.get("L0", 0), spec.get("o", {}), spec.get("p", {}), spec.get("tp")
     dts = [round((datetime.fromisoformat(h) - cfg["t0"]).total_seconds() / 3600) for h in f["horas"]]
     for s, v in f["chuva_por_subbacia"].items():
         r = _REG_CHUVA[s]
@@ -92,7 +92,7 @@ def aplicar_fatores(f: dict, cfg: dict):
         if a == 1.0 and b == 1.0:
             continue
         for i, dt in enumerate(dts):
-            if -L < dt <= 0:
+            if -L < dt <= -L0:
                 v[i] *= a
             elif dt > 0 and b != 1.0:
                 v[i] *= b if not tp else 1.0 + (b - 1.0) * math.exp(-(dt - 1) / tp)
