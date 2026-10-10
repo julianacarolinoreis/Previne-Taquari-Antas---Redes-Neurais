@@ -1,5 +1,5 @@
-"""Testes do pós-processamento (posproc: f_piv, d_piv, carregar_sombra, aplicar_titular, sombra_ponto).
-Uso: python -B teste_posproc.py (ou pytest)."""
+"""Testes do pós-processamento (posproc: f_piv, d_piv, carregar_sombra, aplicar_titular, sombra_ponto) e da sombra
+de porte (porte.carregar, indice_s). Uso: python -B teste_posproc.py (ou pytest)."""
 import hashlib
 import json
 import math
@@ -10,6 +10,8 @@ from pathlib import Path
 AQUI = Path(__file__).resolve().parent
 sys.path.insert(0, str(AQUI))
 
+import geo  # noqa: E402
+import porte  # noqa: E402
 import posproc as pp  # noqa: E402
 
 Q0, B, QMAX = 2000.0, 1.5, 8000.0
@@ -118,6 +120,23 @@ def test_sombra_exclui_a_variante_publicada():
     assert set(hs["variantes"]) == {"todos_picos"}
     assert pp.sombra_ponto(p, "MUCUM", horas, t0, sims, obs_q, obs_n, {}, dict(cfg, variantes={"so_curva": v}),
                            "so_curva") is None
+
+
+def test_porte_carregar_e_indice_s():
+    assert porte.carregar("nao", "hibrido")[0] is None
+    assert porte.carregar("auto", "aditiva")[0] is None
+    cfg, motivo = porte.carregar("auto", "hibrido")
+    assert motivo == "ligado" and not cfg["forcar"] and cfg["regra"]["limiar_mm"] == 83.4
+    assert porte.carregar("sempre", "aditiva")[0]["forcar"]
+    g = cfg["parametros"]
+    assert hashlib.sha256(json.dumps(g["p"], sort_keys=True).encode()).hexdigest()[:16] == g["sha256_p"]
+    horas = [datetime(2026, 10, 9) + timedelta(hours=i) for i in range(100)]
+    t0 = horas[30]
+    subs = set(cfg["regra"]["subbacias_mucum"])
+    # 1 mm/h em todas as sub-bacias de Muçum: 24 h até t0 + 48 h depois = 72 mm; fora de Muçum não conta
+    ch = {n: [1.0 if n in subs else 50.0] * len(horas) for n in geo.nomes()}
+    S, s24, s48 = porte.indice_s(dict(chuva_por_subbacia=ch), horas, t0, cfg)
+    assert (S, s24, s48) == (72.0, 24.0, 48.0)
 
 
 if __name__ == "__main__":

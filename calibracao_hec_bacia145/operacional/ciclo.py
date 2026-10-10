@@ -7,7 +7,7 @@ PESQUISA — não é alerta oficial.
   chuva:  observada (fonte trocável; padrão: rede ANA + CEMADEN + INMET, chuva_rede.py) até a última hora com dado;
           depois, um cenário de chuva prevista por HEC
   saída:  vazão em LJJ, Muçum, Encantado e Estrela; pós-processamento publicado (--pos hibrido: d_piv so_curva;
-          --pos aditiva: correção aditiva); nível; cotas de Muçum; sombra (híbrido todos_picos); JSON
+          --pos aditiva: correção aditiva); nível; cotas de Muçum; sombras (híbrido todos_picos, regra por porte); JSON
   rollback: --modelo md-val2-c002 --pos aditiva (= saída anterior)
 
 Uso:
@@ -36,6 +36,7 @@ import estado                  # noqa: E402
 import chuva_prevista as cp    # noqa: E402
 import executor                # noqa: E402
 import geo                     # noqa: E402
+import porte                   # noqa: E402
 import posproc as pp           # noqa: E402
 import vazao_observada as vo   # noqa: E402
 
@@ -84,6 +85,9 @@ def args():
     ap.add_argument("--sombra", default=os.environ.get("HEC_SOMBRA", "auto"),
                     help="híbrido d_piv em sombra: auto (parametros/hibrido_<id>.json, se existir), nao, ou um arquivo; "
                          "só acrescenta pontos.*.hibrido_sombra, nunca muda o publicado")
+    ap.add_argument("--porte", default=os.environ.get("HEC_PORTE", "auto"),
+                    help="sombra da regra por porte (porte.py): auto (com --pos hibrido), nao, sempre (roda o G robusto "
+                         "mesmo abaixo do limiar; teste de custo) ou um arquivo")
     ap.add_argument("--trabalho", default=str(Path.home() / "hec_aovivo_trabalho"))
     ap.add_argument("--cache-prev", default=None, help="cache das rodadas (padrão: <trabalho>/cache_prev)")
     ap.add_argument("--saida", default=str(AQUI / "saida"))
@@ -389,6 +393,44 @@ def main():
                 pontos[nome]["hibrido_sombra"] = hs
                 info_sombra["pontos"].append(nome)
     T["pos_s"] = round(time.time() - t, 1)
+
+    # ---------------- sombra da regra por porte
+    pcfg, motivo_porte = porte.carregar(a.porte, a.pos)
+    if pcfg and (achado or a.assimilar != "nao"):
+        pcfg, motivo_porte = None, "desligado: a regra foi avaliada com partida a frio e sem assimilação"
+    info_porte = dict(estado=motivo_porte, arquivo=pcfg and pcfg["arquivo"])
+    if pcfg:
+        t = time.time()
+        cen_dec = next((c for c in ("ecmwf", "gfs") if c in res), None)
+        if cen_dec is None:
+            info_porte.update(estado="sem cenário ECMWF/GFS para a decisão")
+        else:
+            S, s24, s48 = porte.indice_s(forc[cen_dec], horas, t0, pcfg)
+            lim = pcfg["regra"]["limiar_mm"]
+            grande = S >= lim
+            info_porte.update(conjunto=pcfg["conjunto"], limiar_mm=lim, S_mm=S, S_ate_t0_24h_mm=s24, S_prevista_48h_mm=s48,
+                              cenario_decisao=cen_dec, chuva_observada_ate=str(obs.ate),
+                              decisao="G robusto (S >= limiar)" if grande else "modelo base (S < limiar)",
+                              forcado=pcfg["forcar"] and not grande, rodou_hec=False, pontos=[])
+            if grande or pcfg["forcar"]:
+                resG, thG, _ = executor.rodar(f"{sim}G", ini, fim, regs, forc, pcfg["parametros"])
+                errG = {c: str(r)[:300] for c, r in resG.items() if isinstance(r, Exception)}
+                resG = {c: r for c, r in resG.items() if not isinstance(r, Exception)}
+                if errG:
+                    avisos.append(f"sombra de porte: HEC do G falhou em {sorted(errG)}")
+                info_porte.update(rodou_hec=bool(resG), hec_s=thG["hec_s"])
+                for nome, par_p in pcfg["d_piv"].items():
+                    _, no, _, _ = pp.PONTOS[nome]
+                    simsG = {c: r.get(no, {}) for c, r in resG.items()}
+                    blk = pp.serie_dpiv(pontos[nome], nome, horas, t0, simsG, *obs_pt[nome], curvas, par_p,
+                                        pcfg.get("rmax", 3.0))
+                    pontos[nome]["porte_sombra"] = dict(
+                        conjunto=pcfg["conjunto"], decisao=info_porte["decisao"], S_mm=S,
+                        aviso="SOMBRA — não publicado", simulado={c: [pp._r(s.get(h)) for h in horas]
+                                                                  for c, s in simsG.items()}, **blk)
+                    info_porte["pontos"].append(nome)
+        info_porte["tempo_s"] = round(time.time() - t, 1)
+        T["porte_sombra_s"] = info_porte["tempo_s"]
     t = time.time()
     if a.modo == "retro" and a.janela_arquivo:           # verificação: observado DEPOIS de t0 (só no retroativo)
         fv = vo.ArquivoObservados(a.janela_arquivo, CAL / "dados" / "observados")
@@ -443,6 +485,8 @@ def main():
     }
     if info_pos is not None:
         saida["pos_processamento"] = info_pos
+    if a.pos == "hibrido" or a.porte != "auto":
+        saida["porte_sombra"] = info_porte
     if a.modo == "retro":
         saida["observados_controles_falhas"] = falhas_q
     out = Path(a.saida)
@@ -463,6 +507,11 @@ def main():
     print("sombra:", info_sombra["estado"], info_sombra["pontos"])
     if info_pos is not None:
         print("publicado:", info_pos)
+    if "porte_sombra" in saida:
+        print("porte:", {k: v for k, v in info_porte.items() if k != "pontos"})
+        for c, r in mu.get("porte_sombra", {}).get("pico", {}).items():
+            print(f"  porte Muçum {c}: pico {r['pico_nivel_cm']} cm ({r['pico_vazao_m3s']} m³/s) em {r['t_pico']}"
+                  + ("; curva extrapolada" if r["curva_extrapolada"] else ""))
     print("avisos:", avisos)
     return 0
 
