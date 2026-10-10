@@ -68,6 +68,47 @@ Achados da revisão das rodadas anteriores:
 - `nuvem_agregar.py` descartava as métricas de papel "teste" sem `--teste`, e a rodada teste1 saiu vazia. O fluxo agora
   passa `--teste` quando o PEDIDO traz `"abrir_teste": true`. Os eventos de teste continuam fechados.
 
+## Perda que cresce com a cheia (branch `cursor/hec-bacia145-perda-cheia`, 09/10/2026)
+
+O melhor modelo (vo-rp5-c041 / vo-val-c008, `lrdcr` só com fb regional) subestima os picos grandes a jusante, e o
+coeficiente de escoamento simulado fica ~0,5 em todo porte, enquanto o observado cresce com o evento (Muçum 0,50 →
+0,63; Encantado 0,50 → 0,67). Três famílias novas, todas com Linear Reservoir e `xfb_T`/`xfb_B` regionais:
+
+| Família | Perda | Por quê |
+|---|---|---|
+| `lrdcf` | Deficit and Constant (controle: `lrdc` + fb regional, sem os outros multiplicadores do `lrdcr`) | controle justo |
+| `lrscsf` | SCS Curve Number, `S = s0·exp(−q0/q*)` (CN ≤ 98), `Ia = iar·S` | C = Pe/P cresce com a chuva acumulada; sem recuperação entre eventos |
+| `lrsmaf` | Soil Moisture Accounting (solo = zona de tensão `dmax` + gravitacional `sup`; GW1/GW2), regional `xpdeep_T`/`xpdeep_B`; o reservatório linear vira só o trecho de propagação (`K_LR_SMA` = 1 h) | excesso por saturação: a infiltração cai quando o solo enche; seca por ET entre eventos |
+
+Green-Ampt ficou de fora (excesso hortoniano, depende de intensidade; as cheias do Taquari são de saturação após dias
+de chuva). Uma DC "reformulada" é o SMA com uma camada. O HEC-HMS recusa camadas do SMA acima de 1500 mm (ERROR 42001).
+Novas opções do `rodada_dc.py`: `--livres` e `--sem-centro` (modo `viz`) e `--forcamento`.
+
+Comparação justa (forcamento_v3b, objetivo J_pico): g0 = 48 vizinhos de vo-val-c008 com a perda livre, mais 5
+gerações de ES (λ 48, μ 8). Depois, 3 gerações a mais só para controle e SMA. Validação em todas as janelas menos a de teste.
+
+| Candidato | J cal | J_pico cal | J val | J_pico val | passa val |
+|---|---|---|---|---|---|
+| vo-val-c008 (referência) | 6,11 | 5,29 | 5,84 | 6,04 | 14/144 |
+| vo-rp5-c041 (referência) | 6,07 | 5,24 | 5,89 | 6,13 | 13/144 |
+| pc-f5-c004 (`lrdcf`, g5) | 6,11 | 5,23 | 5,77 | 5,89 | 22/144 |
+| pc-f8-c025 (`lrdcf`, g8) | 5,92 | **5,12** | 5,68 | 5,91 | 17/144 |
+| pc-scs5-c026 (`lrscsf`, g5) | 7,40 | 6,35 | **5,33** | **5,45** | 6/144 |
+| pc-sma5-c025 (`lrsmaf`, g5) | 6,95 | 5,78 | 6,14 | 6,11 | 13/144 |
+| pc-sma8-c027 (`lrsmaf`, g8) | 6,51 | 5,34 | 6,22 | 6,05 | 11/144 |
+
+- Pela regra (escolha só na calibração), o melhor é o controle recalibrado `lrdcf` (pc-f8-c025). Ele melhora pouco
+  sobre o vo-val-c008, e o pico grande segue baixo: mediana em Muçum −22%, em Encantado −31%.
+- O SMA reproduz o C crescente (Muçum, cheias grandes: 0,66 contra 0,63 observado) e o pico grande em Muçum
+  (mediana −3%; −18% só dentro da curva). Mas passa do pico em mai/2024 (+44%) e jul/2020 (+36%), os dois com
+  Q obs extrapolada; produz volume demais em Tainhas (+25–36%) e não melhora o J de validação.
+- O SCS tem o melhor J de validação (5,21–5,33 nos 3 melhores), mas o pior de calibração: piora a forma dos
+  eventos pequenos (NSE em Encantado 0,20–0,35 contra 0,52–0,54). O ganho na validação pode ser da época (a divisão cal/val é temporal).
+- Fora dos eventos (dentro das janelas, partindo da vazão observada), SCS e SMA sobem a vazão de recessão
+  ~7–12% sobre o controle. A tendência é aumentar o excesso do sistema ao vivo, não reduzir.
+
+Análises: `_analise_perda/` (não versionada).
+
 ## Janelas derivadas com chuva prevista (09/10/2026)
 
 `<mãe>__<t0 AAAAMMDDHH>__<modelo>` (ex.: `S2023_09__2023090313__gfs`) é uma emissão de previsão: mesmo período,
