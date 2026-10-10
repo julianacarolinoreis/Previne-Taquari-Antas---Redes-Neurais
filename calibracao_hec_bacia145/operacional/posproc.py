@@ -231,39 +231,60 @@ def d_piv(S, horas, tv, O_tv, q0, b, qmax, tau_h, t0, rmax=3.0):
     return out, e
 
 
-def sombra_ponto(p, nome, horas, t0, sims, obs_q, obs_n, curvas, cfg):
-    """Bloco `hibrido_sombra` de um ponto (ou None se o ponto não está no arquivo). Não altera `p`."""
+def serie_dpiv(p, nome, horas, t0, sims, obs_q, obs_n, curvas, par, rmax=3.0):
+    """d_piv de um ponto com os parâmetros `par` {q0, b, qmax, tau_h}, mesmo tv da correção aditiva do ponto `p`.
+    Devolve {q0, b, qmax, tau_h, fator_maximo, erro_em_tv_m3s, corrigido, nivel_previsto_cm, pico} por cenário."""
     lim = PONTOS[nome][2]
     uv = p.get("ultimo_observado_valido")
     tv = None if uv is None else horas.index(datetime.fromisoformat(uv["t"]))
     O_tv = None if tv is None else obs_q[horas[tv]]
     curva = curva_ponto(nome, t0, obs_q, obs_n, curvas)
-    rmax = cfg.get("rmax", 3.0)
-    res = {}
-    for var, v in cfg["variantes"].items():
-        pp_ = v["pontos"].get(nome)
-        if pp_ is None:
-            continue
-        r = dict(q0=pp_["q0"], b=pp_["b"], qmax=pp_["qmax"], tau_h=pp_["tau_h"],
-                 fator_maximo=_r((pp_["qmax"] / pp_["q0"]) ** (pp_["b"] - 1), 3),
-                 erro_em_tv_m3s={}, corrigido={}, nivel_previsto_cm={}, pico={})
-        for c, s in sims.items():
-            S = [s.get(t) for t in horas]
-            F, e = d_piv(S, horas, tv, O_tv, pp_["q0"], pp_["b"], pp_["qmax"], pp_["tau_h"], t0, rmax)
-            r["erro_em_tv_m3s"][c] = _r(e)
-            r["corrigido"][c] = [_r(x) for x in F]
-            niv = [None if x is None or curva is None else _r(curva.q2h(x), 0) for x in F]
-            if curva is not None:
-                r["nivel_previsto_cm"][c] = niv
-            fut = [(t, q, n, x) for t, q, n, x in zip(horas, F, niv, S) if q is not None]
-            if fut:
-                tm, qm, nm, _ = max(fut, key=lambda x: x[1])
-                r["pico"][c] = dict(pico_vazao_m3s=_r(qm), pico_nivel_cm=_r(nm, 0), t_pico=str(tm),
-                                    curva_extrapolada=bool(lim and nm is not None and nm > lim),
-                                    fator_congelado=any(x > pp_["qmax"] for *_, x in fut))
-        res[var] = r
+    r = dict(q0=par["q0"], b=par["b"], qmax=par["qmax"], tau_h=par["tau_h"],
+             fator_maximo=_r((par["qmax"] / par["q0"]) ** (par["b"] - 1), 3),
+             erro_em_tv_m3s={}, corrigido={}, nivel_previsto_cm={}, pico={})
+    for c, s in sims.items():
+        S = [s.get(t) for t in horas]
+        F, e = d_piv(S, horas, tv, O_tv, par["q0"], par["b"], par["qmax"], par["tau_h"], t0, rmax)
+        r["erro_em_tv_m3s"][c] = _r(e)
+        r["corrigido"][c] = [_r(x) for x in F]
+        niv = [None if x is None or curva is None else _r(curva.q2h(x), 0) for x in F]
+        if curva is not None:
+            r["nivel_previsto_cm"][c] = niv
+        fut = [(t, q, n, x) for t, q, n, x in zip(horas, F, niv, S) if q is not None]
+        if fut:
+            tm, qm, nm, _ = max(fut, key=lambda x: x[1])
+            r["pico"][c] = dict(pico_vazao_m3s=_r(qm), pico_nivel_cm=_r(nm, 0), t_pico=str(tm),
+                                curva_extrapolada=bool(lim and nm is not None and nm > lim),
+                                fator_congelado=any(x > par["qmax"] for *_, x in fut))
+    return r
+
+
+def sombra_ponto(p, nome, horas, t0, sims, obs_q, obs_n, curvas, cfg, publicada=None):
+    """Bloco `hibrido_sombra` de um ponto (variantes do arquivo menos a `publicada`; None se não houver). Não altera `p`."""
+    res = {var: serie_dpiv(p, nome, horas, t0, sims, obs_q, obs_n, curvas, v["pontos"][nome], cfg.get("rmax", 3.0))
+           for var, v in cfg["variantes"].items() if var != publicada and nome in v["pontos"]}
     if not res:
         return None
-    return dict(metodo=cfg["metodo"], modelo=cfg["modelo"], arquivo=cfg["arquivo"], limite_curva_cm=lim,
+    return dict(metodo=cfg["metodo"], modelo=cfg["modelo"], arquivo=cfg["arquivo"], limite_curva_cm=PONTOS[nome][2],
                 horizonte_avaliado_h=cfg.get("horizonte_avaliado_h"),
-                aviso="SOMBRA — não publicado; comparar com `corrigido` (correção aditiva)", variantes=res)
+                aviso="SOMBRA — não publicado; comparar com `corrigido`", variantes=res)
+
+
+def aplicar_titular(p, nome, horas, t0, sims, obs_q, obs_n, curvas, cfg, variante):
+    """Publica o d_piv (`variante`) em `corrigido`/`nivel_previsto_cm`/`erro_em_tv_m3s` do ponto e guarda a correção
+    aditiva em `aditiva`. Sem parâmetros para o ponto, nada muda (False)."""
+    par = cfg["variantes"][variante]["pontos"].get(nome)
+    if par is None or "corrigido" not in p:
+        return False
+    r = serie_dpiv(p, nome, horas, t0, sims, obs_q, obs_n, curvas, par, cfg.get("rmax", 3.0))
+    p["aditiva"] = {k: p[k] for k in ("corrigido", "nivel_previsto_cm", "erro_em_tv_m3s", "tau_h_usado") if k in p}
+    p["corrigido"], p["erro_em_tv_m3s"] = r.pop("corrigido"), r.pop("erro_em_tv_m3s")
+    if "nivel_previsto_cm" in p:
+        p["nivel_previsto_cm"] = r["nivel_previsto_cm"]
+    r.pop("nivel_previsto_cm")
+    p["correcao"] = (f"híbrido d_piv ({variante}): F(S) = S·(min(S,qmax)/q0)^(b−1) acima de q0 + (O(tv) − F(S(tv)))·"
+                     f"exp(−(t − tv)/τd); a correção aditiva τ(h) fica em `aditiva`")
+    p["pos_processamento"] = dict(metodo=cfg["metodo"], variante=variante, modelo=cfg["modelo"], arquivo=cfg["arquivo"],
+                                  limite_curva_cm=PONTOS[nome][2], horizonte_avaliado_h=cfg.get("horizonte_avaliado_h"),
+                                  **r)
+    return True

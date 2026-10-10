@@ -1,4 +1,4 @@
-"""Um ciclo do HEC-HMS ao vivo (bacia 145; parâmetros em parametros/*.json, padrão md-val2-c002).
+"""Um ciclo do HEC-HMS ao vivo (bacia 145; parâmetros em parametros/*.json, padrão pc-f8-c025 + d_piv publicado).
 PESQUISA — não é alerta oficial.
 
   janela: início … t0 + horizonte, passo de 10 min. Início = partida a frio pelo q0 observado (estrutura_v3) na
@@ -6,7 +6,9 @@ PESQUISA — não é alerta oficial.
           o mais recente com instante <= t0 − dias_antes; estado.py), e cada ciclo salva o que o próximo vai usar
   chuva:  observada (fonte trocável; padrão: rede ANA + CEMADEN + INMET, chuva_rede.py) até a última hora com dado;
           depois, um cenário de chuva prevista por HEC
-  saída:  vazão em LJJ, Muçum, Encantado e Estrela; correção aditiva; nível; cotas de Muçum; JSON (versão em VERSAO)
+  saída:  vazão em LJJ, Muçum, Encantado e Estrela; pós-processamento publicado (--pos hibrido: d_piv so_curva;
+          --pos aditiva: correção aditiva); nível; cotas de Muçum; sombra (híbrido todos_picos); JSON
+  rollback: --modelo md-val2-c002 --pos aditiva (= saída anterior)
 
 Uso:
   ao vivo:      python ciclo.py --modo aovivo [--horizonte 120] [--cenarios ecmwf,gfs,zero] [--estado DIR]
@@ -41,6 +43,7 @@ H = timedelta(hours=1)
 BRT = timezone(-3 * H)
 CAL = AQUI.parent
 VERSAO = 2   # formato do hec_aovivo_*.json (histórico no LEIAME)
+VARIANTE_TITULAR = "so_curva"   # d_piv publicado; a outra variante do arquivo do híbrido fica em sombra
 JANELAS_TESTE = {"X20260918": (datetime(2026, 9, 18, 6), datetime(2026, 10, 4, 11))}   # catálogo: papel "teste"
 AVISO = ("PESQUISA — não é alerta oficial. Previsão do modelo HEC-HMS da bacia Taquari-Antas (145 sub-bacias) com "
          "chuva prevista determinística; acima de 15 m em Muçum o nível é só indicativo.")
@@ -66,8 +69,12 @@ def args():
     ap.add_argument("--fonte-prev", choices=["aberto", "arquivo"], default="aberto")
     ap.add_argument("--janela-arquivo", help="janela do catálogo para --fonte-obs arquivo / observados arquivados")
     ap.add_argument("--janela-mae", help="usa o período (ini/fim) desta janela da calibração em vez de t0 − dias")
-    ap.add_argument("--parametros", default=str(AQUI / "parametros" / "md-val2-c002.json"),
-                    help="conjunto de parâmetros (parametros/*.json); lr-g8-c038.json continua disponível")
+    ap.add_argument("--modelo", default=os.environ.get("HEC_MODELO", "pc-f8-c025"),
+                    help="id do conjunto em parametros/<id>.json (padrão pc-f8-c025; rollback: md-val2-c002)")
+    ap.add_argument("--parametros", default=None, help="arquivo de parâmetros (substitui --modelo)")
+    ap.add_argument("--pos", choices=["hibrido", "aditiva"], default=os.environ.get("HEC_POS", "hibrido"),
+                    help="pós-processamento publicado em LJJ/Muçum/Encantado: hibrido = d_piv so_curva de "
+                         "parametros/hibrido_<id>.json (sem ele, aditiva); aditiva = correção aditiva τ(h) (rollback)")
     ap.add_argument("--estado", default=None,
                     help="loja de estados do HMS entre ciclos (estado.py); padrão: $HEC_ESTADO_DIR ou desligado "
                          "('-'). Desligado = partida a frio adaptativa (melhor no experimento_estado.py; ver LEIAME)")
@@ -237,6 +244,7 @@ def main():
     # causal: nada depois de t0, no horário já corrigido (relógio de Muçum adiantado 105 min em 2023–2024)
     regs = {c: {t: v for t, v in r.items() if comum.corrige_relogio(c, t) <= t0} for c, r in regs.items()}
     T["observados_s"] = round(time.time() - t, 1)
+    a.parametros = a.parametros or str(AQUI / "parametros" / f"{a.modelo}.json")
     par = json.loads(Path(a.parametros).read_text(encoding="utf-8"))
     dir_estado = a.estado if a.estado is not None else os.environ.get("HEC_ESTADO_DIR", "-")
     loja = estado.Loja(dir_estado, par) if dir_estado != "-" else None
@@ -349,6 +357,20 @@ def main():
         obs_pt[nome] = (oq, on)
         pontos[nome] = pp.ponto(nome, horas, t0, {c: r.get(no, {}) for c, r in res.items()}, oq, on, corr, curvas,
                                 a.horizonte, aditiva=a.assimilar == "nao")
+    info_pos = None
+    if a.pos == "hibrido":
+        hib, motivo_hib = pp.carregar_sombra(par, "auto")
+        info_pos = dict(publicado="aditiva", variante=None, arquivo=hib and hib["arquivo"], pontos=[])
+        if a.assimilar != "nao":
+            avisos.append("--pos hibrido com assimilação: o d_piv não se aplica (avaliado sem assimilação)")
+        elif hib is None:
+            avisos.append(f"--pos hibrido: {motivo_hib}; publicada a correção aditiva")
+        else:
+            info_pos.update(publicado="d_piv", variante=VARIANTE_TITULAR)
+            for nome, (_, no, _, _) in pp.PONTOS.items():
+                if pp.aplicar_titular(pontos[nome], nome, horas, t0, {c: r.get(no, {}) for c, r in res.items()},
+                                      *obs_pt[nome], curvas, hib, VARIANTE_TITULAR):
+                    info_pos["pontos"].append(nome)
     pontos["MUCUM"]["cotas_previstas"] = pp.cotas_mucum(pontos["MUCUM"], horas, t0)
     for nome in pontos:
         rc = pp.resumo_conjunto(pontos[nome], ok, horas, t0)
@@ -359,12 +381,15 @@ def main():
         sombra, motivo = None, "desligado com --assimilar (o híbrido foi avaliado sobre a simulação sem assimilação)"
     info_sombra = dict(estado=motivo, arquivo=sombra and sombra["arquivo"], pontos=[])
     if sombra:
+        publicada = info_pos and info_pos["variante"]
         for nome, (_, no, _, _) in pp.PONTOS.items():
             hs = pp.sombra_ponto(pontos[nome], nome, horas, t0, {c: r.get(no, {}) for c, r in res.items()},
-                                 *obs_pt[nome], curvas, sombra)
+                                 *obs_pt[nome], curvas, sombra, publicada)
             if hs:
                 pontos[nome]["hibrido_sombra"] = hs
                 info_sombra["pontos"].append(nome)
+    T["pos_s"] = round(time.time() - t, 1)
+    t = time.time()
     if a.modo == "retro" and a.janela_arquivo:           # verificação: observado DEPOIS de t0 (só no retroativo)
         fv = vo.ArquivoObservados(a.janela_arquivo, CAL / "dados" / "observados")
         rv, _ = fv.obter([pp.PONTOS[n][0] for n in pp.PONTOS], ini, fim)
@@ -373,7 +398,7 @@ def main():
             pontos[nome]["verificacao_apos_t0"] = dict(
                 vazao_m3s=[pp._r(q[h][1]) if h in q and h > t0 else None for h in horas],
                 nivel_cm=[pp._r(q[h][0]) if h in q and h > t0 else None for h in horas])
-    T["pos_s"] = round(time.time() - t, 1)
+    T["pos_s"] = round(T["pos_s"] + time.time() - t, 1)
     T["total_s"] = round(time.time() - t_tot, 1)
 
     mu = pontos["MUCUM"]
@@ -416,6 +441,8 @@ def main():
         "tempos_s": T,
         "hibrido_sombra": info_sombra,
     }
+    if info_pos is not None:
+        saida["pos_processamento"] = info_pos
     if a.modo == "retro":
         saida["observados_controles_falhas"] = falhas_q
     out = Path(a.saida)
@@ -434,6 +461,8 @@ def main():
             print(f"  sombra {var} Muçum {c}: pico {r['pico_nivel_cm']} cm ({r['pico_vazao_m3s']} m³/s) em {r['t_pico']}"
                   + ("; curva extrapolada" if r["curva_extrapolada"] else ""))
     print("sombra:", info_sombra["estado"], info_sombra["pontos"])
+    if info_pos is not None:
+        print("publicado:", info_pos)
     print("avisos:", avisos)
     return 0
 
