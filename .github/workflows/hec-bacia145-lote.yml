@@ -69,6 +69,9 @@ jobs:
           rodada = re.sub(r"[^A-Za-z0-9_-]", "-", str(ped.get("rodada") or os.environ.get("RODADA_IN") or "smoke"))[:40]
           janelas = re.sub(r"[^A-Za-z0-9_,]", "", str(ped.get("janelas") or os.environ.get("JANELAS_IN") or "S2023_09,S2023_11"))
           n = max(1, min(20, int(ped.get("shards") or os.environ.get("SHARDS_IN") or 2)))
+          # lista longa (> 100 kB passa do limite de uma variável de ambiente): os jobs leem do PEDIDO.json
+          if len(janelas) > 60000:
+              janelas = "@janelas.txt"
           print("n=%d" % n)
           print("rodada=" + rodada)
           print("janelas=" + janelas)
@@ -138,7 +141,11 @@ jobs:
           json.dump(cands, open(W + "/cands.json", "w"))
           if ped.get("papeis"):
               json.dump(ped["papeis"], open(W + "/papeis.json", "w"))
-          print(len(cands), "candidatos;", "papeis:", ped.get("papeis"))
+          # fatores de chuva por região das janelas derivadas com tag (<mãe>__<t0>__<modelo>__<tag>)
+          json.dump(ped.get("chuva_fatores") or {}, open(W + "/chuva_fatores.json", "w"))
+          import re
+          open(W + "/janelas.txt", "w").write(re.sub(r"[^A-Za-z0-9_,]", "", str(ped.get("janelas") or "")))
+          print(len(cands), "candidatos;", "papeis:", ped.get("papeis"), ";", len(ped.get("chuva_fatores") or {}), "tags de fatores")
           PY
       - name: Rodar o pedaço da rodada
         run: |
@@ -207,6 +214,8 @@ jobs:
           json.dump(cands, open(W + "/cands.json", "w"))
           if ped.get("papeis"):
               json.dump(ped["papeis"], open(W + "/papeis.json", "w"))
+          import re
+          open(W + "/janelas.txt", "w").write(re.sub(r"[^A-Za-z0-9_,]", "", str(ped.get("janelas") or "")))
           # eventos de teste só entram no resultado quando o pedido diz explicitamente que o teste foi aberto
           if ped.get("abrir_teste") is True:
               open(W + "/abrir_teste", "w").write("1")

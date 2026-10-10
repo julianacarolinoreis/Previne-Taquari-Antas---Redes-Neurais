@@ -11,6 +11,7 @@ import argparse
 import json
 import shutil
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import bacia_inteira as bi
@@ -25,7 +26,26 @@ def janelas(arg):
         return list(bs.SIMS_CAL)
     if arg == "todas":
         return list(SIMULACOES)
+    if arg.startswith("@"):
+        arg = Path(arg[1:]).read_text(encoding="utf-8").strip()
     return [janela(s) for s in arg.split(",") if s]
+
+
+def copiar_vazao(orig: Path, dest: Path, s: str):
+    """Janela com tag de fatores: só as horas cheias de t0 − 120 h a t0 + 49 h (o resto não muda com os fatores)."""
+    cfg = SIMULACOES[s]
+    if not cfg.get("tag"):
+        shutil.copy2(orig, dest)
+        return
+    base = datetime(1899, 12, 31)
+    a = int((cfg["t0"] - timedelta(hours=120) - base).total_seconds() // 60)
+    b = int((cfg["t0"] + timedelta(hours=49) - base).total_seconds() // 60)
+    with orig.open() as h, dest.open("w") as o:
+        o.write(h.readline())
+        for linha in h:
+            tv = int(linha.split(",", 2)[1])
+            if a <= tv <= b and tv % 60 == 0:
+                o.write(linha)
 
 
 def main():
@@ -57,7 +77,7 @@ def main():
             falhas += 1
             (alvo / "erro.txt").write_text(str(r)[:2000], encoding="utf-8")
         else:
-            shutil.copy2(d / "vazao.csv", alvo / "vazao.csv")
+            copiar_vazao(d / "vazao.csv", alvo / "vazao.csv", s)
     print(f"concluído: {len(meus) - falhas} ok, {falhas} falhas", flush=True)
     return 1 if falhas == len(meus) and meus else 0
 

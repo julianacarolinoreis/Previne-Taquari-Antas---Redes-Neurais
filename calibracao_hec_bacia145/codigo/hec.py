@@ -14,8 +14,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from comum import (AREA_MUCUM_KM2, BASIN_BASE, CONTROLES, DADOS, FORC, FORC_PREV, HEC_CMD, MUCUM, SIMULACOES,
-                   corrige_relogio, mae)
+from comum import (AREA_MUCUM_KM2, BASIN_BASE, CONTROLES, DADOS, FATORES_CHUVA, FORC, FORC_PREV, HEC_CMD, MUCUM,
+                   SIMULACOES, corrige_relogio, mae)
 
 MES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 MES_L = ["January", "February", "March", "April", "May", "June", "July", "August", "September",
@@ -51,25 +51,54 @@ def forcamento_derivado(sim: str):
     cfg = SIMULACOES[sim]
     f = json.loads((FORC / f"{cfg['mae']}.json").read_text(encoding="utf-8"))
     prev = {}
-    if cfg["modelo"] != "zero":
+    if cfg["modelo"] not in ("zero", "obs"):
         p = json.loads((FORC_PREV / f"{cfg['mae']}__{cfg['modelo']}.json").read_text(encoding="utf-8"))
         prev = p["emissoes"][f"{cfg['t0']:%Y%m%d%H}"]["chuva"]
         assert set(prev) == set(f["chuva_por_subbacia"]), sim
-    for i, h in enumerate(f["horas"]):
-        k = round((datetime.fromisoformat(h) - cfg["t0"]).total_seconds() / 3600) - 1
-        if k >= 0:
-            for s, v in f["chuva_por_subbacia"].items():
-                serie = prev.get(s, [])
-                v[i] = serie[k] if k < len(serie) else 0.0
+    if cfg["modelo"] != "obs":
+        for i, h in enumerate(f["horas"]):
+            k = round((datetime.fromisoformat(h) - cfg["t0"]).total_seconds() / 3600) - 1
+            if k >= 0:
+                for s, v in f["chuva_por_subbacia"].items():
+                    serie = prev.get(s, [])
+                    v[i] = serie[k] if k < len(serie) else 0.0
+    if cfg.get("tag"):
+        aplicar_fatores(f, cfg)
     f["sim"] = sim
     f.pop("chuva_media_bacia_mm", None)
     (FORC / f"{sim}.json").write_text(json.dumps(f), encoding="utf-8")
 
 
-def dss_chuva(sim: str) -> Path:
-    dss = FORC / f"{sim}.dss"
-    if dss.exists():
-        return dss
+_REG_CHUVA = None
+_FATORES = None
+
+
+def aplicar_fatores(f: dict, cfg: dict):
+    """Multiplica a chuva por região (bacia_inteira.REG) conforme FATORES_CHUVA[tag]:
+    horas observadas t0 − L < h <= t0 por o[região]; horas h > t0 (prevista, ou observada se modelo 'obs') por
+    1 + (p[região] − 1)·exp(−(h − t0 − 1)/tp) (tp ausente = fator constante). Região ausente = 1."""
+    global _REG_CHUVA, _FATORES
+    if _REG_CHUVA is None:
+        import bacia_inteira as bi
+        _REG_CHUVA = bi.REG
+    if _FATORES is None:
+        _FATORES = json.loads(FATORES_CHUVA.read_text(encoding="utf-8"))
+    spec = _FATORES[cfg["tag"]]
+    L, fo, fp, tp = spec.get("L", 96), spec.get("o", {}), spec.get("p", {}), spec.get("tp")
+    dts = [round((datetime.fromisoformat(h) - cfg["t0"]).total_seconds() / 3600) for h in f["horas"]]
+    for s, v in f["chuva_por_subbacia"].items():
+        r = _REG_CHUVA[s]
+        a, b = fo.get(r, 1.0), fp.get(r, 1.0)
+        if a == 1.0 and b == 1.0:
+            continue
+        for i, dt in enumerate(dts):
+            if -L < dt <= 0:
+                v[i] *= a
+            elif dt > 0 and b != 1.0:
+                v[i] *= b if not tp else 1.0 + (b - 1.0) * math.exp(-(dt - 1) / tp)
+
+
+def _csv_chuva(sim: str):
     if "mae" in SIMULACOES[sim] and not (FORC / f"{sim}.json").exists():
         forcamento_derivado(sim)
     f = json.loads((FORC / f"{sim}.json").read_text(encoding="utf-8"))
@@ -81,34 +110,68 @@ def dss_chuva(sim: str) -> Path:
         w.writerow(subs)
         for i in range(len(f["horas"])):
             w.writerow([f"{f['chuva_por_subbacia'][s][i]:.4f}" for s in subs])
-    tmp = FORC / f"{sim}_tmp.dss"
-    script = FORC / f"{sim}_dss.py"
-    script.write_text(f"""from hms.model.JythonHms import Exit
+    return csvp, ini
+
+
+_JY_DSS = """def escrever(csvp, tmp, ok, data_ini, hora_ini):
+    rows = list(csv.reader(open(csvp, 'rb')))
+    names = rows[0]; data = rows[1:]
+    t = HecTime(data_ini, hora_ini)
+    times = []
+    for _ in data:
+        times.append(t.value()); t.add(60)
+    dss = HecDss.open(tmp)
+    for j, name in enumerate(names):
+        c = TimeSeriesContainer()
+        c.fullName = '/TAQUARI_ANTAS/%s/PRECIP-INC/%s/1Hour/OBS/' % (name, data_ini)
+        c.interval = 60
+        c.times = times
+        c.values = [float(r[j]) for r in data]
+        c.numberValues = len(times)
+        c.units = 'MM'
+        c.type = 'PER-CUM'
+        dss.put(c)
+    dss.close()
+    open(ok, 'w').write('OK')
+"""
+_JY_CAB = """from hms.model.JythonHms import Exit
 from hec.heclib.dss import HecDss
 from hec.heclib.util import HecTime
 from hec.io import TimeSeriesContainer
 import csv
-rows = list(csv.reader(open(r'{csvp.as_posix()}', 'rb')))
-names = rows[0]; data = rows[1:]
-t = HecTime('{lbl(ini)}', '{ini:%H%M}')
-times = []
-for _ in data:
-    times.append(t.value()); t.add(60)
-dss = HecDss.open(r'{tmp.as_posix()}')
-for j, name in enumerate(names):
-    c = TimeSeriesContainer()
-    c.fullName = '/TAQUARI_ANTAS/%s/PRECIP-INC/{lbl(ini)}/1Hour/OBS/' % name
-    c.interval = 60
-    c.times = times
-    c.values = [float(r[j]) for r in data]
-    c.numberValues = len(times)
-    c.units = 'MM'
-    c.type = 'PER-CUM'
-    dss.put(c)
-dss.close()
-open(r'{(FORC / (sim + "_dss.ok")).as_posix()}', 'w').write('OK')
-Exit(1)
-""", encoding="utf-8")
+"""
+
+
+def dss_chuva_lote(sims: list[str], timeout=3600):
+    """Escreve os DSS de chuva de várias janelas numa única JVM (evita uma partida do Jython por janela)."""
+    pend = [s for s in dict.fromkeys(sims) if not (FORC / f"{s}.dss").exists()]
+    if not pend:
+        return
+    chamadas = []
+    for sim in pend:
+        csvp, ini = _csv_chuva(sim)
+        chamadas.append(f"escrever(r'{csvp.as_posix()}', r'{(FORC / (sim + '_tmp.dss')).as_posix()}', "
+                        f"r'{(FORC / (sim + '_dss.ok')).as_posix()}', '{lbl(ini)}', '{ini:%H%M}')")
+    script = FORC / f"_lote_dss_{pend[0]}.py"
+    script.write_text(_JY_CAB + _JY_DSS + "\n".join(chamadas) + "\nExit(1)\n", encoding="utf-8")
+    r = rodar_jython(script, timeout)
+    for sim in pend:
+        if (FORC / (sim + "_dss.ok")).exists():
+            (FORC / f"{sim}_tmp.dss").rename(FORC / f"{sim}.dss")
+        else:
+            print(f"DSS em lote falhou para {sim}; tentando sozinho\n{r.stdout[-500:]}\n{r.stderr[-500:]}", flush=True)
+
+
+def dss_chuva(sim: str) -> Path:
+    dss = FORC / f"{sim}.dss"
+    if dss.exists():
+        return dss
+    csvp, ini = _csv_chuva(sim)
+    tmp = FORC / f"{sim}_tmp.dss"
+    script = FORC / f"{sim}_dss.py"
+    script.write_text(_JY_CAB + _JY_DSS + f"escrever(r'{csvp.as_posix()}', r'{tmp.as_posix()}', "
+                      f"r'{(FORC / (sim + '_dss.ok')).as_posix()}', '{lbl(ini)}', '{ini:%H%M}')\nExit(1)\n",
+                      encoding="utf-8")
     r = rodar_jython(script, 600)
     if not (FORC / (sim + "_dss.ok")).exists():
         raise RuntimeError(f"Falha ao escrever DSS {sim}:\n{r.stdout[-2000:]}\n{r.stderr[-2000:]}")
@@ -363,6 +426,7 @@ def ler_vazao(d: Path) -> dict:
 
 def rodar_lote(jobs: list[tuple], paralelo=12, por_jvm=6) -> dict:
     """jobs: (dir, sim, basin_text[, tabelas]). Retorna {dir: {node: {t: q}}} (ou exceção registrada)."""
+    dss_chuva_lote([sim for d, sim, *_ in jobs if not (d / "ok.txt").exists()])
     pend = []
     for d, sim, txt, *tab in jobs:
         if (d / "ok.txt").exists():

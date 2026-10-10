@@ -37,7 +37,8 @@ def main():
     ap.add_argument("--teste", action="store_true")
     a = ap.parse_args()
     cands = json.loads(Path(a.candidatos).read_text(encoding="utf-8"))
-    sims = bs.SIMS_CAL if a.janelas == "cal" else (list(SIMULACOES) if a.janelas == "todas" else a.janelas.split(","))
+    jan = Path(a.janelas[1:]).read_text(encoding="utf-8").strip() if a.janelas.startswith("@") else a.janelas
+    sims = bs.SIMS_CAL if jan == "cal" else (list(SIMULACOES) if jan == "todas" else [s for s in jan.split(",") if s])
     achados = {}
     for f in Path(a.dir).rglob("vazao.csv"):
         achados[(f.parent.parent.name, f.parent.name)] = f
