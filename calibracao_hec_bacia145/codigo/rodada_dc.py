@@ -9,6 +9,7 @@
   lrdcf  lrdc + só xfb_T/xfb_B (controle da perda que cresce com a cheia)
   lrscsf SCS Curve Number + reservatório linear + xfb_T/xfb_B
   lrsmaf Soil Moisture Accounting + reservatório linear + multiplicadores regionais da perda profunda
+  lrsmar lrsmaf + multiplicadores regionais (T, B) de zona de tensão, zona gravitacional, infiltração e percolação do solo
 
 Mesmas janelas e papéis das famílias g1/g2/g4/g6 (todos os eventos de calibração), para o J ser comparável com
 lib-A (Initial+Constant) e scs-A (SCS).
@@ -44,7 +45,8 @@ JANELAS_CAL = ("S2023_07,S2023_09,S2023_11,S2024_05,S2024_06,X20180721,X20180821
                "X20190525,X20191027,X20200626,X20200809,X20210125,X20210525,X20210622")
 PAPEIS = {"E18": "validacao", "E22": "validacao"}
 P = e3.PARAMS_DC   # trocado em main() conforme --familia
-NEUTROS = {"ie": 5.0, "atc": 0.0, "ar": 0.0, "nob": 1.0, **{k: 1.0 for k in e3.PARAMS_LRDCR if k.startswith("x")}}
+NEUTROS = {"ie": 5.0, "atc": 0.0, "ar": 0.0, "nob": 1.0,
+           **{k: 1.0 for fam in e3.FAMILIAS.values() for k in fam if k.startswith("x")}}
 
 
 def to_unit(p):

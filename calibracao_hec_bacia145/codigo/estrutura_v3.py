@@ -123,20 +123,30 @@ PARAMS_LRSMAF.update(dmax=(10.0, 300.0, "log"), sup=(5.0, 300.0, "log"), finf=(1
                      g2=(20.0, 1500.0, "log"), pdeep=(0.002, 3.0, "log"),   # HEC: camada <= 1500 mm (ERROR 42001)
                      xpdeep_T=(0.2, 5.0, "log"), xpdeep_B=(0.2, 5.0, "log"))
 K_LR_SMA = 1.0
+#   lrsmar lrsmaf + multiplicadores regionais (T e B, como no lrdcr) da zona de tensão, zona gravitacional, infiltração
+#          máxima e percolação do solo (a pdeep já era regional): no lrsmaf, Tainhas produz volume demais (+15% a +36%)
+#          com o mesmo solo do resto da bacia.
+PARAMS_LRSMAR = dict(PARAMS_LRSMAF, **{f"x{k}_{g}": (lo, hi, "log") for g in ("T", "B")
+                                       for k, lo, hi in (("dmax", 1 / 3, 3.0), ("sup", 1 / 3, 3.0),
+                                                         ("finf", 0.2, 5.0), ("psoil", 0.2, 5.0))})
+SOLO_MAX_SMA = 1499.0   # HEC: camada <= 1500 mm (ERROR 42001); vale para dmax + sup depois dos multiplicadores
 FAMILIAS = {"dc": PARAMS_DC, "lric": PARAMS_LRIC, "lrdc": PARAMS_LRDC, "lrdcv": PARAMS_LRDCV, "lrdc8": PARAMS_LRDC8,
             "lrdcv8": PARAMS_LRDCV8, "lrdcr": PARAMS_LRDCR, "lrdcf": PARAMS_LRDCF, "lrscsf": PARAMS_LRSCSF,
-            "lrsmaf": PARAMS_LRSMAF}
+            "lrsmaf": PARAMS_LRSMAF, "lrsmar": PARAMS_LRSMAR}
 
 
 def p_regional(p, reg):
     """Parâmetros de volume do grupo da região (famílias com multiplicadores x<k>_<grupo>); sem eles devolve p."""
     g = GRUPO_VOL[reg]
-    x = {k: p[f"x{k}_{g}"] for k in ("dmax", "perc", "fb", "pdeep") if f"x{k}_{g}" in p}
+    x = {k: p[f"x{k}_{g}"] for k in ("dmax", "perc", "fb", "pdeep", "sup", "finf", "psoil") if f"x{k}_{g}" in p}
     if not x:
         return p
     out = dict(p, **{k: p[k] * v for k, v in x.items()})
     if "fb" in x:
         out["fb"] = min(1.0, out["fb"])
+    if "sup" in out and out["dmax"] + out["sup"] > SOLO_MAX_SMA:
+        f = SOLO_MAX_SMA / (out["dmax"] + out["sup"])
+        out["dmax"], out["sup"] = out["dmax"] * f, out["sup"] * f
     return out
 ROTAS_8PT = {"mc8st": ("R_208", "R_256", "R_201"), "mc8": None}
 _SECOES = None
